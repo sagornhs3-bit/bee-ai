@@ -27,8 +27,38 @@ LANGUAGES = {
 
 
 def load_cfg():
-    with open(CONFIG_FILE, "r", encoding="utf-8") as f:
-        return json.load(f)
+    # Try Streamlit Secrets first (for Cloud deployment)
+    try:
+        import streamlit as st
+        if hasattr(st, 'secrets') and "config" in st.secrets:
+            return dict(st.secrets["config"])
+    except Exception:
+        pass
+
+    # Fallback to local config.json
+    try:
+        with open(CONFIG_FILE, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except FileNotFoundError:
+        return {
+            "assistant_name": "Bee",
+            "mode": "auto",
+            "default_language": "en",
+            "groq_api_key": "",
+            "ollama_model": "llama3.2:3b",
+            "whisper_model": "small",
+            "whisper_language": "en",
+            "tts_voice_english": "en-US-JennyNeural",
+            "tts_voice_bengali": "bn-BD-NabanitaNeural",
+            "tts_rate": "+0%",
+            "tts_pitch": "+0Hz",
+            "tts_volume": "+5%",
+            "push_to_talk_key": "ctrl+alt+b",
+            "exit_key": "ctrl+alt+q",
+            "memory_enabled": True,
+            "reply_language": "en",
+            "log_conversations": True,
+        }
 
 
 def save_cfg(data):
