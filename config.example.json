@@ -1,0 +1,23 @@
+{
+  "assistant_name": "Bee",
+  "mode": "auto",
+  "default_language": "en",
+  "supported_languages": ["en", "bn", "hi", "es", "ar"],
+  "groq_api_key": "PASTE_YOUR_GROQ_API_KEY_HERE",
+  "ollama_model": "llama3.2:3b",
+  "whisper_model": "small",
+  "whisper_language": "en",
+  "tts_voice_english": "en-US-JennyNeural",
+  "tts_voice_bengali": "bn-BD-NabanitaNeural",
+  "tts_voice_hindi": "hi-IN-SwaraNeural",
+  "tts_voice_spanish": "es-ES-ElviraNeural",
+  "tts_voice_arabic": "ar-SA-ZariyahNeural",
+  "tts_rate": "+0%",
+  "tts_pitch": "+0Hz",
+  "tts_volume": "+5%",
+  "push_to_talk_key": "ctrl+alt+b",
+  "exit_key": "ctrl+alt+q",
+  "memory_enabled": true,
+  "reply_language": "en",
+  "log_conversations": true
+}
