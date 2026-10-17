@@ -24,7 +24,10 @@ def _get_volume_interface():
 
 
 def get_time() -> str:
-    now = datetime.datetime.now()
+    # Force Bangladesh Timezone (UTC+6)
+    bd_tz = datetime.timezone(datetime.timedelta(hours=6))
+    now = datetime.datetime.now(bd_tz)
+    
     h, m = now.hour, now.minute
     if 4 <= h < 12:
         period = "morning"
@@ -36,9 +39,11 @@ def get_time() -> str:
         period = "night"
     return f"It's {h}:{m:02d} - good {period}!"
 
-
 def get_date() -> str:
-    now = datetime.datetime.now()
+    # Force Bangladesh Timezone (UTC+6)
+    bd_tz = datetime.timezone(datetime.timedelta(hours=6))
+    now = datetime.datetime.now(bd_tz)
+    
     return f"Today is {now.strftime('%A, %B %d, %Y')}."
 
 
