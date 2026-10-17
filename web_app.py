@@ -117,7 +117,7 @@ def show_login_page():
 
     col1, col2, col3 = st.columns([1, 1.2, 1])
     with col2:
-        st.markdown('<div class="login-logo">🐝</div>', unsafe_allow_html=True)
+        st.markdown('<div style="text-align: center; margin-top: 3rem; margin-bottom: 1rem;"><img src="https://raw.githubusercontent.com/sagornhs3-bit/bee-ai/main/bumblebee.png" width="120"></div>', unsafe_allow_html=True)
         st.markdown('<div class="login-title">Bee AI</div>', unsafe_allow_html=True)
         st.markdown('<div class="login-sub">Sign in to continue</div>', unsafe_allow_html=True)
 
