@@ -1,5 +1,6 @@
 """Bee - Web Chat with Login + Multi-language + Light/Dark Theme"""
 
+from openai import OpenAI
 from duckduckgo_search import DDGS
 import streamlit as st
 import json
@@ -98,8 +99,9 @@ if "theme" not in st.session_state:
     st.session_state.theme = "dark"
 if "chat_id" not in st.session_state:
     st.session_state.chat_id = None
+if "ai_engine" not in st.session_state:
+    st.session_state.ai_engine = "Groq"  # ডিফল্ট মডেল
 # ==============================================
-
 
 # ============ LOGIN ============
 def show_login_page():
@@ -245,50 +247,70 @@ def search_web(query):
         return f"Search failed: {e}"
       
 def ask_llm(prompt):
-    client = get_groq()
-    if not client:
-        return "দুঃখিত, আমার API Key সেট করা নেই।"
-
-    # Check if we need to search (if user asks a question)
+    # ওয়েব সার্চ লজিক
     web_context = ""
-    search_triggers = ["search", "who is", "what is", "news", "ke", "ki", "kobe", "koto", "খবর", "কে", "কি", "কবে", "কত"]
+    search_triggers = ["search", "who is", "what is", "news", "ke", "ki", "kobe", "koto", "খবর", "কে", "কি", "কবে", "কত", "current", "today"]
     if any(w in prompt.lower() for w in search_triggers):
-        print("Searching the web...")
-        web_context = search_web(prompt)
+        with st.spinner("🌐 আমি ইন্টারনেটে খুঁজছি..."):
+            web_context = search_web(prompt)
 
     mem = build_memory_context()
     mem_block = f"\n\nUser info:\n{mem}\n" if mem else ""
 
-    # Advanced prompt that forces AI to think and cross-check
     sys_prompt = f"""You are {NAME} — a highly intelligent and empathetic AI assistant.
-Your goal is to give the most accurate answer by thinking step-by-step and cross-checking the provided web context.
-
 {mem_block}
 
-## Web Search Context (Use this if relevant):
+## Web Search Context:
 {web_context}
 
 ## Rules:
-1. If the Web Context is provided, read it carefully, cross-check it with your own knowledge, and give the user a verified answer.
-2. Always reply in Bengali (unless the user speaks in English).
-3. Think step-by-step internally before answering.
-4. Keep the final answer short, warm, and natural (1-3 sentences).
-5. Do NOT say "Based on the web search...". Just answer naturally.
-6. Use 1-2 emojis.
+1. If Web Context is provided, cross-check and give a verified answer.
+2. Always reply in Bengali.
+3. Keep the final answer short, warm, and natural (1-3 sentences).
 """
 
-    try:
-        r = client.chat.completions.create(
-            model="llama-3.3-70b-versatile",
-            messages=[
-                {"role": "system", "content": sys_prompt},
-                {"role": "user", "content": prompt},
-            ],
-            temperature=0.3,
-        )
-        return r.choices[0].message.content.strip()
-    except Exception as e:
-        return f"Error: {e}"
+    # কোন ইঞ্জিন সিলেক্ট করা আছে তা চেক করা
+    engine = st.session_state.get("ai_engine", "Groq")
+    
+    if engine == "DeepSeek":
+        try:
+            ds_key = load_cfg().get("deepseek_api_key", "")
+            if not ds_key:
+                return "দুঃখিত, DeepSeek API Key সেট করা নেই।"
+                
+            ds_client = OpenAI(
+                api_key=ds_key,
+                base_url="https://api.deepseek.com"
+            )
+            r = ds_client.chat.completions.create(
+                model="deepseek-chat",
+                messages=[
+                    {"role": "system", "content": sys_prompt},
+                    {"role": "user", "content": prompt},
+                ],
+                temperature=0.3,
+            )
+            return r.choices[0].message.content.strip()
+        except Exception as e:
+            return f"DeepSeek Error: {e}"
+            
+    else:
+        # Groq API (ডিফল্ট)
+        client = get_groq()
+        if not client:
+            return "দুঃখিত, Groq API Key সেট করা নেই।"
+        try:
+            r = client.chat.completions.create(
+                model="llama-3.3-70b-versatile",
+                messages=[
+                    {"role": "system", "content": sys_prompt},
+                    {"role": "user", "content": prompt},
+                ],
+                temperature=0.3,
+            )
+            return r.choices[0].message.content.strip()
+        except Exception as e:
+            return f"Groq Error: {e}"
 # ============ ACTIONS ============
 def _memory(text):
     import re
@@ -694,7 +716,21 @@ with st.sidebar:
     if new_t != st.session_state.theme:
         st.session_state.theme = new_t
         st.rerun()
-
+    st.divider()
+    st.markdown("**🧠 AI Engine**")
+    
+    engine_choice = st.radio(
+        "AI Model",
+        ["Groq (Fast)", "DeepSeek (Smart)"],
+        index=0 if st.session_state.ai_engine == "Groq" else 1,
+        label_visibility="collapsed"
+    )
+    
+    if "DeepSeek" in engine_choice:
+        st.session_state.ai_engine = "DeepSeek"
+    else:
+        st.session_state.ai_engine = "Groq"
+  
     st.divider()
     st.markdown("**👤 Your Name**")
     new_name = st.text_input("name_field", value=uname or "",
