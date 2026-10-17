@@ -269,7 +269,6 @@ def ask_llm(prompt):
 3. Keep the final answer short, warm, and natural (1-3 sentences).
 """
 
-    # কোন ইঞ্জিন সিলেক্ট করা আছে তা চেক করা
     engine = st.session_state.get("ai_engine", "Groq")
     
     if engine == "DeepSeek":
@@ -300,8 +299,9 @@ def ask_llm(prompt):
         if not client:
             return "দুঃখিত, Groq API Key সেট করা নেই।"
         try:
+            # এখানে মডেলের নাম পরিবর্তন করা হলো
             r = client.chat.completions.create(
-                model=""openai/gpt-oss-120b",
+                model="llama3-70b-8192",
                 messages=[
                     {"role": "system", "content": sys_prompt},
                     {"role": "user", "content": prompt},
