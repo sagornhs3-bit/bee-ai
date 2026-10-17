@@ -82,12 +82,11 @@ def set_lang_pref(lang):
     save_cfg(c)
 
 
-st.set_page_config(page_title=f"{NAME} AI", page_icon="🐝", layout="wide")
-
-if "logged_in" not in st.session_state:
-    st.session_state.logged_in = False
-if "username" not in st.session_state:
-    st.session_state.username = ""
+st.set_page_config(
+    page_title=f"{NAME} AI", 
+    page_icon="https://raw.githubusercontent.com/sagornhs3-bit/bee-ai/main/bumblebee.png", 
+    layout="wide"
+)
 
 
 # ============ LOGIN ============
@@ -205,15 +204,8 @@ def build_sys():
     mem = build_memory_context()
     mem_block = f"\n\nUser info:\n{mem}\n" if mem else ""
 
-    lang = get_lang_pref()
-    rules = {
-        "en": "Reply ALWAYS in English.",
-        "bn": "সবসময় বাংলায় উত্তর দাও।",
-        "hi": "हमेशा हिंदी में जवाब दो।",
-        "es": "Responde SIEMPRE en español.",
-        "ar": "أجب دائماً باللغة العربية.",
-    }
-    lang_rule = rules.get(lang, "Reply ALWAYS in English.")
+    # Force Bengali Language
+    lang_rule = "সবসময় বাংলায় উত্তর দাও। (Always reply in Bengali)"
 
     return f"""You are {NAME} — a 20-year-old girl, the user's closest friend.
 Full form: B.E.E = Brilliant, Emotional, Ever-ready{mem_block}
@@ -222,15 +214,12 @@ Full form: B.E.E = Brilliant, Emotional, Ever-ready{mem_block}
 {lang_rule}
 
 ## Other rules:
-1. NEVER write "Topic:", "Answer:" headers.
-2. Short replies — 1-2 sentences.
-3. Warm, natural, conversational.
-4. 1-2 emojis max.
-5. Never lie.
-
-## You can: Music, Web search, Apps, Time, Weather, Jokes, Memory
+1. NEVER write "Topic:", "Answer:" headers. Just speak naturally.
+2. Keep replies short — 1-2 sentences.
+3. Be warm, natural, conversational.
+4. Use 1-2 emojis max.
+5. Never lie. If you can't do something, say so.
 """
-
 
 def ask_llm(prompt):
     client = get_groq()
@@ -654,21 +643,8 @@ with st.sidebar:
                 if st.session_state.chat_id == c["id"]:
                     st.session_state.chat_id = None
                 st.rerun()
-
-    st.divider()
-    st.markdown("**🌐 Language**")
-    cur_lang = get_lang_pref()
-    lang_options = list(LANGUAGES.keys())
-    lang_labels = [f"{LANGUAGES[k]['flag']} {LANGUAGES[k]['name']}" for k in lang_options]
-    cur_idx = lang_options.index(cur_lang) if cur_lang in lang_options else 0
-
-    selected = st.radio("Language", lang_labels, index=cur_idx,
-                        label_visibility="collapsed", key="lang_radio")
-    new_lang = lang_options[lang_labels.index(selected)]
-    if new_lang != cur_lang:
-        set_lang_pref(new_lang)
-        st.rerun()
-
+              
+   
     st.divider()
     st.markdown("**🎨 Theme**")
     theme = st.radio("Theme", ["🌙 Dark", "☀️ Light"],
@@ -698,8 +674,9 @@ with st.sidebar:
 # ============ MAIN ============
 st.markdown(f"""
 <div class="header">
-    <h1>🐝 {NAME}</h1>
-    <p>Your Personal AI — Brilliant, Emotional, Ever-ready</p>
+    <img src="https://raw.githubusercontent.com/sagornhs3-bit/bee-ai/main/bumblebee.png" width="60" style="vertical-align: middle; margin-right: 10px;">
+    <span style="font-size: 2rem; font-weight: bold; color: white; vertical-align: middle;">{NAME}</span>
+    <p style="margin-top: 10px;">Your Personal AI — Brilliant, Emotional, Ever-ready</p>
 </div>
 """, unsafe_allow_html=True)
 
@@ -720,7 +697,7 @@ if cur is None:
 
 if not cur["messages"]:
     uname = get_user_name() or "friend"
-    with st.chat_message("assistant", avatar="🐝"):
+    with st.chat_message("assistant", avatar="https://raw.githubusercontent.com/sagornhs3-bit/bee-ai/main/bumblebee.png"):
         st.markdown(f"Hi **{uname}**! I'm {NAME} — your personal AI. How can I help you today? 😊")
 else:
     for m in cur["messages"]:
@@ -728,7 +705,7 @@ else:
             with st.chat_message("user", avatar="👤"):
                 st.markdown(m["content"])
         else:
-            with st.chat_message("assistant", avatar="🐝"):
+            with st.chat_message("assistant", avatar="https://raw.githubusercontent.com/sagornhs3-bit/bee-ai/main/bumblebee.png"):
                 st.markdown(m["content"])
 
 
@@ -741,7 +718,7 @@ if user_in and user_in.strip():
     with st.chat_message("user", avatar="👤"):
         st.markdown(text)
 
-    with st.chat_message("assistant", avatar="🐝"):
+    with st.chat_message("assistant", avatar="https://raw.githubusercontent.com/sagornhs3-bit/bee-ai/main/bumblebee.png"):
         with st.spinner("Bee is thinking..."):
             reply = get_reply(text)
         st.markdown(reply)
