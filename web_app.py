@@ -369,12 +369,15 @@ def route(text):
        if any(w in t for w in ["weather", "temperature", "rain", "আবহাওয়া", "তাপমাত্রা"]):
             from plugins import weather
             return weather.get_weather()
-      if any(w in t for w in ["time", "clock", "what time", "time now", "কয়টা বাজে", "সময় কি"]):
-            from plugins import system
-            return system.get_time()
-        if any(w in t for w in ["date", "today", "day", "আজকের তারিখ"]):
-            from plugins import system
-            return system.get_date()
+        # Time
+    if any(w in t for w in ["time", "clock", "what time", "time now", "কয়টা বাজে", "সময় কি"]):
+        from plugins import system
+        return system.get_time()
+
+    # Date
+    if any(w in t for w in ["date", "today", "day", "আজকের তারিখ"]):
+        from plugins import system
+        return system.get_date()
       if any(w in t for w in ["joke", "funny", "জোকস"]):
             from plugins import fun
             return fun.get_joke()
