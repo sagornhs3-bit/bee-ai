@@ -1,5 +1,6 @@
 """Bee - Web Chat with Login + Multi-language + Light/Dark Theme"""
 
+from duckduckgo_search import DDGS
 import streamlit as st
 import json
 import uuid
@@ -220,35 +221,63 @@ Full form: B.E.E = Brilliant, Emotional, Ever-ready{mem_block}
 4. Use 1-2 emojis max.
 5. Never lie. If you can't do something, say so.
 """
-
+def search_web(query):
+    try:
+        results = DDGS().text(query, max_results=3)
+        if not results:
+            return "No search results found."
+        formatted = ""
+        for i, res in enumerate(results):
+            formatted += f"\nResult {i+1}: {res['title']}\nSnippet: {res['body']}\n"
+        return formatted
+    except Exception as e:
+        return f"Search failed: {e}"
+      
 def ask_llm(prompt):
     client = get_groq()
-    sp = build_sys()
+    if not client:
+        return "দুঃখিত, আমার API Key সেট করা নেই।"
 
-    if client:
-        try:
-            r = client.chat.completions.create(
-                model="openai/gpt-oss-120b",
-                messages=[
-                    {"role": "system", "content": sp},
-                    {"role": "user", "content": prompt},
-                ],
-            )
-            return r.choices[0].message.content.strip()
-        except Exception:
-            pass
+    # Check if we need to search (if user asks a question)
+    web_context = ""
+    search_triggers = ["search", "who is", "what is", "news", "ke", "ki", "kobe", "koto", "খবর", "কে", "কি", "কবে", "কত"]
+    if any(w in prompt.lower() for w in search_triggers):
+        print("Searching the web...")
+        web_context = search_web(prompt)
+
+    mem = build_memory_context()
+    mem_block = f"\n\nUser info:\n{mem}\n" if mem else ""
+
+    # Advanced prompt that forces AI to think and cross-check
+    sys_prompt = f"""You are {NAME} — a highly intelligent and empathetic AI assistant.
+Your goal is to give the most accurate answer by thinking step-by-step and cross-checking the provided web context.
+
+{mem_block}
+
+## Web Search Context (Use this if relevant):
+{web_context}
+
+## Rules:
+1. If the Web Context is provided, read it carefully, cross-check it with your own knowledge, and give the user a verified answer.
+2. Always reply in Bengali (unless the user speaks in English).
+3. Think step-by-step internally before answering.
+4. Keep the final answer short, warm, and natural (1-3 sentences).
+5. Do NOT say "Based on the web search...". Just answer naturally.
+6. Use 1-2 emojis.
+"""
 
     try:
-        import ollama
-        r = ollama.chat(model=OLLAMA_MODEL, messages=[
-            {"role": "system", "content": sp},
-            {"role": "user", "content": prompt},
-        ])
-        return r["message"]["content"].strip()
+        r = client.chat.completions.create(
+            model="llama-3.3-70b-versatile",
+            messages=[
+                {"role": "system", "content": sys_prompt},
+                {"role": "user", "content": prompt},
+            ],
+            temperature=0.3,
+        )
+        return r.choices[0].message.content.strip()
     except Exception as e:
-        return f"Sorry, I couldn't respond. ({e})"
-
-
+        return f"Error: {e}"
 # ============ ACTIONS ============
 def _memory(text):
     import re
