@@ -657,22 +657,30 @@ css = """
     footer { visibility: hidden; }
     #MainMenu { visibility: hidden; }
     hr { border-color: BORDER_COLOR !important; }
-    /* Mobile Optimization */
+    
+      /* Mobile Optimization (Fixed for Keyboard) */
     @media (max-width: 768px) {
         .main .block-container {
             padding-top: 1rem;
             padding-left: 0.5rem;
             padding-right: 0.5rem;
-            padding-bottom: 80px !important;
+            padding-bottom: 20px !important;
         }
         [data-testid="stChatInput"] {
-            left: 1rem !important;
-            right: 1rem !important;
-            bottom: 10px !important;
+            position: sticky !important;
+            bottom: 0px !important;
+            left: 0px !important;
+            right: 0px !important;
+            width: 100% !important;
+            z-index: 999 !important;
+            background-color: #0e1117 !important; /* চ্যাট বক্সের ব্যাকগ্রাউন্ড কালার */
+            padding: 10px 1rem !important;
+            border-top: 1px solid #3a3d45 !important;
         }
         .header h1 { font-size: 1.5rem !important; }
         .header p { font-size: 0.8rem !important; }
     }
+    
 </style>
 """
 
