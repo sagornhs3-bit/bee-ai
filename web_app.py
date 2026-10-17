@@ -140,6 +140,9 @@ def show_login_page():
 
         st.markdown('<div class="login-hint">Default: <b>admin</b> / <b>bee2026</b></div>', unsafe_allow_html=True)
 
+# অটোমেটিক লগইন (কেউ লিংকে ক্লিক করলেই সোজা ঢুকে যাবে)
+st.session_state.logged_in = True
+st.session_state.username = "Guest"
 
 if not st.session_state.logged_in:
     show_login_page()
