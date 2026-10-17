@@ -301,7 +301,7 @@ def ask_llm(prompt):
         try:
             # এখানে মডেলের নাম পরিবর্তন করা হলো
             r = client.chat.completions.create(
-                model="llama3-70b-8192",
+                model="openai/gpt-oss-120b",
                 messages=[
                     {"role": "system", "content": sys_prompt},
                     {"role": "user", "content": prompt},
