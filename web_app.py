@@ -658,7 +658,7 @@ css = """
     #MainMenu { visibility: hidden; }
     hr { border-color: BORDER_COLOR !important; }
     
-      /* Mobile Optimization (Fixed for Keyboard) */
+    /* Mobile Optimization (Reset for mobile keyboard) */
     @media (max-width: 768px) {
         .main .block-container {
             padding-top: 1rem;
@@ -667,15 +667,16 @@ css = """
             padding-bottom: 20px !important;
         }
         [data-testid="stChatInput"] {
-            position: sticky !important;
-            bottom: 0px !important;
-            left: 0px !important;
-            right: 0px !important;
+            /* মোবাইলে ডেস্কটপের ফিক্সড পজিশন বাতিল করে ডিফল্ট করা হলো */
+            position: relative !important; 
+            left: 0 !important;
+            right: 0 !important;
+            bottom: 0 !important;
+            max-width: 100% !important;
             width: 100% !important;
+            background-color: #0e1117 !important; 
+            padding: 10px 10px !important;
             z-index: 999 !important;
-            background-color: #0e1117 !important; /* চ্যাট বক্সের ব্যাকগ্রাউন্ড কালার */
-            padding: 10px 1rem !important;
-            border-top: 1px solid #3a3d45 !important;
         }
         .header h1 { font-size: 1.5rem !important; }
         .header p { font-size: 0.8rem !important; }
