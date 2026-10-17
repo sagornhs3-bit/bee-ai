@@ -356,61 +356,75 @@ def _lang_switch(text):
 
 
 def route(text):
+    # Language
     r = _lang_switch(text)
     if r:
         return r
 
+    # Memory
     r = _memory(text)
     if r:
         return r
 
     t = text.lower()
+    
     try:
-       if any(w in t for w in ["weather", "temperature", "rain", "আবহাওয়া", "তাপমাত্রা"]):
+        if any(w in t for w in ["weather", "temperature", "rain", "আবহাওয়া", "তাপমাত্রা"]):
             from plugins import weather
             return weather.get_weather()
-        # Time
-    if any(w in t for w in ["time", "clock", "what time", "time now", "কয়টা বাজে", "সময় কি"]):
-        from plugins import system
-        return system.get_time()
-
-    # Date
-    if any(w in t for w in ["date", "today", "day", "আজকের তারিখ"]):
-        from plugins import system
-        return system.get_date()
-      if any(w in t for w in ["joke", "funny", "জোকস"]):
+            
+        if any(w in t for w in ["time", "clock", "what time", "time now", "কয়টা বাজে", "সময় কি"]):
+            from plugins import system
+            return system.get_time()
+            
+        if any(w in t for w in ["date", "today", "day", "আজকের তারিখ"]):
+            from plugins import system
+            return system.get_date()
+            
+        if any(w in t for w in ["joke", "funny", "জোকস"]):
             from plugins import fun
             return fun.get_joke()
+            
         if any(w in t for w in ["story", "গল্প"]):
             from plugins import fun
             return fun.get_story()
+            
         if any(w in t for w in ["poem", "কবিতা"]):
             from plugins import fun
             return fun.get_poem()
+            
         if any(w in t for w in ["compliment"]):
             from plugins import fun
             return fun.get_compliment()
+            
         if any(w in t for w in ["screenshot"]):
             from plugins import system
             return system.take_screenshot()
+            
         if any(w in t for w in ["mute"]):
             from plugins import system
             return system.volume_mute()
+            
         if any(w in t for w in ["volume up"]):
             from plugins import system
             return system.volume_up()
+            
         if any(w in t for w in ["volume down"]):
             from plugins import system
             return system.volume_down()
+            
         if any(w in t for w in ["lock"]):
             from plugins import system
             return system.lock_pc()
+            
         if t.strip() in ("youtube", "ইউটিউব"):
             from plugins import web
             return web.open_youtube()
+            
         if t.strip() in ("google", "গুগল"):
             from plugins import web
             return web.open_google()
+            
         if any(w in t for w in ["play", "song", "music"]):
             from plugins import web
             q = text
@@ -419,6 +433,7 @@ def route(text):
             q = " ".join(q.split())
             if q:
                 return web.play_youtube(q)
+                
         if any(k in t for k in ["open"]):
             from plugins import apps
             for en in ["notepad", "calculator", "chrome", "edge", "paint", "spotify"]:
@@ -426,9 +441,8 @@ def route(text):
                     return apps.open_app(en)
     except Exception:
         pass
+        
     return None
-
-
 def get_reply(text):
     a = route(text)
     if a:
