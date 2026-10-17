@@ -89,6 +89,17 @@ st.set_page_config(
     layout="wide"
 )
 
+# ============ SESSION STATE SETUP ============
+if "logged_in" not in st.session_state:
+    st.session_state.logged_in = False
+if "username" not in st.session_state:
+    st.session_state.username = ""
+if "theme" not in st.session_state:
+    st.session_state.theme = "dark"
+if "chat_id" not in st.session_state:
+    st.session_state.chat_id = None
+# ==============================================
+
 
 # ============ LOGIN ============
 def show_login_page():
