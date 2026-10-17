@@ -112,6 +112,10 @@ def show_login_page():
         .login-title { text-align: center; font-size: 2.2rem; font-weight: 700; color: #fff; margin-bottom: 0.3rem; }
         .login-sub { text-align: center; color: #888; margin-bottom: 2rem; font-size: 0.95rem; }
         .login-hint { text-align: center; color: #666; font-size: 0.82rem; margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid #2a2d36; }
+        .header h1 { font-size: 1.5rem !important; }
+        .header p { font-size: 0.8rem !important; }
+    }   
+    
     </style>
     """, unsafe_allow_html=True)
 
@@ -650,6 +654,22 @@ css = """
     footer { visibility: hidden; }
     #MainMenu { visibility: hidden; }
     hr { border-color: BORDER_COLOR !important; }
+    /* Mobile Optimization */
+    @media (max-width: 768px) {
+        .main .block-container {
+            padding-top: 1rem;
+            padding-left: 0.5rem;
+            padding-right: 0.5rem;
+            padding-bottom: 80px !important;
+        }
+        [data-testid="stChatInput"] {
+            left: 1rem !important;
+            right: 1rem !important;
+            bottom: 10px !important;
+        }
+        .header h1 { font-size: 1.5rem !important; }
+        .header p { font-size: 0.8rem !important; }
+    }
 </style>
 """
 
