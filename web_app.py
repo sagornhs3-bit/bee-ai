@@ -301,7 +301,7 @@ def ask_llm(prompt):
             return "দুঃখিত, Groq API Key সেট করা নেই।"
         try:
             r = client.chat.completions.create(
-                model="llama-3.3-70b-versatile",
+                model=""openai/gpt-oss-120b",
                 messages=[
                     {"role": "system", "content": sys_prompt},
                     {"role": "user", "content": prompt},
