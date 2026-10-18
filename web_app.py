@@ -122,35 +122,16 @@ def show_login_page():
         50% { transform: translateY(-10px) rotate(2deg); filter: drop-shadow(0px 20px 25px rgba(0,0,0,0.8)); }
         100% { transform: translateY(0px) rotate(0deg); filter: drop-shadow(0px 10px 15px rgba(0,0,0,0.6)); }
     }
+    /* 3D Floating Logo Effect for Main Page */
+    @keyframes float {
+        0% { transform: translateY(0px); filter: drop-shadow(0px 10px 15px rgba(0,0,0,0.8)); }
+        50% { transform: translateY(-8px); filter: drop-shadow(0px 20px 25px rgba(0,0,0,1)); }
+        100% { transform: translateY(0px); filter: drop-shadow(0px 10px 15px rgba(0,0,0,0.8)); }
+    }
     .logo-3d {
         animation: float 4s ease-in-out infinite;
-        border-radius: 20px;
-    }
-
-    /* Intro Splash Animation */
-    @keyframes zoomIn {
-        0% { transform: scale(0.5); opacity: 0; }
-        100% { transform: scale(1); opacity: 1; }
-    }
-    .intro-screen {
-        position: fixed;
-        top: 0; left: 0; width: 100vw; height: 100vh;
-        background-color: #0e1117;
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-        align-items: center;
-        z-index: 99999;
-        animation: fadeOut 1.5s ease-in-out 2.5s forwards; /* ২.৫ সেকেন্ড পর হারিয়ে যাবে */
-    }
-    @keyframes fadeOut {
-        to { opacity: 0; visibility: hidden; }
-    }
-    .intro-logo {
-        width: 150px;
         border-radius: 50%;
-        animation: zoomIn 1s ease-out;
-        box-shadow: 0px 0px 30px rgba(255, 165, 0, 0.8);
+        mix-blend-mode: screen; /* লোগোর কালো ব্যাকগ্রাউন্ড মিশিয়ে দেবে */
     }
     
     </style>
@@ -783,29 +764,79 @@ with st.sidebar:
       
 # ============ MAIN ============
 
-# 1. Intro Animation (লিংকে ঢোকার সময় ২ সেকেন্ডের অ্যানিমেশন)
+# ============ INTRO ANIMATION (Splash Screen) ============
+
+# অ্যাপে ঢোকার সাথে সাথে এই কোডটি চলবে
 if "intro_done" not in st.session_state:
-    st.markdown(f"""
-    <div class="intro-screen">
-        <img class="intro-logo" src="https://raw.githubusercontent.com/sagornhs3-bit/bee-ai/main/bumblebee.png">
-        <h2 style="color: white; margin-top: 20px; font-family: sans-serif;">Loading Bee AI...</h2>
+    st.session_state.intro_done = False
+
+if not st.session_state.intro_done:
+    # স্ক্রিনের সব কিছু হাইড করার জন্য CSS
+    st.markdown("""
+    <style>
+        #MainMenu {visibility: hidden;}
+        header {visibility: hidden;}
+        footer {visibility: hidden;}
+        [data-testid="stSidebar"] {display: none;}
+        .block-container {padding: 0 !important;}
+        
+        .splash-screen {
+            position: fixed;
+            top: 0; left: 0; width: 100vw; height: 100vh;
+            background-color: #0e1117;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 99999;
+        }
+        .splash-logo {
+            width: 180px;
+            animation: zoomPulse 2s infinite alternate;
+            mix-blend-mode: screen; /* ব্যাকগ্রাউন্ড ব্লেন্ড করার জন্য */
+        }
+        @keyframes zoomPulse {
+            0% { transform: scale(0.9); filter: drop-shadow(0 0 10px #f59e0b); }
+            100% { transform: scale(1.1); filter: drop-shadow(0 0 30px #ef4444); }
+        }
+        .splash-text {
+            color: white; 
+            margin-top: 20px; 
+            font-family: 'Poppins', sans-serif;
+            letter-spacing: 2px;
+            animation: fadeIn 2s;
+        }
+        @keyframes fadeIn {
+            0% { opacity: 0; }
+            100% { opacity: 1; }
+        }
+    </style>
+    """, unsafe_allow_html=True)
+    
+    st.markdown("""
+    <div class="splash-screen">
+        <img class="splash-logo" src="https://raw.githubusercontent.com/sagornhs3-bit/bee-ai/main/bumblebee.png">
+        <h2 class="splash-text">BEE AI</h2>
     </div>
     """, unsafe_allow_html=True)
+    
     import time
-    time.sleep(2) # ২ সেকেন্ড অপেক্ষা করবে
+    time.sleep(3) # ৩ সেকেন্ড অপেক্ষা করবে
     st.session_state.intro_done = True
+    st.rerun() # ৩ সেকেন্ড পর মেইন পেজে রিলোড হবে
 
-# 2. Main Header with 3D Floating Logo
+# ============ MAIN APP ============
+
+# মেইন হেডার (3D Floating Logo)
 st.markdown(f"""
 <div class="header" style="display: flex; align-items: center;">
-    <img class="logo-3d" src="https://raw.githubusercontent.com/sagornhs3-bit/bee-ai/main/bumblebee.png" width="120" style="margin-right: 20px;">
+    <img class="logo-3d" src="https://raw.githubusercontent.com/sagornhs3-bit/bee-ai/main/bumblebee.png" width="80" style="margin-right: 20px;">
     <div>
-        <h1 style="margin: 0; font-size: 2.5rem; color: white;">{NAME}</h1>
-        <p style="margin: 0; font-size: 1.1rem; color: #f0f0f0;">Your Personal AI — Brilliant, Emotional, Ever-ready</p>
+        <h1 style="margin: 0; font-size: 2rem; color: white;">{NAME}</h1>
+        <p style="margin: 0; font-size: 1rem; color: #f0f0f0;">Your Personal AI — Brilliant, Emotional, Ever-ready</p>
     </div>
 </div>
 """, unsafe_allow_html=True)
-
 
 if st.session_state.chat_id is None:
     chats = load_chats()["chats"]
