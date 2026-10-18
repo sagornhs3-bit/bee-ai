@@ -264,60 +264,38 @@ def ask_llm(prompt):
     mem = build_memory_context()
     mem_block = f"\n\nUser info:\n{mem}\n" if mem else ""
 
-    sys_prompt = f"""You are {NAME} — a highly intelligent and empathetic AI assistant.
+    sys_prompt = f"""You are {NAME} — a highly intelligent, helpful, and empathetic AI assistant.
+You have access to the internet and can provide detailed, step-by-step answers just like ChatGPT.
 {mem_block}
 
 ## Web Search Context:
 {web_context}
 
 ## Rules:
-1. If Web Context is provided, cross-check and give a verified answer.
-2. Always reply in Bengali.
-3. Keep the final answer short, warm, and natural (1-3 sentences).
+1. Always reply in Bengali (unless the user speaks in English).
+2. If the user asks a general question, give a detailed and helpful answer. Do NOT limit yourself to 1-2 sentences.
+3. Use the Web Context to give accurate, up-to-date answers.
+4. Be polite, friendly, and format your answers with bullet points if needed.
 """
 
-    engine = st.session_state.get("ai_engine", "Groq")
-    
-    if engine == "DeepSeek":
-        try:
-            ds_key = load_cfg().get("deepseek_api_key", "")
-            if not ds_key:
-                return "দুঃখিত, DeepSeek API Key সেট করা নেই।"
-                
-            ds_client = OpenAI(
-                api_key=ds_key,
-                base_url="https://api.deepseek.com"
-            )
-            r = ds_client.chat.completions.create(
-                model="deepseek-chat",
-                messages=[
-                    {"role": "system", "content": sys_prompt},
-                    {"role": "user", "content": prompt},
-                ],
-                temperature=0.3,
-            )
-            return r.choices[0].message.content.strip()
-        except Exception as e:
-            return f"DeepSeek Error: {e}"
-            
-    else:
-        # Groq API (ডিফল্ট)
-        client = get_groq()
-        if not client:
-            return "দুঃখিত, Groq API Key সেট করা নেই।"
-        try:
-            # এখানে মডেলের নাম পরিবর্তন করা হলো
-            r = client.chat.completions.create(
-                model="openai/gpt-oss-120b",
-                messages=[
-                    {"role": "system", "content": sys_prompt},
-                    {"role": "user", "content": prompt},
-                ],
-                temperature=0.3,
-            )
-            return r.choices[0].message.content.strip()
-        except Exception as e:
-            return f"Groq Error: {e}"
+    # শুধুমাত্র Groq API ব্যবহার হবে
+    client = get_groq()
+    if not client:
+        return "দুঃখিত, Groq API Key সেট করা নেই।"
+    try:
+        r = client.chat.completions.create(
+            model="openai/gpt-oss-120b",
+            messages=[
+                {"role": "system", "content": sys_prompt},
+                {"role": "user", "content": prompt},
+            ],
+            temperature=0.3,
+        )
+        return r.choices[0].message.content.strip()
+    except Exception as e:
+        return f"Groq Error: {e}"
+
+   
 # ============ ACTIONS ============
 def _memory(text):
     import re
@@ -748,6 +726,7 @@ with st.sidebar:
     if new_t != st.session_state.theme:
         st.session_state.theme = new_t
         st.rerun()
+
     st.divider()
     st.markdown("**🧠 AI Engine**")
     
@@ -762,23 +741,7 @@ with st.sidebar:
         st.session_state.ai_engine = "DeepSeek"
     else:
         st.session_state.ai_engine = "Groq"
-  
-    st.divider()
-    st.markdown("**👤 Your Name**")
-    new_name = st.text_input("name_field", value=uname or "",
-                              label_visibility="collapsed", key="name_input_field")
-    col_save, col_clear = st.columns([3, 1])
-    with col_save:
-        if st.button("💾 Save", use_container_width=True, key="save_name_btn"):
-            if new_name and new_name.strip() and new_name.strip() != uname:
-                set_user_name(new_name.strip())
-                st.rerun()
-    with col_clear:
-        if uname and st.button("🗑", use_container_width=True, key="clear_name_btn"):
-            set_user_name("")
-            st.rerun()
-
-
+      
 # ============ MAIN ============
 st.markdown(f"""
 <div class="header">
