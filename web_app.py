@@ -264,7 +264,8 @@ def ask_llm(prompt):
     mem = build_memory_context()
     mem_block = f"\n\nUser info:\n{mem}\n" if mem else ""
 
-       sys_prompt = f"""You are {NAME} — a world-class, highly intelligent AI assistant. 
+    # 👇 এই লাইনটা একদম ৪ স্পেস (Tab) দিয়ে শুরু হবে 👇
+    sys_prompt = f"""You are {NAME} — a world-class, highly intelligent AI assistant. 
 You possess vast knowledge about the entire world, including Science, History, Mathematics, Technology, Philosophy, Arts, and Everyday Life.
 
 {mem_block}
@@ -279,7 +280,6 @@ You possess vast knowledge about the entire world, including Science, History, M
 4. If Web Context is provided, use it for accurate, up-to-date answers.
 5. Be helpful, polite, and act like an expert on all topics.
 """
-
     # শুধুমাত্র Groq API ব্যবহার হবে
     client = get_groq()
     if not client:
