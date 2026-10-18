@@ -115,6 +115,43 @@ def show_login_page():
         .header h1 { font-size: 1.5rem !important; }
         .header p { font-size: 0.8rem !important; }
     }   
+
+        /* 3D Floating Logo Effect */
+    @keyframes float {
+        0% { transform: translateY(0px) rotate(0deg); filter: drop-shadow(0px 10px 15px rgba(0,0,0,0.6)); }
+        50% { transform: translateY(-10px) rotate(2deg); filter: drop-shadow(0px 20px 25px rgba(0,0,0,0.8)); }
+        100% { transform: translateY(0px) rotate(0deg); filter: drop-shadow(0px 10px 15px rgba(0,0,0,0.6)); }
+    }
+    .logo-3d {
+        animation: float 4s ease-in-out infinite;
+        border-radius: 20px;
+    }
+
+    /* Intro Splash Animation */
+    @keyframes zoomIn {
+        0% { transform: scale(0.5); opacity: 0; }
+        100% { transform: scale(1); opacity: 1; }
+    }
+    .intro-screen {
+        position: fixed;
+        top: 0; left: 0; width: 100vw; height: 100vh;
+        background-color: #0e1117;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        z-index: 99999;
+        animation: fadeOut 1.5s ease-in-out 2.5s forwards; /* ২.৫ সেকেন্ড পর হারিয়ে যাবে */
+    }
+    @keyframes fadeOut {
+        to { opacity: 0; visibility: hidden; }
+    }
+    .intro-logo {
+        width: 150px;
+        border-radius: 50%;
+        animation: zoomIn 1s ease-out;
+        box-shadow: 0px 0px 30px rgba(255, 165, 0, 0.8);
+    }
     
     </style>
     """, unsafe_allow_html=True)
@@ -745,11 +782,27 @@ with st.sidebar:
         st.session_state.ai_engine = "Groq"
       
 # ============ MAIN ============
+
+# 1. Intro Animation (লিংকে ঢোকার সময় ২ সেকেন্ডের অ্যানিমেশন)
+if "intro_done" not in st.session_state:
+    st.markdown(f"""
+    <div class="intro-screen">
+        <img class="intro-logo" src="https://raw.githubusercontent.com/sagornhs3-bit/bee-ai/main/bumblebee.png">
+        <h2 style="color: white; margin-top: 20px; font-family: sans-serif;">Loading Bee AI...</h2>
+    </div>
+    """, unsafe_allow_html=True)
+    import time
+    time.sleep(2) # ২ সেকেন্ড অপেক্ষা করবে
+    st.session_state.intro_done = True
+
+# 2. Main Header with 3D Floating Logo
 st.markdown(f"""
-<div class="header">
-    <img src="https://raw.githubusercontent.com/sagornhs3-bit/bee-ai/main/bumblebee.png" width="60" style="vertical-align: middle; margin-right: 10px;">
-    <span style="font-size: 2rem; font-weight: bold; color: white; vertical-align: middle;">{NAME}</span>
-    <p style="margin-top: 10px;">Your Personal AI — Brilliant, Emotional, Ever-ready</p>
+<div class="header" style="display: flex; align-items: center;">
+    <img class="logo-3d" src="https://raw.githubusercontent.com/sagornhs3-bit/bee-ai/main/bumblebee.png" width="120" style="margin-right: 20px;">
+    <div>
+        <h1 style="margin: 0; font-size: 2.5rem; color: white;">{NAME}</h1>
+        <p style="margin: 0; font-size: 1.1rem; color: #f0f0f0;">Your Personal AI — Brilliant, Emotional, Ever-ready</p>
+    </div>
 </div>
 """, unsafe_allow_html=True)
 
