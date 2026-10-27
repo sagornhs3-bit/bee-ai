@@ -1,4 +1,4 @@
-"""Bee - Ultimate AI Assistant (ChatGPT Voice Mode + Light Theme + Fixed Model)"""
+"""Bee - Ultimate AI Assistant (Fixed Model & Right-Aligned User Messages)"""
 
 import streamlit as st
 import json
@@ -78,7 +78,7 @@ if "is_premium" not in st.session_state: st.session_state.is_premium = False
 if "msg_count" not in st.session_state: st.session_state.msg_count = 0
 if "chat_id" not in st.session_state: st.session_state.chat_id = None
 if "emoji_append" not in st.session_state: st.session_state.emoji_append = ""
-if "voice_ui" not in st.session_state: st.session_state.voice_ui = False # Voice UI State
+if "voice_ui" not in st.session_state: st.session_state.voice_ui = False
 
 if not st.session_state.logged_in:
     saved_user = cookie_manager.get(cookie="bee_user")
@@ -281,7 +281,7 @@ def transcribe_audio(audio_file):
             file=("voice.wav", audio_bytes), model="whisper-large-v3-turbo", response_format="text")
         return transcription.strip()
     except Exception as e:
-        st.error(f"❌ ভয়েস বুঝতে সমস্যা: {e}"); return None
+        st.error(f"❌ ভয়েস বুঝতে সমস্যা: {e}"); return None
 
 def search_web(query):
     try:
@@ -318,7 +318,7 @@ def ask_llm(prompt, chat_history, file_context=""):
             encoded_prompt = urllib.parse.quote(clean_prompt)
             img_url = f"https://image.pollinations.ai/prompt/{encoded_prompt}?width=1024&height=1024&nologo=true"
             
-            return f"আপনার অনুরোধ অনুযায়ী ছবিটি তৈরি করেছি:\n\n![Generated Image]({img_url})\n\n_ছবিটি ডাউনলোড করতে ছবির ওপর রাইট ক্লিক করুন।_"
+            return f"আপনার অনুরোধ অনুযায়ী ছবিটি তৈরি করেছি:\n\n![Generated Image]({img_url})\n\n_ছবিটি ডাউনলোড করতে ছবির ওপর রাইট ক্লিক করুন।_"
 
     web_context = ""
     if any(w in prompt.lower() for w in ["search", "who is", "news", "খবর", "current", "today", "weather", "time"]):
@@ -345,19 +345,14 @@ def ask_llm(prompt, chat_history, file_context=""):
     messages.append({"role": "user", "content": prompt})
 
     try:
-        # 🔥 Groq এর নতুন সক্রিয় মডেল (llama-3.3 বন্ধ হয়ে যাওয়ায় এটি ব্যবহার করা হলো)
-        r = client.chat.completions.create(model="llama-3.1-70b-versatile", messages=messages, temperature=0.5)
+        # 🔥 Groq-এর সক্রিয় এবং শক্তিশালী মডেল
+        r = client.chat.completions.create(model="openai/gpt-oss-120b", messages=messages, temperature=0.5)
         return r.choices[0].message.content.strip()
     except Exception as e:
-        # যদি উপরের মডেল কাজ না করে, তবে এটি ফলব্যাক হিসেবে কাজ করবে
-        try:
-            r = client.chat.completions.create(model="llama3-70b-8192", messages=messages, temperature=0.5)
-            return r.choices[0].message.content.strip()
-        except Exception as e2:
-            return f"Error: {e2}"
+        return f"Error: {e}"
 
 # ============================================================
-# 🎨 PREMIUM CSS (ChatGPT Voice UI + Fixed Light Theme)
+# 🎨 PREMIUM CSS (Fixed Right-Aligned User Messages)
 # ============================================================
 if dark:
     bg_base = "#0e1117"
@@ -389,7 +384,7 @@ else:
 
 css = f"""
 <style>
-    /* 🌟 Premium Colorful Background */
+    /* 🌟 Premium Background */
     .stApp, [data-testid="stAppViewContainer"], [data-testid="stHeader"], [data-testid="stBottom"], [data-testid="stBottom"] > div {{
         background: {bg_gradient} !important;
     }}
@@ -397,31 +392,18 @@ css = f"""
     /* 🌟 Watermark */
     [data-testid="stAppViewContainer"]::before {{
         content: "";
-        position: fixed;
-        top: 50%; left: 50%;
+        position: fixed; top: 50%; left: 50%;
         transform: translate(-50%, -50%);
         width: 600px; height: 600px;
         background-image: url('https://raw.githubusercontent.com/sagornhs3-bit/bee-ai/main/bumblebee.png');
-        background-size: contain;
-        background-repeat: no-repeat;
-        opacity: {watermark_opacity};
-        z-index: 0;
-        pointer-events: none;
+        background-size: contain; background-repeat: no-repeat;
+        opacity: {watermark_opacity}; z-index: 0; pointer-events: none;
     }}
 
-    .main .block-container {{ 
-        padding-top: 1.5rem; 
-        max-width: 900px; 
-        padding-bottom: 150px !important; 
-        z-index: 1;
-    }}
+    .main .block-container {{ padding-top: 1.5rem; max-width: 900px; padding-bottom: 150px !important; z-index: 1; }}
     
     /* Sidebar */
-    [data-testid="stSidebar"] {{ 
-        background: {sidebar_bg} !important; 
-        backdrop-filter: blur(15px) !important;
-        border-right: 1px solid {border_col} !important;
-    }}
+    [data-testid="stSidebar"] {{ background: {sidebar_bg} !important; backdrop-filter: blur(15px) !important; border-right: 1px solid {border_col} !important; }}
     
     /* Text Colors */
     .main p, .main span, .main label, .main h1, .main h2, .main h3, .main h4, .main h5, .main h6, .main li, .main td, .main th,
@@ -430,16 +412,11 @@ css = f"""
 
     /* 💎 Glassmorphism Chat Bubbles */
     [data-testid="stChatMessage"] {{
-        background: {glass_bg} !important;
-        backdrop-filter: blur(10px) !important;
-        border: 1px solid {border_col} !important;
-        border-radius: 15px !important;
-        padding: 15px !important;
-        margin-bottom: 15px !important;
+        background: {glass_bg} !important; backdrop-filter: blur(10px) !important;
+        border: 1px solid {border_col} !important; border-radius: 15px !important;
+        padding: 15px !important; margin-bottom: 15px !important;
         box-shadow: 0 4px 15px rgba(0,0,0,0.03) !important;
-        display: flex !important;
-        flex-direction: row !important;
-        align-items: flex-start !important;
+        display: flex !important; flex-direction: row !important; align-items: flex-start !important;
     }}
 
     /* 🔥 User Message Right Align */
@@ -466,62 +443,22 @@ css = f"""
     .logo-3d {{ animation: talk 3s ease-in-out infinite; border-radius: 50%; mix-blend-mode: multiply; max-height: 80px; object-fit: contain; }}
     
     /* Buttons */
-    .stButton > button {{
-        background-color: {btn_bg} !important;
-        color: {btn_txt} !important;
-        border: 1px solid {border_col} !important;
-        border-radius: 10px !important;
-        box-shadow: 0 2px 5px rgba(0,0,0,0.02) !important;
-        transition: all 0.2s !important;
-    }}
-    .stButton > button:hover {{
-        border-color: #f97316 !important;
-        color: #f97316 !important;
-    }}
-    .stButton > button p, .stButton > div {{
-        color: {btn_txt} !important;
-    }}
+    .stButton > button {{ background-color: {btn_bg} !important; color: {btn_txt} !important; border: 1px solid {border_col} !important; border-radius: 10px !important; box-shadow: 0 2px 5px rgba(0,0,0,0.02) !important; transition: all 0.2s !important; }}
+    .stButton > button:hover {{ border-color: #f97316 !important; color: #f97316 !important; }}
+    .stButton > button p, .stButton > div {{ color: {btn_txt} !important; }}
 
-    /* 🔥 Streamlit Radio Button Fix (White & Orange) */
-    [data-testid="stRadio"] div[role="radiogroup"] > label > div:first-child {{
-        background-color: {radio_bg} !important;
-        border: 2px solid {radio_border} !important;
-    }}
-    [data-testid="stRadio"] div[role="radiogroup"] > label > div:first-child > div {{
-        background-color: #f97316 !important;
-        transform: scale(1.2) !important;
-    }}
+    /* 🔥 Radio Button Fix */
+    [data-testid="stRadio"] div[role="radiogroup"] > label > div:first-child {{ background-color: {radio_bg} !important; border: 2px solid {radio_border} !important; }}
+    [data-testid="stRadio"] div[role="radiogroup"] > label > div:first-child > div {{ background-color: #f97316 !important; transform: scale(1.2) !important; }}
 
-    /* 🔥 Voice Input Fix (Remove Black Box) */
-    [data-testid="stAudioInput"] {{
-        background-color: #ffffff !important;
-        border-radius: 12px !important;
-        border: 2px solid #f97316 !important;
-        box-shadow: 0 4px 15px rgba(249, 115, 22, 0.15) !important;
-        padding: 10px !important;
-    }}
-    [data-testid="stAudioInput"] * {{
-        color: #1a1a1a !important;
-        fill: #f97316 !important;
-    }}
-    [data-testid="stAudioInput"] button {{
-        background-color: #f97316 !important;
-        color: white !important;
-        border: none !important;
-    }}
-    [data-testid="stAudioInput"] button svg {{
-        fill: white !important;
-        color: white !important;
-    }}
+    /* 🔥 Voice Input Fix */
+    [data-testid="stAudioInput"] {{ background-color: #ffffff !important; border-radius: 12px !important; border: 2px solid #f97316 !important; box-shadow: 0 4px 15px rgba(249, 115, 22, 0.15) !important; padding: 10px !important; }}
+    [data-testid="stAudioInput"] * {{ color: #1a1a1a !important; fill: #f97316 !important; }}
+    [data-testid="stAudioInput"] button {{ background-color: #f97316 !important; color: white !important; border: none !important; }}
+    [data-testid="stAudioInput"] button svg {{ fill: white !important; color: white !important; }}
 
     /* Input Box */
-    [data-testid="stChatInput"] {{
-        position: fixed !important; bottom: 20px !important; left: 21rem !important; right: 2rem !important;
-        z-index: 999 !important; max-width: 900px !important;
-        background: {chat_input_bg} !important; backdrop-filter: blur(15px) !important;
-        border: 2px solid #f97316 !important; border-radius: 25px !important; padding: 5px 10px !important;
-        box-shadow: 0 4px 20px rgba(0,0,0,0.08) !important;
-    }}
+    [data-testid="stChatInput"] {{ position: fixed !important; bottom: 20px !important; left: 21rem !important; right: 2rem !important; z-index: 999 !important; max-width: 900px !important; background: {chat_input_bg} !important; backdrop-filter: blur(15px) !important; border: 2px solid #f97316 !important; border-radius: 25px !important; padding: 5px 10px !important; box-shadow: 0 4px 20px rgba(0,0,0,0.08) !important; }}
     [data-testid="stChatInput"] > div {{ background-color: transparent !important; }}
     [data-testid="stChatInput"] textarea {{ background-color: transparent !important; color: {txt} !important; padding-right: 80px !important; }}
     [data-testid="stChatInput"] button {{ background-color: #f97316 !important; color: white !important; border-radius: 50% !important; }}
@@ -533,40 +470,15 @@ css = f"""
     .stDeployButton {{display: none !important;}}
     
     /* Sidebar Toggle Arrow */
-    [data-testid="collapsedControl"] {{
-        display: flex !important; visibility: visible !important; opacity: 1 !important;
-        position: fixed !important; top: 15px !important; left: 15px !important; z-index: 99999 !important;
-        background-color: #f97316 !important; color: white !important;
-        border-radius: 50% !important; padding: 8px !important;
-        box-shadow: 0 4px 10px rgba(0,0,0,0.2) !important;
-    }}
+    [data-testid="collapsedControl"] {{ display: flex !important; visibility: visible !important; opacity: 1 !important; position: fixed !important; top: 15px !important; left: 15px !important; z-index: 99999 !important; background-color: #f97316 !important; color: white !important; border-radius: 50% !important; padding: 8px !important; box-shadow: 0 4px 10px rgba(0,0,0,0.2) !important; }}
     [data-testid="collapsedControl"] svg {{ fill: white !important; color: white !important; }}
     
     /* Emoji Popover */
-    [data-testid="stPopover"] > button {{
-        background-color: {btn_bg} !important; color: {btn_txt} !important;
-        border: 1px solid {border_col} !important; box-shadow: 0 2px 5px rgba(0,0,0,0.02) !important;
-    }}
-    [data-testid="stPopoverBody"] {{
-        background-color: #ffffff !important; border: 1px solid {border_col} !important;
-        box-shadow: 0 10px 30px rgba(0,0,0,0.1) !important;
-    }}
+    [data-testid="stPopover"] > button {{ background-color: {btn_bg} !important; color: {btn_txt} !important; border: 1px solid {border_col} !important; box-shadow: 0 2px 5px rgba(0,0,0,0.02) !important; }}
+    [data-testid="stPopoverBody"] {{ background-color: #ffffff !important; border: 1px solid {border_col} !important; box-shadow: 0 10px 30px rgba(0,0,0,0.1) !important; }}
 
     /* 🎤 ChatGPT-Style Voice UI Card */
-    .voice-card {{
-        background: {glass_bg};
-        backdrop-filter: blur(25px);
-        border-radius: 30px;
-        padding: 50px 20px;
-        text-align: center;
-        box-shadow: 0 15px 50px rgba(0,0,0,0.1);
-        border: 2px solid rgba(249, 115, 22, 0.3);
-        margin-top: 5vh;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-    }}
+    .voice-card {{ background: {glass_bg}; backdrop-filter: blur(25px); border-radius: 30px; padding: 50px 20px; text-align: center; box-shadow: 0 15px 50px rgba(0,0,0,0.1); border: 2px solid rgba(249, 115, 22, 0.3); margin-top: 5vh; display: flex; flex-direction: column; align-items: center; justify-content: center; }}
 </style>
 """
 st.markdown(css, unsafe_allow_html=True)
@@ -586,7 +498,6 @@ if st.session_state.voice_ui:
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
         audio_val = st.audio_input("Record", label_visibility="collapsed", key="voice_recorder")
-        
         st.markdown("<br>", unsafe_allow_html=True)
         btn_col1, btn_col2 = st.columns(2)
         with btn_col1:
@@ -595,24 +506,13 @@ if st.session_state.voice_ui:
                     with st.spinner("🎤 Processing voice..."):
                         user_msg = transcribe_audio(audio_val)
                         if user_msg:
-                            if st.session_state.chat_id is None:
-                                new_chat()
-                                
-                            # Save User Message
+                            if st.session_state.chat_id is None: new_chat()
                             add_msg(st.session_state.chat_id, "user", user_msg)
-                            
-                            # Get AI Reply
                             current_chat = get_chat(st.session_state.chat_id)
                             history = current_chat["messages"][:-1]
                             reply = ask_llm(user_msg, history)
-                            
-                            # Save AI Reply
                             add_msg(st.session_state.chat_id, "bee", reply)
-                            
-                            # Speak the reply
                             speak_text(reply)
-                            
-                            # Close Voice UI and go back to chat
                             st.session_state.voice_ui = False
                             st.rerun()
                 else:
@@ -621,8 +521,7 @@ if st.session_state.voice_ui:
             if st.button("❌ Close", use_container_width=True):
                 st.session_state.voice_ui = False
                 st.rerun()
-                
-    st.stop() # Stop rendering normal chat while in voice UI
+    st.stop()
 
 # ============ SIDEBAR ============
 with st.sidebar:
@@ -634,8 +533,8 @@ with st.sidebar:
         st.session_state.logged_in = False
         st.session_state.username = ""
         st.rerun()
-        
     st.divider()
+    
     if st.button("➕  New Chat", use_container_width=True, type="primary"):
         new_chat(); st.rerun()
     st.divider()
@@ -644,19 +543,15 @@ with st.sidebar:
         st.success("🌟 PRO User (Unlimited Lifetime)")
     else:
         st.info(f"💬 আজকের ফ্রি মেসেজ বাকি: {DAILY_LIMIT - st.session_state.msg_count}/{DAILY_LIMIT}")
-        
     st.divider()
     
-    # 🎤 New Voice Mode Button
     if st.button("🎤 Start Voice Chat", use_container_width=True):
         st.session_state.voice_ui = True
         st.rerun()
                 
-    # 😊 Emoji Picker
     with st.popover("😊 Emoji", use_container_width=True):
         st.markdown("### Select an Emoji")
         emoji_list = ["😀", "😃", "😄", "😁", "😆", "😅", "😂", "🤣", "😊", "😇", "🙂", "🙃", "😉", "😌", "😍", "🥰", "😘", "😗", "😙", "😚", "😋", "😛", "😝", "😜", "🤪", "🤨", "🧐", "🤓", "😎", "🤩", "🥳", "😏", "😒", "😞", "😔", "😟", "😕", "🙁", "☹️", "😣", "😖", "😫", "😩", "🥺", "😢", "😭", "😤", "😠", "😡", "🤬", "🤯", "😳", "🥵", "🥶", "😱", "😨", "😰", "😥", "😓", "🤗", "🤔", "🤭", "🤫", "🤥", "😶", "😐", "😑", "😬", "🙄", "😯", "😦", "😧", "😮", "😲", "🥱", "😴", "🤤", "😪", "😵", "🤐", "🥴", "🤢", "🤮", "🤧", "😷", "🤒", "🤕", "🤑", "🤠", "😈", "👿", "👹", "👺", "🤡", "💩", "👻", "💀", "☠️", "👽", "👾", "🤖", "🎃", "😺", "😸", "😹", "😻", "😼", "😽", "🙀", "😿", "😾", "👍", "👎", "👊", "✊", "🤛", "🤜", "🤞", "✌️", "🤟", "🤘", "👌", "👈", "👉", "👆", "👇", "☝️", "✋", "🤚", "🖐", "🖖", "👋", "🤙", "💪", "🦾", "🙏", "✍️", "🤝", "💅", "🤳", "💍", "💄", "💋", "👄", "👅", "👂", "🦻", "👃", "👣", "👁", "👀", "🫀", "🧠", "🫁", "🦷", "🦴", "👤", "👥", "🗣", "👶", "🧒", "👦", "👧", "🧑", "👱", "👨", "🧔", "👩", "🧓", "👴", "👵"]
-        
         cols = st.columns(5)
         for i, em in enumerate(emoji_list):
             with cols[i % 5]:
@@ -721,17 +616,14 @@ else:
 user_message = None
 file_context = ""
 
-# Premium Paywall
 if (not st.session_state.is_premium) and (st.session_state.msg_count >= DAILY_LIMIT):
     st.warning("⚠️ আপনার আজকের ফ্রি মেসেজ লিমিট শেষ!")
     with st.container(border=True):
         st.markdown("### 💎 Lifetime Pro — Unlimited Access")
         st.markdown(f"**পেমেন্ট:** মাত্র **৫০০ টাকা (≈ $4.99)** | 📱 **bKash:** `{BKASH_NUMBER}`")
-        
         col1, col2 = st.columns(2)
         with col1: user_trx = st.text_input("TrxID (যেমন: 9F5A2B1C)")
         with col2: unlock_input = st.text_input("Unlock Code", type="password")
-            
         if st.button("🔓 Unlock Lifetime Pro", use_container_width=True, type="primary"):
             if unlock_input == CODE_LIFETIME:
                 supabase.table("users").update({"is_premium": True}).eq("username", st.session_state.username).execute()
@@ -741,15 +633,12 @@ if (not st.session_state.is_premium) and (st.session_state.msg_count >= DAILY_LI
             elif unlock_input != "":
                 st.error("❌ ভুল আনলক কোড!")
 else:
-    # Text Input Only
     chat_data = st.chat_input("Type your message here...", accept_file=True, file_type=["pdf", "txt", "csv"])
-    
     if chat_data:
         user_message = chat_data.text
         if st.session_state.emoji_append:
             user_message = st.session_state.emoji_append + " " + (user_message or "")
             st.session_state.emoji_append = "" 
-            
         if chat_data.files:
             uploaded_file = chat_data.files[0]
             file_context = extract_text_from_file(uploaded_file)
