@@ -138,7 +138,25 @@ def get_groq():
         except Exception:
             _groq = None
     return _groq
-
+  
+def transcribe_audio(audio_file):
+    """Convert spoken audio to text using Groq Whisper API"""
+    client = get_groq()
+    if not client or not audio_file:
+        return None
+    try:
+        # Groq-এর Whisper API দিয়ে অডিও টেক্সটে রূপান্তর
+        transcription = client.audio.transcriptions.create(
+            file=("audio.wav", audio_file.read()),
+            model="whisper-large-v3-turbo",
+            language="bn", # বাংলা ভাষার জন্য
+            response_format="text"
+        )
+        return transcription.strip()
+    except Exception as e:
+        st.error(f"Voice Error: {e}")
+        return None
+      
 def speak_text(text):
     """Browser-based Text-to-Speech"""
     js_text = json.dumps(text)
@@ -203,14 +221,12 @@ def ask_llm(prompt, chat_history):
     client = get_groq()
     if not client:
         return "দুঃখিত, Groq API Key সেট করা নেই।"
-    
     # আগের চ্যাট হিস্ট্রি তৈরি করা (যাতে AI মনে রাখতে পারে)
     messages = [{"role": "system", "content": sys_prompt}]
     for msg in chat_history:
-        messages.append({"role": msg["role"], "content": msg["content"]})
-    messages.append({"role": "user", "content": prompt})
-
-    try:
+               role = "assistant" if msg["role"] == "bee" else msg["role"]
+        messages.append({"role": role, "content": msg["content"]})
+   try:
         r = client.chat.completions.create(
             model="openai/gpt-oss-120b",
             messages=messages,
@@ -283,6 +299,21 @@ css = """
     [data-testid="stChatMessage"] { background: transparent !important; }
     [data-testid="stChatMessage"] p, [data-testid="stChatMessage"] span { color: TXT_COLOR !important; }
 
+    /* Voice Input Styling */
+    [data-testid="stAudioInput"] {
+        background: rgba(30, 30, 30, 0.4) !important;
+        backdrop-filter: blur(15px) !important;
+        border: 1px solid rgba(255, 255, 255, 0.15) !important;
+        border-radius: 20px !important;
+        padding: 10px !important;
+        margin-bottom: 10px !important;
+    }
+    [data-testid="stAudioInput"] button {
+        background-color: #ef4444 !important; /* লাল রেকর্ড বাটন */
+        border-radius: 50% !important;
+        color: white !important;
+    }
+    
     /* Glassmorphism Chat Input */
     [data-testid="stChatInput"] {
         position: fixed !important;
@@ -399,6 +430,31 @@ else:
         with st.chat_message(m["role"], avatar=avatar):
             st.markdown(m["content"])
 
+# ============ VOICE INPUT ============
+st.markdown("**🎤 Voice Input (মাইকে কথা বলুন)**")
+audio_value = st.audio_input("Record your voice", label_visibility="collapsed")
+
+if audio_value is not None:
+    with st.spinner("🎤 আপনার কথা শোনা হচ্ছে..."):
+        voice_text = transcribe_audio(audio_value)
+        if voice_text:
+            # ভয়েস থেকে পাওয়া টেক্সট সরাসরি প্রসেস করা
+            add_msg(st.session_state.chat_id, "user", voice_text)
+            with st.chat_message("user", avatar="👤"):
+                st.markdown(voice_text)
+
+            with st.chat_message("assistant", avatar="https://raw.githubusercontent.com/sagornhs3-bit/bee-ai/main/bumblebee.png"):
+                with st.spinner("Bee is thinking..."):
+                    current_chat = get_chat(st.session_state.chat_id)
+                    history = current_chat["messages"][:-1]
+                    action_result = route(voice_text)
+                    reply = action_result if action_result else ask_llm(voice_text, history)
+                st.markdown(reply)
+            
+            speak_text(reply)
+            add_msg(st.session_state.chat_id, "bee", reply)
+            st.rerun() # মাইক রিসেট করার জন্য
+          
 user_in = st.chat_input("Type your message here...")
 
 if user_in and user_in.strip():
