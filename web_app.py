@@ -1,4 +1,4 @@
-"""Bee - Ultimate AI Assistant (Voice, Search, File, Animated UI)"""
+"""Bee - Ultimate AI Assistant (ChatGPT Style Input, Voice, Search, File)"""
 
 import streamlit as st
 import json
@@ -200,7 +200,7 @@ css = """
     [data-testid="stSidebar"] { background: SIDEBAR_BG !important; }
     .main p, .main span, .main label, .main h1, .main h2, .main h3, [data-testid="stSidebar"] p, [data-testid="stSidebar"] span, [data-testid="stSidebar"] label { color: TXT_COLOR !important; }
     
-    .main .block-container { padding-top: 1.5rem; max-width: 900px; padding-bottom: 220px !important; }
+    .main .block-container { padding-top: 1.5rem; max-width: 900px; padding-bottom: 150px !important; }
     .header { background: linear-gradient(135deg, #f59e0b 0%, #ef4444 100%) !important; padding: 1.4rem 1.6rem; border-radius: 14px; margin-bottom: 1.2rem; display: flex; align-items: center; }
     .header h1 { margin: 0; font-size: 1.8rem; color: #ffffff !important; }
     .header p { margin: 0.3rem 0 0; opacity: 0.95; font-size: 0.95rem; color: #ffffff !important; }
@@ -211,38 +211,54 @@ css = """
     [data-testid="stChatMessage"] { background: transparent !important; }
     [data-testid="stChatMessage"] p, [data-testid="stChatMessage"] span { color: TXT_COLOR !important; }
 
-    /* Animated Glowing Chat Input */
+    /* Glowing ChatGPT Style Chat Input */
     @keyframes glow {
-        0% { box-shadow: 0 0 5px rgba(245, 158, 11, 0.5); }
-        50% { box-shadow: 0 0 20px rgba(239, 68, 68, 0.8); }
-        100% { box-shadow: 0 0 5px rgba(245, 158, 11, 0.5); }
+        0% { box-shadow: 0 0 5px rgba(249, 115, 22, 0.3); border-color: rgba(249, 115, 22, 0.3) !important; }
+        50% { box-shadow: 0 0 15px rgba(249, 115, 22, 0.8); border-color: rgba(249, 115, 22, 0.8) !important; }
+        100% { box-shadow: 0 0 5px rgba(249, 115, 22, 0.3); border-color: rgba(249, 115, 22, 0.3) !important; }
     }
+    
     [data-testid="stChatInput"] {
         position: fixed !important; bottom: 20px !important; left: 21rem !important; right: 2rem !important;
         z-index: 999 !important; max-width: 900px !important;
-        background: rgba(255, 255, 255, 0.05) !important; backdrop-filter: blur(15px) !important;
-        border: 1px solid rgba(255, 255, 255, 0.2) !important; border-radius: 20px !important;
+        background: rgba(30, 30, 30, 0.8) !important; 
+        backdrop-filter: blur(15px) !important;
+        border: 1px solid rgba(249, 115, 22, 0.5) !important; 
+        border-radius: 25px !important;
         animation: glow 3s infinite !important;
+        padding: 5px 10px !important;
     }
     [data-testid="stChatInput"] textarea { background: transparent !important; color: white !important; }
 
-    /* Unified Toolbar for File & Voice */
-    .toolbar-container {
-        position: fixed; bottom: 85px; left: 21rem; right: 2rem; max-width: 900px; z-index: 999;
-        display: flex; gap: 10px;
+    /* Orange Send Button */
+    [data-testid="stChatInput"] button {
+        background-color: #f97316 !important; /* Orange */
+        color: white !important;
+        border-radius: 50% !important;
+        border: none !important;
     }
-    [data-testid="stFileUploader"], [data-testid="stAudioInput"] {
-        background: rgba(30, 30, 30, 0.6) !important; backdrop-filter: blur(10px) !important;
-        border: 1px solid rgba(255, 255, 255, 0.1) !important; border-radius: 15px !important;
-        padding: 5px !important; margin: 0 !important;
+
+    /* Style the native File Uploader inside Chat Input (Paperclip) */
+    [data-testid="stChatInput"] button[data-testid="baseButton-secondary"] {
+        color: white !important;
     }
-    [data-testid="stFileUploader"] section, [data-testid="stAudioInput"] div { padding: 0 !important; }
+
+    /* Style the Audio Input to sit neatly above the chat */
+    [data-testid="stAudioInput"] {
+        background: rgba(30, 30, 30, 0.6) !important;
+        backdrop-filter: blur(10px) !important;
+        border: 1px solid rgba(255, 255, 255, 0.1) !important;
+        border-radius: 15px !important;
+        padding: 5px 15px !important;
+        margin-bottom: 10px !important;
+    }
 
     footer { visibility: hidden; } #MainMenu { visibility: hidden; }
+
     @media (max-width: 768px) {
-        .main .block-container { padding-bottom: 250px !important; }
+        .main .block-container { padding-bottom: 120px !important; }
         [data-testid="stChatInput"] { left: 1rem !important; right: 1rem !important; bottom: 10px !important; }
-        .toolbar-container { bottom: 80px; left: 1rem; right: 1rem; }
+        [data-testid="stAudioInput"] { margin-bottom: 5px !important; }
     }
 </style>
 """
@@ -313,27 +329,26 @@ else:
         with st.chat_message(m["role"], avatar=avatar): st.markdown(m["content"])
 
 # ============ INPUT AREA (ChatGPT Style) ============
-# ২টি কলামে ফাইল এবং ভয়েস ইনপুট (যাতে একসাথে পাশাপাশি থাকে)
-st.markdown('<div class="toolbar-container">', unsafe_allow_html=True)
-col1, col2 = st.columns([1, 1])
-with col1:
-    uploaded_file = st.file_uploader("📎 Attach", type=["pdf", "txt", "csv"], label_visibility="collapsed")
-with col2:
-    audio_value = st.audio_input("🎤 Voice", label_visibility="collapsed")
-st.markdown('</div>', unsafe_allow_html=True)
+# Voice Input (Sits neatly just above the main bar)
+audio_value = st.audio_input("🎤 Voice Input (মাইকে কথা বলুন)", label_visibility="collapsed")
 
+# Main Chat Input (Now natively supports files inside the bar with accept_file=True)
+chat_data = st.chat_input("Type your message here...", accept_file=True, file_type=["pdf", "txt", "csv"])
+
+user_message = None
 file_context = ""
-if uploaded_file is not None:
-    file_context = extract_text_from_file(uploaded_file)
 
-user_in = st.chat_input("Type your message here...")
+if chat_data:
+    user_message = chat_data.text
+    if chat_data.files:
+        uploaded_file = chat_data.files[0]
+        file_context = extract_text_from_file(uploaded_file)
+        st.toast(f"📎 File '{uploaded_file.name}' attached!")
+elif audio_value is not None:
+    with st.spinner("🎤 আপনার কথা শোনা হচ্ছে..."):
+        user_message = transcribe_audio(audio_value)
 
 # ============ HANDLE INPUT ============
-user_message = None
-if user_in and user_in.strip(): user_message = user_in.strip()
-elif audio_value is not None:
-    with st.spinner("🎤 আপনার কথা শোনা হচ্ছে..."): user_message = transcribe_audio(audio_value)
-
 if user_message:
     add_msg(st.session_state.chat_id, "user", user_message)
     with st.chat_message("user", avatar="👤"): st.markdown(user_message)
