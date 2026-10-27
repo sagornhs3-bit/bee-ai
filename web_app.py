@@ -100,8 +100,7 @@ if "theme" not in st.session_state:
     st.session_state.theme = "dark"
 if "chat_id" not in st.session_state:
     st.session_state.chat_id = None
-if "ai_engine" not in st.session_state:
-    st.session_state.ai_engine = "Groq"  # ডিফল্ট মডেল
+if "ai_engine" not in st.session_state: # ডিফল্ট মডেল
 # ==============================================
 
 # ============ LOGIN ============
