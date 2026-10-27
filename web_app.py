@@ -212,16 +212,19 @@ else:
 
 css = """
 <style>
-    /* Force ALL backgrounds including top header */
+    /* Force ALL backgrounds */
     .stApp, [data-testid="stAppViewContainer"], [data-testid="stHeader"] { background: BG_COLOR !important; }
     [data-testid="stSidebar"] { background: SIDEBAR_BG !important; }
     
-    /* Force ALL text colors */
+    /* Force text colors */
     .main p, .main span, .main label, .main h1, .main h2, .main h3, .main div, 
     [data-testid="stSidebar"] p, [data-testid="stSidebar"] span, [data-testid="stSidebar"] label { 
         color: TXT_COLOR !important; 
     }
     
+    /* Top native header icons */
+    [data-testid="stHeader"] svg { fill: TXT_COLOR !important; stroke: TXT_COLOR !important; }
+
     .main .block-container { padding-top: 1.5rem; max-width: 900px; padding-bottom: 150px !important; }
     
     /* Header Gradient */
@@ -236,7 +239,7 @@ css = """
     [data-testid="stChatMessage"] { background: transparent !important; }
     [data-testid="stChatMessage"] p, [data-testid="stChatMessage"] span { color: TXT_COLOR !important; }
 
-    /* Sidebar Buttons (History, New Chat) */
+    /* Sidebar Buttons */
     .stButton > button {
         background: BTN_BG !important;
         color: BTN_TXT !important;
@@ -276,42 +279,45 @@ css = """
         border: none !important;
     }
 
-    /* 🔥 MIC BUTTON FLOATING INSIDE CHAT BAR */
+    /* 🔥 MIC BUTTON (Floating Inside Chat Bar) */
     [data-testid="stAudioInput"] {
         position: fixed !important;
-        bottom: 28px !important; 
+        bottom: 26px !important; 
         right: 5.5rem !important; 
         z-index: 1000 !important;
         width: 40px !important;
         height: 40px !important;
         background: transparent !important;
         border: none !important;
-        overflow: visible !important;
     }
     
-    /* Hide audio input text, waveform, and backgrounds */
+    /* Hide the complex elements of stAudioInput, keep only the button */
     [data-testid="stAudioInput"] > div { padding: 0 !important; background: transparent !important; }
-    [data-testid="stAudioInput"] div[data-testid="stVerticalBlock"] { display: none !important; }
+    [data-testid="stAudioInput"] > div > div:not(:first-child) { display: none !important; }
     [data-testid="stAudioInput"] p { display: none !important; }
 
     /* Style the Mic Icon */
     [data-testid="stAudioInput"] button {
         background: transparent !important;
         color: MIC_COL !important;
-        font-size: 22px !important;
         padding: 0 !important;
         border: none !important;
         box-shadow: none !important;
-        transition: 0.2s;
     }
-    [data-testid="stAudioInput"] button:hover { color: #f97316 !important; }
+    [data-testid="stAudioInput"] button svg {
+        fill: MIC_COL !important;
+        color: MIC_COL !important;
+        width: 24px !important;
+        height: 24px !important;
+    }
+    [data-testid="stAudioInput"] button:hover svg { fill: #f97316 !important; color: #f97316 !important; }
 
     footer { visibility: hidden; } #MainMenu { visibility: hidden; }
 
     @media (max-width: 768px) {
         .main .block-container { padding-bottom: 120px !important; }
         [data-testid="stChatInput"] { left: 1rem !important; right: 1rem !important; bottom: 10px !important; }
-        [data-testid="stAudioInput"] { bottom: 18px !important; right: 4.5rem !important; }
+        [data-testid="stAudioInput"] { bottom: 16px !important; right: 4.5rem !important; }
     }
 </style>
 """
