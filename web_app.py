@@ -1,4 +1,4 @@
-"""Bee - Ultimate AI Assistant (Perfect Light Theme Fix)"""
+"""Bee - Ultimate AI Assistant (Fixed Light Theme + Sidebar Toggle + Watermark)"""
 
 import streamlit as st
 import json
@@ -350,7 +350,7 @@ def ask_llm(prompt, chat_history, file_context=""):
         return f"Error: {e}"
 
 # ============================================================
-# 🎨 PREMIUM CSS (Fixed Light Theme + Elegant Colors)
+# 🎨 PREMIUM CSS (Fixed Light Theme, Watermark & Toggle)
 # ============================================================
 if dark:
     bg_base = "#0e1117"
@@ -362,19 +362,19 @@ if dark:
     btn_txt = "#fafafa"
     border_col = "rgba(255,255,255,0.1)"
     glass_bg = "rgba(255, 255, 255, 0.05)"
-    watermark_opacity = "0.06"
+    watermark_opacity = "0.08"
 else:
     # ☀️ Elegant Light Theme Colors
     bg_base = "#ffffff"
     bg_gradient = "radial-gradient(circle at 50% 0%, #fdfbfb 0%, #f4f6f8 100%)"
-    txt = "#000000" # Full black text as requested
+    txt = "#000000" 
     sidebar_bg = "#f8f9fa"
     chat_input_bg = "rgba(255, 255, 255, 0.95)" 
-    btn_bg = "#ffffff" # White buttons
-    btn_txt = "#000000" # Black text on buttons
-    border_col = "rgba(0,0,0,0.15)" # Clear visible borders
-    glass_bg = "rgba(255, 255, 255, 0.7)" # White glass
-    watermark_opacity = "0.04"
+    btn_bg = "#ffffff" 
+    btn_txt = "#000000" 
+    border_col = "rgba(0,0,0,0.15)" 
+    glass_bg = "rgba(255, 255, 255, 0.7)" 
+    watermark_opacity = "0.1" # 🔥 ওয়াটারমার্ক এখন পরিষ্কার দেখা যাবে
 
 css = f"""
 <style>
@@ -383,7 +383,7 @@ css = f"""
         background: {bg_gradient} !important;
     }}
 
-    /* 🌟 Watermark */
+    /* 🌟 Watermark (Opacity Fixed) */
     [data-testid="stAppViewContainer"]::before {{
         content: "";
         position: fixed;
@@ -433,10 +433,10 @@ css = f"""
         align-items: flex-start !important;
     }}
 
-    /* 🔥 User Message Right Align (Messenger Style) */
+    /* 🔥 User Message Right Align */
     [data-testid="stChatMessage"]:has([data-testid="chatAvatarIcon-user"]) {{
         flex-direction: row-reverse !important;
-        background: rgba(249, 115, 22, 0.08) !important; /* Light orange glass */
+        background: rgba(249, 115, 22, 0.08) !important; 
         border-color: rgba(249, 115, 22, 0.3) !important;
     }}
     [data-testid="stChatMessage"]:has([data-testid="chatAvatarIcon-user"]) .stMarkdown {{
@@ -486,12 +486,8 @@ css = f"""
     [data-testid="stChatInput"] button {{ background-color: #f97316 !important; color: white !important; border-radius: 50% !important; }}
 
     /* Hide default borders and backgrounds in Bottom area */
-    [data-testid="stBottom"] > div {{
-        background: transparent !important;
-    }}
-    [data-testid="stBottom"] > div > div {{
-        background: transparent !important;
-    }}
+    [data-testid="stBottom"] > div {{ background: transparent !important; }}
+    [data-testid="stBottom"] > div > div {{ background: transparent !important; }}
 
     /* 🔥 Header & Sidebar Toggle Fix */
     #MainMenu {{visibility: hidden;}}
@@ -502,15 +498,24 @@ css = f"""
     }}
     .stDeployButton {{display: none !important;}}
     
-    /* Sidebar Toggle Arrow */
+    /* 🔥 Sidebar Toggle Arrow (Fixed & Visible) */
     [data-testid="collapsedControl"] {{
-        display: block !important;
-        color: #f97316 !important;
-        background: {glass_bg} !important;
+        display: flex !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        position: fixed !important;
+        top: 15px !important;
+        left: 15px !important;
+        z-index: 99999 !important;
+        background-color: #f97316 !important; /* কমলা রঙ */
+        color: white !important;
         border-radius: 50% !important;
-        margin-top: 10px !important;
-        margin-left: 10px !important;
-        border: 1px solid {border_col} !important;
+        padding: 8px !important;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.2) !important;
+    }}
+    [data-testid="collapsedControl"] svg {{
+        fill: white !important;
+        color: white !important;
     }}
     
     /* Emoji Popover Fix */
