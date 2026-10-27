@@ -1,4 +1,4 @@
-"""Bee - Ultimate AI Assistant (Final Version with Glass Glow & Image Gen)"""
+"""Bee - Ultimate AI Assistant (Glassmorphism & True Glow)"""
 
 import streamlit as st
 import json
@@ -80,7 +80,6 @@ if "chat_id" not in st.session_state: st.session_state.chat_id = None
 if "emoji_append" not in st.session_state: st.session_state.emoji_append = ""
 if "voice_ui" not in st.session_state: st.session_state.voice_ui = False
 
-# 🔥 Query Params থেকে অটো লগইন (রিফ্রেশ দিলেও লগইন থাকবে)
 if "user" in st.query_params and not st.session_state.logged_in:
     saved_user = st.query_params["user"]
     with st.spinner("🔄 অটো লগইন হচ্ছে..."):
@@ -140,7 +139,6 @@ if not st.session_state.logged_in:
                         st.session_state.is_premium = user["is_premium"]
                         st.session_state.chat_id = None 
                         
-                        # লগইন সেভ করা হচ্ছে URL-এ
                         st.query_params["user"] = user["username"]
                         
                         today = datetime.date.today().strftime("%Y-%m-%d")
@@ -354,14 +352,13 @@ def ask_llm(prompt, chat_history, file_context=""):
         return f"Error: {e}"
 
 # ============================================================
-# 🎨 PREMIUM CSS (Glassmorphism & Animated Glow Everywhere)
+# 🎨 PREMIUM CSS (Fixed Stains + True Glass + Animated BG)
 # ============================================================
 if dark:
     bg_base = "#0e1117"
-    bg_gradient = "radial-gradient(circle at 0% 0%, #1a1124 0%, transparent 50%), radial-gradient(circle at 100% 100%, #241211 0%, transparent 50%), #0e1117"
     txt = "#fafafa"
     sidebar_bg = "rgba(14, 17, 23, 0.7)"
-    chat_input_bg = "rgba(38, 39, 48, 0.6)" 
+    chat_input_bg = "rgba(30, 30, 40, 0.4)" 
     btn_bg = "#262730"
     btn_txt = "#fafafa"
     border_col = "rgba(255,255,255,0.1)"
@@ -371,10 +368,9 @@ if dark:
     radio_border = "#ffffff"
 else:
     bg_base = "#ffffff"
-    bg_gradient = "radial-gradient(circle at 0% 0%, #fdfbfb 0%, transparent 50%), radial-gradient(circle at 100% 100%, #ebedee 0%, transparent 50%), #ffffff"
     txt = "#1a1a1a" 
     sidebar_bg = "rgba(255, 255, 255, 0.7)"
-    chat_input_bg = "rgba(255, 255, 255, 0.6)" 
+    chat_input_bg = "rgba(255, 255, 255, 0.4)" 
     btn_bg = "rgba(255, 255, 255, 0.9)" 
     btn_txt = "#1a1a1a" 
     border_col = "rgba(0,0,0,0.1)" 
@@ -385,28 +381,32 @@ else:
 
 css = f"""
 <style>
-    /* 🌟 Animated Glowing Background */
+    /* 🌟 Animated Moving Gradient Background */
     .stApp {{
-        background: {bg_gradient} !important;
+        background: linear-gradient(135deg, {bg_base} 0%, #1a1124 50%, #241211 100%) !important;
+        background-size: 200% 200% !important;
+        animation: gradientBG 15s ease infinite !important;
         background-attachment: fixed !important;
     }}
-
-    /* 🌟 Moving Orb for Glass Blur Effect */
-    .stApp::after {{
-        content: "";
-        position: fixed;
-        top: 50%; left: 50%;
-        width: 800px; height: 800px;
-        background: radial-gradient(circle, rgba(249, 115, 22, 0.15) 0%, transparent 60%);
-        transform: translate(-50%, -50%);
-        animation: pulseOrb 10s ease-in-out infinite alternate;
-        z-index: 0;
-        pointer-events: none;
+    
+    /* For Light Theme, make gradient softer */
+    @media (prefers-color-scheme: light) {{
+        .stApp {{
+            background: linear-gradient(135deg, #fdfbfb 0%, #ebedee 50%, #f4f6f8 100%) !important;
+            background-size: 200% 200% !important;
+            animation: gradientBG 15s ease infinite !important;
+        }}
     }}
 
-    @keyframes pulseOrb {{
-        0% {{ transform: translate(-50%, -50%) scale(0.8); opacity: 0.5; }}
-        100% {{ transform: translate(-50%, -50%) scale(1.2); opacity: 1; }}
+    @keyframes gradientBG {{
+        0% {{ background-position: 0% 50%; }}
+        50% {{ background-position: 100% 50%; }}
+        100% {{ background-position: 0% 50%; }}
+    }}
+
+    /* Force Transparency for Glass Effect */
+    [data-testid="stAppViewContainer"], [data-testid="stHeader"], [data-testid="stVerticalBlock"], .main, .block-container {{
+        background: transparent !important;
     }}
 
     /* 🌟 Watermark */
@@ -426,7 +426,7 @@ css = f"""
     [data-testid="stChatMessage"] *, [data-testid="stMarkdownContainer"] *,
     [data-testid="stSidebar"] p, [data-testid="stSidebar"] span, [data-testid="stSidebar"] label {{ color: {txt} !important; }}
 
-    /* 💎 TRUE GLASSMORPHISM CHAT BUBBLES */
+    /* 💎 Glassmorphism Chat Bubbles */
     [data-testid="stChatMessage"] {{
         background: {glass_bg} !important; 
         backdrop-filter: blur(20px) !important;
@@ -439,16 +439,16 @@ css = f"""
         flex-direction: row !important; 
         align-items: flex-start !important;
         z-index: 1;
-        box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.15) !important;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.1) !important;
     }}
 
     /* AI Message Animated Glow */
     [data-testid="stChatMessage"]:not(:has([data-testid="chatAvatarIcon-user"])) {{
-        animation: aiGlow 4s infinite alternate !important;
+        animation: aiGlow 3s infinite alternate !important;
     }}
     @keyframes aiGlow {{
-        0% {{ border-color: rgba(255, 255, 255, 0.1) !important; box-shadow: 0 0 10px rgba(255, 255, 255, 0.05) !important; }}
-        100% {{ border-color: rgba(249, 115, 22, 0.5) !important; box-shadow: 0 0 30px rgba(249, 115, 22, 0.3) !important; }}
+        0% {{ box-shadow: 0 0 5px rgba(249, 115, 22, 0.1) !important; border-color: rgba(255,255,255,0.1) !important; }}
+        100% {{ box-shadow: 0 0 20px rgba(249, 115, 22, 0.4) !important; border-color: rgba(249, 115, 22, 0.5) !important; }}
     }}
 
     /* User Message Right Align + Animated Glow */
@@ -456,11 +456,11 @@ css = f"""
         flex-direction: row-reverse !important;
         background: rgba(249, 115, 22, 0.15) !important; 
         border: 1px solid rgba(249, 115, 22, 0.3) !important;
-        animation: userGlow 4s infinite alternate !important;
+        animation: userGlow 3s infinite alternate !important;
     }}
     @keyframes userGlow {{
-        0% {{ box-shadow: 0 0 10px rgba(249, 115, 22, 0.1) !important; }}
-        100% {{ box-shadow: 0 0 30px rgba(249, 115, 22, 0.6) !important; }}
+        0% {{ box-shadow: 0 0 5px rgba(249, 115, 22, 0.2) !important; }}
+        100% {{ box-shadow: 0 0 20px rgba(249, 115, 22, 0.6) !important; }}
     }}
     
     [data-testid="stChatMessage"]:has([data-testid="chatAvatarIcon-user"]) .stMarkdown {{
@@ -490,7 +490,7 @@ css = f"""
     [data-testid="stAudioInput"] button {{ background-color: #f97316 !important; color: white !important; border: none !important; }}
     [data-testid="stAudioInput"] button svg {{ fill: white !important; color: white !important; }}
 
-    /* 🔥 CHAT INPUT BOX ANIMATED GLASS & GLOW 🔥 */
+    /* 🔥 FIXED CHAT INPUT BOX (No Stains, Pure Glass & Glow) */
     [data-testid="stChatInput"] {{ 
         position: fixed !important; 
         bottom: 20px !important; 
@@ -503,22 +503,33 @@ css = f"""
         backdrop-filter: blur(20px) !important; 
         -webkit-backdrop-filter: blur(20px) !important;
         
+        /* Clean Border and Glow (No box-shadow inset causing stains) */
         border: 2px solid #f97316 !important; 
-        border-radius: 25px !important; 
-        padding: 5px 10px !important; 
+        border-radius: 30px !important; 
+        padding: 2px 10px !important; 
+        box-shadow: 0 0 15px rgba(249, 115, 22, 0.4) !important;
+        
+        /* Animated Glow */
         animation: inputGlow 3s infinite alternate !important;
     }}
     
     @keyframes inputGlow {{
         0% {{ box-shadow: 0 0 10px rgba(249, 115, 22, 0.2) !important; border-color: rgba(249, 115, 22, 0.5) !important; }}
-        100% {{ box-shadow: 0 0 30px rgba(249, 115, 22, 0.8), inset 0 0 15px rgba(249, 115, 22, 0.2) !important; border-color: rgba(249, 115, 22, 1) !important; }}
+        100% {{ box-shadow: 0 0 25px rgba(249, 115, 22, 0.7) !important; border-color: rgba(249, 115, 22, 1) !important; }}
     }}
 
-    [data-testid="stChatInput"] > div {{ background-color: transparent !important; }}
-    [data-testid="stChatInput"] div[data-testid="stVerticalBlock"] {{ background-color: transparent !important; }}
-    [data-testid="stChatInput"] textarea {{ background-color: transparent !important; color: {txt} !important; padding-right: 80px !important; }}
+    /* Force all inner containers to be transparent to kill the stain */
+    [data-testid="stChatInput"] > div, 
+    [data-testid="stChatInput"] div[data-testid="stVerticalBlock"],
+    [data-testid="stChatInput"] div[data-testid="stHorizontalBlock"] {{ 
+        background-color: transparent !important; 
+        border: none !important; 
+        box-shadow: none !important;
+    }}
     
-    [data-testid="stChatInput"] button {{ background-color: #f97316 !important; color: white !important; border-radius: 50% !important; transition: all 0.3s !important; }}
+    [data-testid="stChatInput"] textarea {{ background-color: transparent !important; color: {txt} !important; padding-right: 80px !important; border: none !important; box-shadow: none !important; }}
+    
+    [data-testid="stChatInput"] button {{ background-color: #f97316 !important; color: white !important; border-radius: 50% !important; transition: all 0.3s !important; border: none !important; }}
     [data-testid="stChatInput"] button:hover {{ transform: scale(1.1) !important; box-shadow: 0 0 15px rgba(249, 115, 22, 0.8) !important; }}
 
     [data-testid="stBottom"] > div {{ background: transparent !important; }}
@@ -578,7 +589,7 @@ if st.session_state.voice_ui:
     st.stop()
 
 # ============================================================
-# 🖼️ IMAGE RENDERING HELPER (With Action Buttons)
+# 🖼️ IMAGE RENDERING HELPER
 # ============================================================
 def render_message_with_image(content):
     img_match = re.search(r'!\[.*?\]\((https://image\.pollinations\.ai/.*?)\)', content)
