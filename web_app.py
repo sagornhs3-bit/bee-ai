@@ -221,7 +221,12 @@ css = """
         animation: glow 3s infinite !important;
         padding: 5px 10px !important;
     }
-    [data-testid="stChatInput"] textarea { background: transparent !important; color: white !important; }
+    
+    [data-testid="stChatInput"] textarea { 
+        background: transparent !important; 
+        color: white !important;
+        padding-right: 90px !important; /* Make room for mic and send button */
+    }
 
     /* Orange Send Button */
     [data-testid="stChatInput"] button {
@@ -231,38 +236,42 @@ css = """
         border: none !important;
     }
 
-    /* MAGIC: Move the Audio Input inside the Chat Bar, Left of Send Button */
+    /* 🔥 THE FIX: Position Mic Icon INSIDE Chat Bar, Left of Send Button */
     [data-testid="stAudioInput"] {
         position: fixed !important;
-        bottom: 28px !important;
-        right: 5.5rem !important;
+        bottom: 32px !important; /* Vertically center in chat bar */
+        right: 5.5rem !important; /* Left of the send button */
         z-index: 1000 !important;
-        width: 40px !important; 
+        width: 40px !important;
         height: 40px !important;
         background: transparent !important;
         border: none !important;
-        overflow: hidden !important;
+        overflow: visible !important;
     }
     
-    /* Hide the ugly parts of audio input and keep only the mic */
-    [data-testid="stAudioInput"] > div { padding: 0 !important; margin: 0 !important; }
-    [data-testid="stAudioInput"] p, [data-testid="stAudioInput"] .stMarkdown { display: none !important; }
+    /* Hide the ugly text and waveform of the audio input */
+    [data-testid="stAudioInput"] > div { padding: 0 !important; background: transparent !important; }
+    [data-testid="stAudioInput"] div[data-testid="stVerticalBlock"] { display: none !important; }
+    [data-testid="stAudioInput"] p { display: none !important; }
+
+    /* Style the Mic Button itself */
     [data-testid="stAudioInput"] button {
         background: transparent !important;
-        color: #a3a3a3 !important;
+        color: #a3a3a3 !important; /* Grey mic icon */
+        font-size: 22px !important;
         padding: 0 !important;
         border: none !important;
         box-shadow: none !important;
-        font-size: 24px !important;
+        transition: 0.2s;
     }
-    [data-testid="stAudioInput"] button:hover { color: #f97316 !important; }
+    [data-testid="stAudioInput"] button:hover { color: #f97316 !important; } /* Orange on hover */
 
     footer { visibility: hidden; } #MainMenu { visibility: hidden; }
 
     @media (max-width: 768px) {
         .main .block-container { padding-bottom: 120px !important; }
         [data-testid="stChatInput"] { left: 1rem !important; right: 1rem !important; bottom: 10px !important; }
-        [data-testid="stAudioInput"] { bottom: 18px !important; right: 4.5rem !important; }
+        [data-testid="stAudioInput"] { bottom: 22px !important; right: 4.5rem !important; }
     }
 </style>
 """
@@ -332,11 +341,11 @@ else:
         avatar = "👤" if m["role"] == "user" else "https://raw.githubusercontent.com/sagornhs3-bit/bee-ai/main/bumblebee.png"
         with st.chat_message(m["role"], avatar=avatar): st.markdown(m["content"])
 
-# ============ INPUT AREA (ChatGPT Style) ============
-# ১. ভয়েস ইনপুট (এটি CSS দিয়ে চ্যাট বক্সের ভেতরে ডানদিকে পজিশন করা হয়েছে)
+# ============ INPUT AREA ============
+# ভয়েস ইনপুট (CSS দিয়ে চ্যাট বক্সের ভেতরে পজিশন করা হয়েছে)
 audio_value = st.audio_input("Voice Input", label_visibility="collapsed")
 
-# ২. মেইন চ্যাট ইনপুট (টেক্সট + ফাইল)
+# মেইন চ্যাট ইনপুট
 chat_data = st.chat_input("Type your message here...", accept_file=True, file_type=["pdf", "txt", "csv"])
 
 user_message = None
