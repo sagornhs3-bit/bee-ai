@@ -1,4 +1,4 @@
-"""Bee - Ultimate AI Assistant (Perfect Light Theme, System Auto, Voice Mode)"""
+"""Bee - Ultimate AI Assistant (Perfect Light Theme, System Auto, Manual Voice Cancel)"""
 
 import streamlit as st
 import json
@@ -37,9 +37,9 @@ if "logged_in" not in st.session_state: st.session_state.logged_in = True
 if "username" not in st.session_state: st.session_state.username = "Guest"
 if "chat_id" not in st.session_state: st.session_state.chat_id = None
 if "last_audio_hash" not in st.session_state: st.session_state.last_audio_hash = None
+if "audio_key" not in st.session_state: st.session_state.audio_key = 0 # Cancel button er jonno
 
 # ============ SYSTEM AUTO THEME ============
-# সিস্টেমের থিম ডিটেক্ট করা (Streamlit-এর নতুন ভার্সনে কাজ করে)
 sys_theme = "dark"
 try:
     if hasattr(st, 'context') and hasattr(st.context, 'theme'):
@@ -224,7 +224,7 @@ else:
 
 css = """
 <style>
-    /* 🔥 FORCE ALL BACKGROUNDS */
+    /* Force Main, Bottom, and Header Backgrounds */
     .stApp, [data-testid="stAppViewContainer"], [data-testid="stHeader"], 
     [data-testid="stBottom"], [data-testid="stBottom"] > div, [data-testid="stBottom"] > div > div,
     .main, .block-container, [data-testid="stVerticalBlock"] { 
@@ -232,11 +232,11 @@ css = """
     }
     [data-testid="stSidebar"] { background-color: SIDEBAR_BG !important; }
     
-    /* Hide "Manage app", Footer, Menu */
+    /* Hide Manage App, Footer, Menu */
     [data-testid="stStatusWidget"] { display: none !important; }
     footer { visibility: hidden; } #MainMenu { visibility: hidden; }
 
-    /* Force Text Colors */
+    /* Text Colors */
     .main p, .main span, .main label, .main h1, .main h2, .main h3, .main div, 
     [data-testid="stSidebar"] p, [data-testid="stSidebar"] span, [data-testid="stSidebar"] label { 
         color: TXT_COLOR !important; 
@@ -271,6 +271,32 @@ css = """
     }
     .stButton > button p, .stButton > button div { color: BTN_TXT !important; }
 
+    /* 🔥 FIX 1: Radio Button Black Dot -> Orange Dot */
+    [data-testid="stRadio"] div[role="radiogroup"] > label > div:first-child {
+        background-color: transparent !important;
+        border-color: BORDER_COL !important;
+    }
+    [data-testid="stRadio"] div[role="radiogroup"] > label > div:first-child > div {
+        background-color: #f97316 !important; /* Orange */
+    }
+
+    /* 🔥 FIX 2: Voice Mode Black Box (Timer/Playback) -> Hidden */
+    [data-testid="stAudioInput"] {
+        background-color: BG_COLOR !important;
+        border: 1px solid BORDER_COL !important;
+        border-radius: 10px !important;
+    }
+    [data-testid="stAudioInput"] > div { background-color: transparent !important; }
+    /* Hide the native audio player and timer completely */
+    [data-testid="stAudioInput"] audio { display: none !important; }
+    [data-testid="stAudioInput"] div[class*="Timer"],
+    [data-testid="stAudioInput"] div[class*="Waveform"],
+    [data-testid="stAudioInput"] div[class*="Playback"] { 
+        display: none !important; 
+    }
+    [data-testid="stAudioInput"] svg { fill: TXT_COLOR !important; }
+    [data-testid="stAudioInput"] button { background: transparent !important; }
+
     /* Glowing Chat Input */
     @keyframes glow {
         0% { box-shadow: 0 0 5px rgba(249, 115, 22, 0.3); border-color: rgba(249, 115, 22, 0.3) !important; }
@@ -301,27 +327,10 @@ css = """
         color: TXT_COLOR !important; opacity: 0.6;
     }
 
-    /* Orange Send Button */
     [data-testid="stChatInput"] button {
         background-color: #f97316 !important; color: white !important;
         border-radius: 50% !important; border: none !important;
     }
-
-    /* 🔥 FORCE AUDIO INPUT (Removes all black boxes) */
-    [data-testid="stAudioInput"] {
-        background-color: CHAT_INPUT_BG !important;
-        border: 1px solid BORDER_COL !important;
-        border-radius: 10px !important;
-    }
-    [data-testid="stAudioInput"] > div, 
-    [data-testid="stAudioInput"] div[class*="Timer"], 
-    [data-testid="stAudioInput"] div[class*="Waveform"] { 
-        background-color: transparent !important; 
-        color: TXT_COLOR !important;
-    }
-    [data-testid="stAudioInput"] svg { fill: TXT_COLOR !important; }
-    [data-testid="stAudioInput"] button { background: transparent !important; }
-    [data-testid="stAudioInput"] audio { display: none !important; }
 
     /* Mobile Optimization */
     @media (max-width: 1024px) {
@@ -347,9 +356,21 @@ with st.sidebar:
         new_chat(); st.rerun()
     st.divider()
     
-    # Voice Mode
+    # Voice Mode with Manual Send/Cancel
     st.markdown("**🎤 Voice Mode**")
-    audio_value = st.audio_input("Record your voice", label_visibility="collapsed")
+    audio_value = st.audio_input("Record your voice", label_visibility="collapsed", key=f"audio_{st.session_state.audio_key}")
+    
+    audio_to_process = None
+    if audio_value is not None:
+        col1, col2 = st.columns(2)
+        with col1:
+            if st.button("✅ Send", use_container_width=True, type="primary"):
+                audio_to_process = audio_value
+        with col2:
+            if st.button("❌ Cancel", use_container_width=True):
+                # Clear the audio input by changing its key
+                st.session_state.audio_key += 1
+                st.rerun()
     
     st.divider()
     st.markdown("**💬 History**")
@@ -425,16 +446,17 @@ if chat_data:
         file_context = extract_text_from_file(uploaded_file)
         st.toast(f"📎 File '{uploaded_file.name}' attached!")
         
-elif audio_value is not None:
-    audio_bytes = audio_value.getvalue()
+elif audio_to_process is not None:
+    audio_bytes = audio_to_process.getvalue()
     audio_hash = hash(audio_bytes)
     
     if st.session_state.last_audio_hash != audio_hash:
         st.session_state.last_audio_hash = audio_hash
         with st.spinner("🎤 আপনার কথা শোনা হচ্ছে..."):
-            user_message = transcribe_audio(audio_value)
+            user_message = transcribe_audio(audio_to_process)
         if user_message:
             st.toast(f"🗣️ আপনি বলেছেন: {user_message}")
+            st.session_state.audio_key += 1 # Clear audio after processing
 
 # ============ HANDLE INPUT ============
 if user_message:
