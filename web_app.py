@@ -1,4 +1,4 @@
-"""Bee - Ultimate AI Assistant (Fixed Animations, Auto Theme, Image Gen)"""
+"""Bee - Ultimate AI Assistant (Fixed Model, Auto Theme, Image Gen, Animations)"""
 
 import streamlit as st
 import json
@@ -16,7 +16,7 @@ import PyPDF2
 BEE_DIR = Path(__file__).parent
 sys.path.insert(0, str(BEE_DIR))
 
-# আপনার লোকাল মডিউল
+# আপনার লোকাল মডিউল (যদি থাকে)
 try:
     from memory import (get_user_name, set_user_name, build_memory_context,
                         remember, recall, get_all_facts)
@@ -154,9 +154,9 @@ def extract_text_from_file(uploaded_file):
     except Exception: return ""
     return ""
 
-# ============ ইমেজ জেনারেশন ============
+# ============ ইমেজ জেনারেশন (Pollinations AI) ============
 def generate_image(prompt):
-    with st.spinner("🎨 ছবি তৈরি করা হচ্ছে..."):
+    with st.spinner("🎨 ছবি তৈরি করা হচ্ছে, অপেক্ষা করুন..."):
         try:
             encoded_prompt = urllib.parse.quote(prompt)
             url = f"https://image.pollinations.ai/prompt/{encoded_prompt}?width=1024&height=1024&nologo=true"
@@ -167,10 +167,10 @@ def generate_image(prompt):
         except Exception:
             return None
 
-# ============ AI লজিক ============
+# ============ AI লজিক (নতুন মডেল) ============
 def ask_llm(prompt, chat_history, file_context=""):
     client = get_groq()
-    if not client: return "API Key সঠিকভাবে সেট করা নেই।"
+    if not client: return "API Key সঠিকভাবে সেট করা নেই বা config.json ফাইলে পাওয়া যায়নি।"
     
     sys_prompt = f"""You are {NAME}, a helpful AI assistant.
 {file_context}
@@ -187,12 +187,13 @@ def ask_llm(prompt, chat_history, file_context=""):
     messages.append({"role": "user", "content": prompt})
 
     try:
-        r = client.chat.completions.create(model="llama3-70b-8192", messages=messages, temperature=0.4)
+        # 🔥 এখানে নতুন মডেল ব্যবহার করা হয়েছে
+        r = client.chat.completions.create(model="llama-3.3-70b-versatile", messages=messages, temperature=0.4)
         return r.choices[0].message.content.strip()
     except Exception as e:
         return f"Error: {e}"
 
-# ============ থিম কালার (অটো লাইট/ডার্ক) ============
+# ============ থিম কালার ============
 if dark:
     bg = "#0e1117"; txt = "#fafafa"; sidebar_bg = "#0e1117"
     chat_input_bg = "#262730"; btn_bg = "#262730"; btn_txt = "#fafafa"; border_col = "#3a3d45"
@@ -200,10 +201,9 @@ else:
     bg = "#ffffff"; txt = "#1a1a1a"; sidebar_bg = "#f8f9fa"
     chat_input_bg = "#ffffff"; btn_bg = "#e9ecef"; btn_txt = "#1a1a1a"; border_col = "#ced4da"
 
-# ============ CSS (আগের ডিজাইন ফিরিয়ে আনা হয়েছে) ============
+# ============ CSS (ডিজাইন ও অ্যানিমেশন) ============
 css = f"""
 <style>
-    /* অটো থিমের জন্য ডাইনামিক ভেরিয়েবল */
     :root {{
         --bg-color: {bg};
         --txt-color: {txt};
@@ -229,10 +229,12 @@ css = f"""
         color: var(--txt-color) !important;
         border: 1px solid var(--border-col) !important;
         border-radius: 10px !important;
+        transition: all 0.3s ease;
     }}
     [data-testid="stSidebar"] .stButton > button:hover {{
         border-color: #f97316 !important;
         color: #f97316 !important;
+        transform: translateY(-2px);
     }}
 
     /* ভয়েস মোডের কালো বক্স ফিক্স */
@@ -241,11 +243,9 @@ css = f"""
         border: 1px solid var(--border-col) !important;
         border-radius: 10px !important;
     }}
-    [data-testid="stAudioInput"] > div {{
-        background-color: transparent !important;
-    }}
+    [data-testid="stAudioInput"] > div {{ background-color: transparent !important; }}
 
-    /* লোগো অ্যানিমেশন (ভাঙা লিংক ফিক্স করা হয়েছে) */
+    /* লোগো অ্যানিমেশন */
     @keyframes float {{
         0% {{ transform: translateY(0px); filter: drop-shadow(0px 10px 15px rgba(0,0,0,0.4)); }}
         50% {{ transform: translateY(-10px); filter: drop-shadow(0px 20px 25px rgba(0,0,0,0.6)); }}
@@ -256,6 +256,7 @@ css = f"""
         border-radius: 50%;
         max-height: 70px;
         object-fit: contain;
+        mix-blend-mode: screen;
     }}
 
     /* হেডার গ্রেডিয়েন্ট */
@@ -267,7 +268,7 @@ css = f"""
     .header h1 {{ margin: 0; font-size: 2rem; color: #ffffff !important; }}
     .header p {{ margin: 0.3rem 0 0; color: #ffffff !important; opacity: 0.9; }}
 
-    /* চ্যাট ইনপুট গ্লোয়িং ইফেক্ট (ChatGPT স্টাইল) */
+    /* চ্যাট ইনপুট গ্লোয়িং ইফেক্ট */
     @keyframes glow {{
         0% {{ box-shadow: 0 0 5px rgba(249, 115, 22, 0.3); border-color: rgba(249, 115, 22, 0.3) !important; }}
         50% {{ box-shadow: 0 0 20px rgba(249, 115, 22, 0.8); border-color: rgba(249, 115, 22, 0.8) !important; }}
@@ -286,13 +287,10 @@ css = f"""
     [data-testid="stChatInput"] button {{
         background-color: #f97316 !important; color: white !important; border-radius: 50% !important;
     }}
-
-    /* অন্যান্য বাটন স্টাইল */
-    .stButton > button {{
-        background-color: var(--btn-bg) !important; color: var(--btn-txt) !important; 
-        border: 1px solid var(--border-col) !important; border-radius: 10px !important;
-    }}
     
+    /* মেইন এরিয়া প্যাডিং */
+    .main .block-container {{ padding-top: 1.5rem; max-width: 900px; padding-bottom: 150px !important; }}
+
     @media (max-width: 1024px) {{ [data-testid="stChatInput"] {{ left: 2rem !important; right: 2rem !important; }} }}
     @media (max-width: 768px) {{ [data-testid="stChatInput"] {{ left: 1rem !important; right: 1rem !important; bottom: 10px !important; }} }}
 </style>
