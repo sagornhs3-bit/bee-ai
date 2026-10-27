@@ -1,4 +1,4 @@
-"""Bee - Ultimate AI Assistant (Glass UI + Image Gen + Voice + Web Search)"""
+"""Bee - Ultimate AI Assistant (Glass UI + Emoji Picker + Voice + Image Gen)"""
 
 import streamlit as st
 import json
@@ -305,11 +305,9 @@ def ask_llm(prompt, chat_history, file_context=""):
     client = get_groq()
     if not client: return "API Key নেই।"
 
-    # 🔥 Image Generation Logic (No API key needed, using Pollinations AI)
     image_keywords = ["ছবি তৈরি", "ছবি বানাও", "draw", "generate image", "picture of", "paint"]
     if any(kw in prompt.lower() for kw in image_keywords):
         with st.spinner("🎨 ছবি তৈরি করা হচ্ছে..."):
-            # Extract prompt for image gen
             clean_prompt = prompt
             for kw in image_keywords:
                 clean_prompt = clean_prompt.replace(kw, "")
@@ -321,7 +319,6 @@ def ask_llm(prompt, chat_history, file_context=""):
             
             return f"আপনার অনুরোধ অনুযায়ী ছবিটি তৈরি করেছি:\n\n![Generated Image]({img_url})\n\n_ছবিটি ডাউনলোড করতে ছবির ওপর রাইট ক্লিক করুন।_"
 
-    # Web Search
     web_context = ""
     if any(w in prompt.lower() for w in ["search", "who is", "news", "খবর", "current", "today", "weather", "time"]):
         with st.spinner("🌐 ইন্টারনেটে খুঁজছি..."):
@@ -353,7 +350,7 @@ def ask_llm(prompt, chat_history, file_context=""):
         return f"Error: {e}"
 
 # ============================================================
-# 🎨 PREMIUM CSS (Glassmorphism + Watermark + Animated Logo)
+# 🎨 PREMIUM CSS (Glassmorphism + Messenger Layout + Animation)
 # ============================================================
 if dark:
     bg = "#0e1117"; txt = "#fafafa"; sidebar_bg = "#0e1117"; chat_input_bg = "rgba(38, 39, 48, 0.8)" 
@@ -369,16 +366,12 @@ css = f"""
     /* 🌟 Watermark */
     .main .block-container::before {{
         content: "";
-        position: fixed;
-        top: 50%; left: 50%;
+        position: fixed; top: 50%; left: 50%;
         transform: translate(-50%, -50%);
         width: 500px; height: 500px;
         background-image: url('https://raw.githubusercontent.com/sagornhs3-bit/bee-ai/main/bumblebee.png');
-        background-size: contain;
-        background-repeat: no-repeat;
-        opacity: 0.03;
-        z-index: 0;
-        pointer-events: none;
+        background-size: contain; background-repeat: no-repeat;
+        opacity: 0.03; z-index: 0; pointer-events: none;
     }}
 
     .stApp, [data-testid="stAppViewContainer"], [data-testid="stHeader"], 
@@ -392,7 +385,7 @@ css = f"""
 
     .main .block-container {{ padding-top: 1.5rem; max-width: 900px; padding-bottom: 150px !important; }}
     
-    /* 💎 Glassmorphism Chat Bubbles */
+    /* 💎 Glassmorphism Chat Bubbles & Messenger Layout */
     [data-testid="stChatMessage"] {{
         background: {glass_bg} !important;
         backdrop-filter: blur(10px) !important;
@@ -402,6 +395,19 @@ css = f"""
         padding: 15px !important;
         margin-bottom: 15px !important;
         box-shadow: 0 4px 15px rgba(0,0,0,0.1) !important;
+        display: flex !important;
+        flex-direction: row !important;
+        align-items: flex-start !important;
+    }}
+
+    /* 🔥 User Message Right Align (Messenger Style) */
+    [data-testid="stChatMessage"]:has([data-testid="chatAvatarIcon-user"]) {{
+        flex-direction: row-reverse !important;
+        background: rgba(249, 115, 22, 0.1) !important;
+        border-color: rgba(249, 115, 22, 0.3) !important;
+    }}
+    [data-testid="stChatMessage"]:has([data-testid="chatAvatarIcon-user"]) .stMarkdown {{
+        text-align: right !important;
     }}
     
     /* Header */
@@ -410,20 +416,19 @@ css = f"""
     .header p {{ margin: 0.3rem 0 0; opacity: 0.95; font-size: 0.95rem; color: #ffffff !important; }}
     
     /* 🐝 Animated Logo */
-    @keyframes float {{
-        0% {{ transform: translateY(0px) scale(1); filter: drop-shadow(0px 5px 15px rgba(249, 115, 22, 0.3)); }}
-        50% {{ transform: translateY(-5px) scale(1.05); filter: drop-shadow(0px 10px 25px rgba(249, 115, 22, 0.6)); }}
-        100% {{ transform: translateY(0px) scale(1); filter: drop-shadow(0px 5px 15px rgba(249, 115, 22, 0.3)); }}
+    @keyframes talk {{
+        0% {{ transform: translateY(0px) scale(1); filter: drop-shadow(0 0 10px rgba(249, 115, 22, 0.3)); }}
+        50% {{ transform: translateY(-8px) scale(1.05); filter: drop-shadow(0 0 25px rgba(249, 115, 22, 0.8)); }}
+        100% {{ transform: translateY(0px) scale(1); filter: drop-shadow(0 0 10px rgba(249, 115, 22, 0.3)); }}
     }}
-    .logo-3d {{ animation: float 3s ease-in-out infinite; border-radius: 50%; mix-blend-mode: screen; max-height: 80px; object-fit: contain; }}
+    .logo-3d {{ animation: talk 3s ease-in-out infinite; border-radius: 50%; mix-blend-mode: screen; max-height: 80px; object-fit: contain; }}
     
     /* Input Box */
     [data-testid="stChatInput"] {{
         position: fixed !important; bottom: 20px !important; left: 21rem !important; right: 2rem !important;
         z-index: 999 !important; max-width: 900px !important;
         background: {chat_input_bg} !important; backdrop-filter: blur(15px) !important;
-        border: 2px solid #f97316 !important; 
-        border-radius: 25px !important; padding: 5px 10px !important;
+        border: 2px solid #f97316 !important; border-radius: 25px !important; padding: 5px 10px !important;
     }}
     [data-testid="stChatInput"] > div {{ background-color: transparent !important; }}
     [data-testid="stChatInput"] textarea {{ background-color: transparent !important; color: {txt} !important; padding-right: 80px !important; }}
@@ -520,8 +525,8 @@ if not cur["messages"]:
         st.markdown(f"Hi **{st.session_state.username}**! I'm {NAME} — your personal AI. How can I help you today? 😊")
 else:
     for m in cur["messages"]:
-        avatar = "👤" if m["role"] == "user" else "https://raw.githubusercontent.com/sagornhs3-bit/bee-ai/main/bumblebee.png"
-        with st.chat_message(m["role"], avatar=avatar): 
+        # স্ট্যান্ডার্ড Streamlit রোল ব্যবহার করা হলো যাতে CSS কাজ করে
+        with st.chat_message(m["role"]): 
             st.markdown(m["content"])
 
 # ============ EMOJI PICKER & INPUT ============
@@ -548,14 +553,22 @@ if (not st.session_state.is_premium) and (st.session_state.msg_count >= DAILY_LI
             elif unlock_input != "":
                 st.error("❌ ভুল আনলক কোড!")
 else:
-    # 🔥 Quick Emoji Bar
-    st.markdown("<p style='font-size: 14px; color: gray; margin-bottom: 5px;'>Quick Emojis:</p>", unsafe_allow_html=True)
-    emoji_cols = st.columns(10)
-    emojis = ["😊", "😂", "❤️", "👍", "🔥", "😍", "🙏", "😎", "😢", "🤔"]
-    for i, em in enumerate(emojis):
-        if emoji_cols[i].button(em, key=f"em_{em}"):
-            st.session_state.emoji_append += em
-            st.rerun()
+    # 🔥 Emoji Picker on the Left
+    col_emoji, col_selected = st.columns([1.5, 8.5])
+    with col_emoji:
+        with st.popover("😊 Emoji", use_container_width=True):
+            st.markdown("### Select an Emoji")
+            emoji_list = ["😀", "😃", "😄", "😁", "😆", "😅", "😂", "🤣", "😊", "😇", "🙂", "🙃", "😉", "😌", "😍", "🥰", "😘", "😗", "😙", "😚", "😋", "😛", "😝", "😜", "🤪", "🤨", "🧐", "🤓", "😎", "🤩", "🥳", "😏", "😒", "😞", "😔", "😟", "😕", "🙁", "☹️", "😣", "😖", "😫", "😩", "🥺", "😢", "😭", "😤", "😠", "😡", "🤬", "🤯", "😳", "🥵", "🥶", "😱", "😨", "😰", "😥", "😓", "🤗", "🤔", "🤭", "🤫", "🤥", "😶", "😐", "😑", "😬", "🙄", "😯", "😦", "😧", "😮", "😲", "🥱", "😴", "🤤", "😪", "😵", "🤐", "🥴", "🤢", "🤮", "🤧", "😷", "🤒", "🤕", "🤑", "🤠", "😈", "👿", "👹", "👺", "🤡", "💩", "👻", "💀", "☠️", "👽", "👾", "🤖", "🎃", "😺", "😸", "😹", "😻", "😼", "😽", "🙀", "😿", "😾", "👍", "👎", "👊", "✊", "🤛", "🤜", "🤞", "✌️", "🤟", "🤘", "👌", "👈", "👉", "👆", "👇", "☝️", "✋", "🤚", "🖐", "🖖", "👋", "🤙", "💪", "🦾", "🙏", "✍️", "🤝", "💅", "🤳", "💍", "💄", "💋", "👄", "👅", "👂", "🦻", "👃", "👣", "👁", "👀", "🫀", "🧠", "🫁", "🦷", "🦴", "👤", "👥", "🗣", "👶", "🧒", "👦", "👧", "🧑", "👱", "👨", "🧔", "👩", "🧓", "👴", "👵"]
+            
+            cols = st.columns(6)
+            for i, em in enumerate(emoji_list):
+                with cols[i % 6]:
+                    if st.button(em, key=f"em_{em}"):
+                        st.session_state.emoji_append += em
+                        st.rerun()
+    with col_selected:
+        if st.session_state.emoji_append:
+            st.info(f"Selected: {st.session_state.emoji_append}")
 
     # Text Input
     chat_data = st.chat_input("Type your message here...", accept_file=True, file_type=["pdf", "txt", "csv"])
@@ -564,7 +577,7 @@ else:
         user_message = chat_data.text
         if st.session_state.emoji_append:
             user_message = st.session_state.emoji_append + " " + (user_message or "")
-            st.session_state.emoji_append = "" # Reset after use
+            st.session_state.emoji_append = "" # Reset after sending
             
         if chat_data.files:
             uploaded_file = chat_data.files[0]
@@ -588,7 +601,7 @@ if user_message:
         supabase.table("users").update({"msg_count": st.session_state.msg_count}).eq("username", st.session_state.username).execute()
         
     add_msg(st.session_state.chat_id, "user", user_message)
-    with st.chat_message("user", avatar="👤"): 
+    with st.chat_message("user"): 
         st.markdown(user_message)
 
     with st.chat_message("assistant", avatar="https://raw.githubusercontent.com/sagornhs3-bit/bee-ai/main/bumblebee.png"):
@@ -598,12 +611,8 @@ if user_message:
             reply = ask_llm(user_message, history, file_context)
         st.markdown(reply)
     
-    # 🔥 AI Speaks the reply
-    # যদি ইউজার ভয়েসে কথা বলে, তবে অবশ্যই উত্তরটা বলবে
-    if audio_to_process is not None or any(w in user_message.lower() for w in ["bolo", "speak", "say"]):
-        speak_text(reply)
-    else:
-        speak_text(reply) # By default speaks every time, you can change this
+    # 🔥 AI speaks the reply
+    speak_text(reply)
         
     add_msg(st.session_state.chat_id, "bee", reply)
     st.rerun()
