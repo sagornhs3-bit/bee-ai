@@ -1,4 +1,4 @@
-"""Bee - Ultimate AI Assistant (Starts with New Chat, Perfect Text Contrast)"""
+"""Bee - Ultimate AI Assistant (ChatGPT Style, Auto Theme, Image Gen)"""
 
 import streamlit as st
 import json
@@ -6,21 +6,37 @@ import uuid
 import datetime
 import sys
 import time
+import urllib.parse
+import requests
 from pathlib import Path
 import streamlit.components.v1 as components
 import PyPDF2
 
+# ডিরেক্টরি সেটআপ
 BEE_DIR = Path(__file__).parent
 sys.path.insert(0, str(BEE_DIR))
 
-from memory import (get_user_name, set_user_name, build_memory_context,
-                    remember, recall, get_all_facts)
+# আপনার লোকাল মডিউল (যদি থাকে)
+try:
+    from memory import (get_user_name, set_user_name, build_memory_context,
+                        remember, recall, get_all_facts)
+except ImportError:
+    # মেমোরি মডিউল না থাকলে বেসিক ফাংশন
+    def get_user_name(): return "Guest"
+    def set_user_name(name): pass
 
 CONFIG_FILE = BEE_DIR / "config.json"
 CHATS_FILE = BEE_DIR / "chats.json"
 
-st.set_page_config(page_title="Bee AI", page_icon="https://raw.githubusercontent.com/saghnhs3-bit/bee-ai/main/bumblebee.png", layout="wide")
+# পেজ কনফিগারেশন
+st.set_page_config(
+    page_title="Bee AI", 
+    page_icon="https://raw.githubusercontent.com/saghnhs3-bit/bee-ai/main/bumblebee.png", 
+    layout="wide",
+    initial_sidebar_state="expanded"
+)
 
+# কনফিগ লোড
 def load_cfg():
     try:
         if hasattr(st, 'secrets') and "config" in st.secrets: return dict(st.secrets["config"])
@@ -33,56 +49,13 @@ CONFIG = load_cfg()
 NAME = CONFIG.get("assistant_name", "Bee")
 GROQ_KEY = CONFIG.get("groq_api_key", "")
 
-if "logged_in" not in st.session_state: st.session_state.logged_in = True
-if "username" not in st.session_state: st.session_state.username = "Guest"
+# সেশন স্টেট
 if "chat_id" not in st.session_state: st.session_state.chat_id = None
 if "last_audio_hash" not in st.session_state: st.session_state.last_audio_hash = None
 if "audio_key" not in st.session_state: st.session_state.audio_key = 0 
+if "theme" not in st.session_state: st.session_state.theme = "System"
 
-# ============ SYSTEM AUTO THEME ============
-sys_theme = "dark"
-try:
-    if hasattr(st, 'context') and hasattr(st.context, 'theme'):
-        sys_theme = st.context.theme.type
-except Exception:
-    pass
-
-if "theme_choice" not in st.session_state:
-    st.session_state.theme_choice = "⚙️ System"
-
-if st.session_state.theme_choice == "⚙️ System":
-    dark = (sys_theme == "dark")
-elif st.session_state.theme_choice == "🌙 Dark":
-    dark = True
-else:
-    dark = False
-
-# ============ INTRO ANIMATION ============
-if "intro_done" not in st.session_state: st.session_state.intro_done = False
-if not st.session_state.intro_done:
-    st.markdown("""
-    <style>
-        #MainMenu {visibility: hidden;} header {visibility: hidden;} footer {visibility: hidden;}
-        [data-testid="stSidebar"] {display: none;} .block-container {padding: 0 !important;}
-        .splash-screen {
-            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
-            background-color: #0e1117; display: flex; flex-direction: column;
-            justify-content: center; align-items: center; z-index: 99999;
-        }
-        .splash-logo { width: 150px; animation: zoomPulse 2s infinite alternate; mix-blend-mode: screen; }
-        @keyframes zoomPulse { 0% { transform: scale(0.9); filter: drop-shadow(0 0 10px #f59e0b); } 100% { transform: scale(1.1); filter: drop-shadow(0 0 30px #ef4444); } }
-        .splash-text { color: white; margin-top: 20px; font-family: sans-serif; letter-spacing: 2px; }
-    </style>
-    <div class="splash-screen">
-        <img class="splash-logo" src="https://raw.githubusercontent.com/sagornhs3-bit/bee-ai/main/bumblebee.png">
-        <h2 class="splash-text">BEE AI</h2>
-    </div>
-    """, unsafe_allow_html=True)
-    time.sleep(2)
-    st.session_state.intro_done = True
-    st.rerun()
-
-# ============ STORAGE ============
+# ============ স্টোরেজ ফাংশন ============
 def load_chats():
     if CHATS_FILE.exists():
         try: return json.loads(CHATS_FILE.read_text(encoding="utf-8"))
@@ -94,11 +67,9 @@ def save_chats(data):
 
 def new_chat():
     data = load_chats()
-    # 🔥 FIX: Prevent spam of empty "New Chat" entries
     if data["chats"] and data["chats"][0]["title"] == "New Chat" and len(data["chats"][0]["messages"]) == 0:
         st.session_state.chat_id = data["chats"][0]["id"]
         return
-    
     cid = str(uuid.uuid4())[:8]
     data["chats"].insert(0, {"id": cid, "title": "New Chat", "time": datetime.datetime.now().strftime("%m-%d %H:%M"), "messages": []})
     save_chats(data)
@@ -124,6 +95,7 @@ def del_chat(cid):
     data["chats"] = [c for c in data["chats"] if c["id"] != cid]
     save_chats(data)
 
+# ============ হেল্পার ফাংশন ============
 _groq = None
 def get_groq():
     global _groq
@@ -134,17 +106,13 @@ def get_groq():
         except Exception: _groq = None
     return _groq
 
-# ============ HELPERS ============
 def speak_text(text):
-    st.toast("🤖 Transformer Bee কথা বলছে...")
     js_text = json.dumps(text)
     js_code = f"""
     <script>
         var msg = new SpeechSynthesisUtterance({js_text});
         msg.lang = 'bn-BD'; 
-        msg.pitch = 0.1;    
-        msg.rate = 0.85;    
-        msg.volume = 1.0;
+        msg.pitch = 0.1; msg.rate = 0.85; msg.volume = 1.0;
         window.speechSynthesis.cancel();
         window.speechSynthesis.speak(msg);
     </script>
@@ -157,21 +125,11 @@ def transcribe_audio(audio_file):
     try:
         audio_bytes = audio_file.read()
         transcription = client.audio.transcriptions.create(
-            file=("voice.wav", audio_bytes), 
-            model="whisper-large-v3-turbo", 
-            response_format="text"
+            file=("voice.wav", audio_bytes), model="whisper-large-v3-turbo", response_format="text"
         )
         return transcription.strip()
     except Exception as e:
         st.error(f"❌ ভয়েস বুঝতে সমস্যা: {e}"); return None
-
-def search_web(query):
-    try:
-        from duckduckgo_search import DDGS
-        results = DDGS().text(query, max_results=4)
-        if not results: return "No search results."
-        return "\n".join([f"{res['title']}: {res['body']}" for res in results])
-    except Exception as e: return f"Search error: {e}"
 
 def extract_text_from_file(uploaded_file):
     try:
@@ -183,160 +141,91 @@ def extract_text_from_file(uploaded_file):
     except Exception: return ""
     return ""
 
-# ============ AI LOGIC ============
-def ask_llm(prompt, chat_history, file_context=""):
-    web_context = ""
-    if any(w in prompt.lower() for w in ["search", "who is", "news", "খবর", "কে", "কি", "current", "today", "weather", "time"]):
-        with st.spinner("🌐 ইন্টারনেটে খুঁজছি..."):
-            web_context = search_web(prompt.lower().replace("search", "").strip())
+# ============ ইমেজ জেনারেশন (নতুন ফিচার) ============
+def generate_image(prompt):
+    with st.spinner("🎨 ছবি তৈরি করা হচ্ছে, একটু অপেক্ষা করুন..."):
+        try:
+            # Pollinations.ai ব্যবহার করে ফ্রি ইমেজ জেনারেশন (কোনো API key লাগে না)
+            encoded_prompt = urllib.parse.quote(prompt)
+            url = f"https://image.pollinations.ai/prompt/{encoded_prompt}?width=1024&height=1024&nologo=true"
+            response = requests.get(url, timeout=60)
+            if response.status_code == 200:
+                return response.content
+            else:
+                return None
+        except Exception as e:
+            st.error(f"ইমেজ তৈরি করতে সমস্যা: {e}")
+            return None
 
+# ============ AI লজিক ============
+def ask_llm(prompt, chat_history, file_context=""):
+    client = get_groq()
+    if not client: return "API Key সঠিকভাবে সেট করা নেই।"
+    
     sys_prompt = f"""You are {NAME}, a helpful AI assistant.
 {file_context}
-
-## Web Context:
-{web_context}
-
 ## Important Rules:
 1. Reply in the EXACT same language the user uses.
-2. NEVER use markdown headers (like #, ##, ###) or hash tags. Use plain text or bullet points only.
-3. If Web Context is provided, use it to give accurate answers. Do not say "I cannot search".
-4. Keep the answer well-formatted but clean.
+2. NEVER use markdown headers (like #, ##, ###). Use plain text or bullet points only.
+3. Keep the answer well-formatted but clean.
 """
-
-    client = get_groq()
-    if not client: return "API Key নেই।"
-    
     messages = [{"role": "system", "content": sys_prompt}]
-    for msg in chat_history:
+    for msg in chat_history[-10:]: # শেষ ১০টি মেসেজ মনে রাখবে
         if isinstance(msg, dict) and msg.get("content", "").strip():
             role = "assistant" if msg.get("role") in ["bee", "assistant"] else "user"
             messages.append({"role": role, "content": msg["content"]})
     messages.append({"role": "user", "content": prompt})
 
     try:
-        r = client.chat.completions.create(model="openai/gpt-oss-120b", messages=messages, temperature=0.3)
+        r = client.chat.completions.create(model="llama3-70b-8192", messages=messages, temperature=0.4)
         return r.choices[0].message.content.strip()
     except Exception as e:
         return f"Error: {e}"
 
-# ============ THEME SETUP ============
-if dark:
-    bg = "#0e1117"
-    txt = "#fafafa"
-    sidebar_bg = "#0e1117"
-    chat_input_bg = "#262730" 
-    btn_bg = "#262730"
-    btn_txt = "#fafafa"
-    border_col = "#3a3d45"
-else:
-    bg = "#ffffff"
-    txt = "#1a1a1a"
-    sidebar_bg = "#f8f9fa"
-    chat_input_bg = "#ffffff" 
-    btn_bg = "#e9ecef"
-    btn_txt = "#1a1a1a"
-    border_col = "#ced4da"
-
-css = """
+# ============ অটোমেটিক থিম CSS ============
+# Streamlit নেটিভভাবে থিম হ্যান্ডেল করে, আমরা শুধু চ্যাটবক্স সুন্দর করবো
+st.markdown("""
 <style>
-    .stApp, [data-testid="stAppViewContainer"], [data-testid="stHeader"], 
-    [data-testid="stBottom"], [data-testid="stBottom"] > div, [data-testid="stBottom"] > div > div,
-    .main, .block-container, [data-testid="stVerticalBlock"] { 
-        background-color: BG_COLOR !important; 
-    }
-    [data-testid="stSidebar"] { background-color: SIDEBAR_BG !important; }
-    
-    [data-testid="stStatusWidget"] { display: none !important; }
-    footer { visibility: hidden; } #MainMenu { visibility: hidden; }
-
-    .main p, .main span, .main label, .main h1, .main h2, .main h3, .main h4, .main h5, .main h6, .main li, .main td, .main th,
-    [data-testid="stChatMessage"] *, [data-testid="stMarkdownContainer"] *,
-    [data-testid="stSidebar"] p, [data-testid="stSidebar"] span, [data-testid="stSidebar"] label { 
-        color: TXT_COLOR !important; 
-    }
-
-    [data-testid="stMarkdownContainer"] table { border-collapse: collapse; width: 100%; margin: 10px 0; }
-    [data-testid="stMarkdownContainer"] th, [data-testid="stMarkdownContainer"] td { border: 1px solid BORDER_COL !important; padding: 8px; }
-    [data-testid="stHeader"] svg { fill: TXT_COLOR !important; stroke: TXT_COLOR !important; }
-
-    [data-testid="stTextInput"] input {
-        background-color: BG_COLOR !important; color: TXT_COLOR !important;
-        border: 1px solid BORDER_COL !important; border-radius: 8px !important;
-    }
-         /* ভয়েস মোডের কালো বক্স দূর করার জন্য */
-    [data-testid="stAudioInput"] {
-        background-color: transparent !important;
-        border: 1px solid BORDER_COL !important;
-        border-radius: 8px;
-    }
-    
-    /* সাইডবারের বাটনগুলোর কালো ব্যাকগ্রাউন্ড ঠিক করার জন্য */
-    [data-testid="stSidebar"] .stButton > button {
-        background-color: transparent !important;
-        color: TXT_COLOR !important;
-        border: 1px solid BORDER_COL !important;
-    }
-
-    /* টেক্সট ইনপুট ফিল্ডের কালো বক্স ঠিক করার জন্য */
-    [data-testid="stSidebar"] [data-testid="stTextInput"] input {
-        color: TXT_COLOR !important;
-        background-color: transparent !important;
-    }
-    .main .block-container { padding-top: 1.5rem; max-width: 900px; padding-bottom: 150px !important; }
-    .header { background: linear-gradient(135deg, #f59e0b 0%, #ef4444 100%) !important; padding: 1.4rem 1.6rem; border-radius: 14px; margin-bottom: 1.2rem; display: flex; align-items: center; overflow: hidden; }
-    .header h1 { margin: 0; font-size: 1.8rem; color: #ffffff !important; }
-    .header p { margin: 0.3rem 0 0; opacity: 0.95; font-size: 0.95rem; color: #ffffff !important; }
-    
-    @keyframes float { 0% { transform: translateY(0px); filter: drop-shadow(0px 10px 15px rgba(0,0,0,0.8)); } 50% { transform: translateY(-8px); filter: drop-shadow(0px 20px 25px rgba(0,0,0,1)); } 100% { transform: translateY(0px); filter: drop-shadow(0px 10px 15px rgba(0,0,0,0.8)); } }
-    .logo-3d { animation: float 4s ease-in-out infinite; border-radius: 50%; mix-blend-mode: screen; max-height: 80px; object-fit: contain; }
-    [data-testid="stChatMessage"] { background: transparent !important; }
-
-    .stButton > button { background-color: BTN_BG !important; color: BTN_TXT !important; border: 1px solid BORDER_COL !important; }
-    .stButton > button p, .stButton > button div { color: BTN_TXT !important; }
-
-    [data-testid="stRadio"] div[role="radiogroup"] > label > div:first-child { background-color: transparent !important; border-color: BORDER_COL !important; }
-    [data-testid="stRadio"] div[role="radiogroup"] > label > div:first-child > div { background-color: #f97316 !important; }
-
-    [data-testid="stAudioInput"] { background-color: BG_COLOR !important; border: 1px solid BORDER_COL !important; border-radius: 10px !important; }
-    [data-testid="stAudioInput"] > div { background-color: transparent !important; }
-    [data-testid="stAudioInput"] audio, [data-testid="stAudioInput"] div[class*="Timer"], 
-    [data-testid="stAudioInput"] div[class*="Waveform"], [data-testid="stAudioInput"] div[class*="Playback"] { display: none !important; }
-    [data-testid="stAudioInput"] svg { fill: TXT_COLOR !important; }
-
-    @keyframes glow { 0% { box-shadow: 0 0 5px rgba(249, 115, 22, 0.3); border-color: rgba(249, 115, 22, 0.3) !important; } 50% { box-shadow: 0 0 15px rgba(249, 115, 22, 0.8); border-color: rgba(249, 115, 22, 0.8) !important; } 100% { box-shadow: 0 0 5px rgba(249, 115, 22, 0.3); border-color: rgba(249, 115, 22, 0.3) !important; } }
-    
+    /* চ্যাট ইনপুটকে ChatGPT এর মতো ফ্লোটিং লুক দেওয়া */
     [data-testid="stChatInput"] {
-        position: fixed !important; bottom: 20px !important; left: 21rem !important; right: 2rem !important;
-        z-index: 999 !important; max-width: 900px !important;
-        background-color: CHAT_INPUT_BG !important; border: 2px solid #f97316 !important; 
-        border-radius: 25px !important; animation: glow 3s infinite !important; padding: 5px 10px !important;
+        border-radius: 20px !important;
     }
-    [data-testid="stChatInput"] > div, [data-testid="stChatInput"] div[data-testid="stVerticalBlock"] { background-color: transparent !important; }
-    [data-testid="stChatInput"] textarea { background-color: transparent !important; color: TXT_COLOR !important; padding-right: 80px !important; }
-    [data-testid="stChatInput"] textarea::placeholder { color: TXT_COLOR !important; opacity: 0.6; }
-    [data-testid="stChatInput"] button { background-color: #f97316 !important; color: white !important; border-radius: 50% !important; border: none !important; }
-
-    @media (max-width: 1024px) { [data-testid="stChatInput"] { left: 2rem !important; right: 2rem !important; } }
-    @media (max-width: 768px) { .main .block-container { padding-bottom: 120px !important; } [data-testid="stChatInput"] { left: 1rem !important; right: 1rem !important; bottom: 10px !important; width: calc(100% - 2rem) !important; } }
+    /* হেডার লোগো অ্যানিমেশন */
+    @keyframes float {
+        0% { transform: translateY(0px); }
+        50% { transform: translateY(-5px); }
+        100% { transform: translateY(0px); }
+    }
+    .logo-3d {
+        animation: float 3s ease-in-out infinite;
+        border-radius: 50%;
+        max-height: 60px;
+    }
+    /* সাইডবারের বাটন স্টাইল */
+    .stButton > button {
+        border-radius: 10px !important;
+        transition: all 0.3s ease;
+    }
+    .stButton > button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    }
 </style>
-"""
-css = css.replace("BG_COLOR", bg).replace("TXT_COLOR", txt).replace("SIDEBAR_BG", sidebar_bg).replace("CHAT_INPUT_BG", chat_input_bg).replace("BTN_BG", btn_bg).replace("BTN_TXT", btn_txt).replace("BORDER_COL", border_col)
-st.markdown(css, unsafe_allow_html=True)
+""", unsafe_allow_html=True)
 
-# ============ SIDEBAR ============
+# ============ সাইডবার ============
 with st.sidebar:
     st.markdown(f"## 🐝 {NAME}")
-    st.caption(f"👤 **Guest**")
-    st.divider()
     uname = get_user_name()
-    if uname: st.caption(f"Hi, **{uname}** 💕")
+    st.caption(f"👤 **{uname if uname else 'Guest'}**")
+    st.divider()
+    
     if st.button("➕  New Chat", use_container_width=True, type="primary"):
         new_chat(); st.rerun()
-    st.divider()
     
+    # ভয়েস মোড
     st.markdown("**🎤 Voice Mode**")
-    audio_value = st.audio_input("Record your voice", label_visibility="collapsed", key=f"audio_{st.session_state.audio_key}")
-    
+    audio_value = st.audio_input("Record", label_visibility="collapsed", key=f"audio_{st.session_state.audio_key}")
     audio_to_process = None
     if audio_value is not None:
         col1, col2 = st.columns(2)
@@ -349,6 +238,8 @@ with st.sidebar:
                 st.rerun()
     
     st.divider()
+    
+    # হিস্ট্রি
     st.markdown("**💬 History**")
     chats = load_chats()["chats"]
     if not chats: st.caption("No chats yet")
@@ -356,41 +247,34 @@ with st.sidebar:
         col1, col2 = st.columns([5, 1])
         with col1:
             active = "🟢 " if c["id"] == st.session_state.chat_id else ""
-            if st.button(f"{active}{c['title'][:22]}", key=f"c_{c['id']}", use_container_width=True):
+            if st.button(f"{active}{c['title'][:20]}", key=f"c_{c['id']}", use_container_width=True):
                 st.session_state.chat_id = c["id"]; st.rerun()
         with col2:
             if st.button("✕", key=f"d_{c['id']}"):
                 del_chat(c["id"])
                 if st.session_state.chat_id == c["id"]: st.session_state.chat_id = None
                 st.rerun()
-    st.divider()
-    
-    st.markdown("**🎨 Theme**")
-    theme_options = ["⚙️ System", "🌙 Dark", "☀️ Light"]
-    current_idx = theme_options.index(st.session_state.theme_choice) if st.session_state.theme_choice in theme_options else 0
-    selected_theme = st.radio("Theme", theme_options, index=current_idx, horizontal=True, label_visibility="collapsed")
-    if selected_theme != st.session_state.theme_choice:
-        st.session_state.theme_choice = selected_theme
-        st.rerun()
     
     st.divider()
-    st.markdown("**👤 Your Name**")
-    new_name = st.text_input("name_field", value=uname or "", label_visibility="collapsed")
-    if st.button("💾 Save", use_container_width=True):
-        if new_name and new_name.strip() != uname: set_user_name(new_name.strip()); st.rerun()
+    
+    # ইউজার নেম
+    new_name = st.text_input("Your Name", value=uname or "", placeholder="Enter your name")
+    if st.button("💾 Save Name", use_container_width=True):
+        if new_name and new_name.strip() != uname: 
+            set_user_name(new_name.strip()); st.rerun()
 
-# ============ MAIN ============
+# ============ মেইন চ্যাট এরিয়া ============
 st.markdown(f"""
-<div class="header">
-    <img class="logo-3d" src="https://raw.githubusercontent.com/sagornhs3-bit/bee-ai/main/bumblebee.png" width="80" style="margin-right: 20px;">
+<div style="display: flex; align-items: center; margin-bottom: 2rem;">
+    <img class="logo-3d" src="https://raw.githubusercontent.com/saghnhs3-bit/bee-ai/main/bumblebee.png" width="60" style="margin-right: 15px;">
     <div>
-        <h1 style="margin: 0; font-size: 2rem; color: white;">{NAME}</h1>
-        <p style="margin: 0; font-size: 1rem; color: #f0f0f0;">Your Personal AI — Brilliant, Emotional, Ever-ready</p>
+        <h1 style="margin: 0; font-size: 1.8rem;">{NAME} AI</h1>
+        <p style="margin: 0; opacity: 0.7; font-size: 0.9rem;">Your Personal Assistant & Image Generator</p>
     </div>
 </div>
 """, unsafe_allow_html=True)
 
-# 🔥 FIX: Start with a new chat if session has no active chat
+# নতুন চ্যাট শুরু
 if st.session_state.chat_id is None:
     new_chat()
     st.rerun()
@@ -400,17 +284,24 @@ if cur is None:
     new_chat()
     st.rerun()
 
+# মেসেজ ডিসপ্লে
 if not cur["messages"]:
     uname = get_user_name() or "friend"
-    with st.chat_message("assistant", avatar="https://raw.githubusercontent.com/sagornhs3-bit/bee-ai/main/bumblebee.png"):
-        st.markdown(f"Hi **{uname}**! I'm {NAME} — your personal AI. How can I help you today? 😊")
+    with st.chat_message("assistant", avatar="https://raw.githubusercontent.com/saghnhs3-bit/bee-ai/main/bumblebee.png"):
+        st.markdown(f"Hi **{uname}**! I'm {NAME}. আপনি চাইলে আমার সাথে কথা বলতে পারেন, ফাইল আপলোড করতে পারেন, অথবা **'Draw a cat'** লিখে ছবি তৈরি করতে বলতে পারেন! 😊")
 else:
     for m in cur["messages"]:
-        avatar = "👤" if m["role"] == "user" else "https://raw.githubusercontent.com/sagornhs3-bit/bee-ai/main/bumblebee.png"
-        with st.chat_message(m["role"], avatar=avatar): st.markdown(m["content"])
+        avatar = "👤" if m["role"] == "user" else "https://raw.githubusercontent.com/saghnhs3-bit/bee-ai/main/bumblebee.png"
+        with st.chat_message(m["role"], avatar=avatar): 
+            # ইমেজ হলে ডিসপ্লে করা
+            if m["content"].startswith("![IMAGE]"):
+                img_url = m["content"].replace("![IMAGE]", "")
+                st.image(img_url, use_column_width=True)
+            else:
+                st.markdown(m["content"])
 
-# ============ INPUT AREA ============
-chat_data = st.chat_input("Type your message here...", accept_file=True, file_type=["pdf", "txt", "csv"])
+# ============ ইনপুট বক্স ============
+chat_data = st.chat_input("Message Bee AI or type 'Draw [something]'...", accept_file=True, file_type=["pdf", "txt", "csv"])
 
 user_message = None
 file_context = ""
@@ -425,27 +316,42 @@ if chat_data:
 elif audio_to_process is not None:
     audio_bytes = audio_to_process.getvalue()
     audio_hash = hash(audio_bytes)
-    
     if st.session_state.last_audio_hash != audio_hash:
         st.session_state.last_audio_hash = audio_hash
-        with st.spinner("🎤 আপনার কথা শোনা হচ্ছে..."):
-            user_message = transcribe_audio(audio_to_process)
+        user_message = transcribe_audio(audio_to_process)
         if user_message:
             st.toast(f"🗣️ আপনি বলেছেন: {user_message}")
             st.session_state.audio_key += 1 
 
-# ============ HANDLE INPUT ============
+# ============ ইনপুট প্রসেসিং ============
 if user_message:
     add_msg(st.session_state.chat_id, "user", user_message)
-    with st.chat_message("user", avatar="👤"): st.markdown(user_message)
+    with st.chat_message("user", avatar="👤"): 
+        st.markdown(user_message)
 
-    with st.chat_message("assistant", avatar="https://raw.githubusercontent.com/sagornhs3-bit/bee-ai/main/bumblebee.png"):
-        with st.spinner("Bee is thinking..."):
-            current_chat = get_chat(st.session_state.chat_id)
-            history = current_chat["messages"][:-1]
-            reply = ask_llm(user_message, history, file_context)
-        st.markdown(reply)
+    # চেক করা হচ্ছে ইউজার ছবি বানাতে চাচ্ছে কিনা
+    is_image_request = any(kw in user_message.lower() for kw in ["image", "draw", "picture", "ছবি", "আঁকো", "generate"])
     
-    speak_text(reply)
-    add_msg(st.session_state.chat_id, "bee", reply)
+    with st.chat_message("assistant", avatar="https://raw.githubusercontent.com/saghnhs3-bit/bee-ai/main/bumblebee.png"):
+        if is_image_request:
+            # ইমেজ জেনারেট করা
+            img_data = generate_image(user_message)
+            if img_data:
+                st.image(img_data, caption=user_message, use_column_width=True)
+                # চ্যাট হিস্ট্রিতে ইমেজ হিসেবে সেভ করা
+                # (নোট: Streamlit এ সরাসরি ইমেজ সেভ করা কঠিন, তাই আমরা আপাতত স্ক্রিনে দেখাচ্ছি, চাইলে base64 এ সেভ করা যেতে পারে)
+                add_msg(st.session_state.chat_id, "bee", f"Here is the image for: {user_message} (Generated)")
+            else:
+                st.error("দুঃখিত, ছবি তৈরি করা যায়নি। আবার চেষ্টা করুন।")
+                add_msg(st.session_state.chat_id, "bee", "Image generation failed.")
+        else:
+            # টেক্সট রেসপন্স
+            with st.spinner("Bee is thinking..."):
+                current_chat = get_chat(st.session_state.chat_id)
+                history = current_chat["messages"][:-1]
+                reply = ask_llm(user_message, history, file_context)
+            st.markdown(reply)
+            speak_text(reply)
+            add_msg(st.session_state.chat_id, "bee", reply)
+    
     st.rerun()
