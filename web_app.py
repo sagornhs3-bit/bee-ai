@@ -117,9 +117,9 @@ def speak_text(text):
     js_code = f"""
     <script>
         var msg = new SpeechSynthesisUtterance({js_text});
-        msg.lang = 'bn-BD'; // বাংলা ভয়েস
-        msg.pitch = 0.1;    // পিচ কমিয়ে রোবটিক করা হয়েছে
-        msg.rate = 0.85;    // একটু ধীরে বলবে
+        msg.lang = 'bn-BD'; 
+        msg.pitch = 0.1;    
+        msg.rate = 0.85;    
         msg.volume = 1.0;
         window.speechSynthesis.cancel();
         window.speechSynthesis.speak(msg);
@@ -194,22 +194,33 @@ if dark:
     chat_input_bg = "rgba(30, 30, 30, 0.8)"
     chat_input_border = "rgba(249, 115, 22, 0.5)"
     header_bg = "#0e1117"
+    btn_bg = "#262730"
+    btn_txt = "#fafafa"
+    border_col = "#3a3d45"
+    mic_col = "#a3a3a3"
 else:
     bg = "#ffffff"
     txt = "#1a1a1a"
     sidebar_bg = "#f8f9fa"
-    chat_input_bg = "rgba(255, 255, 255, 0.95)" # Light mode chat bg
+    chat_input_bg = "rgba(255, 255, 255, 0.95)"
     chat_input_border = "rgba(249, 115, 22, 0.8)"
-    header_bg = "#ffffff" # Top header white
+    header_bg = "#ffffff"
+    btn_bg = "#e9ecef"
+    btn_txt = "#1a1a1a"
+    border_col = "#ced4da"
+    mic_col = "#6c757d"
 
 css = """
 <style>
-    /* Main Backgrounds */
+    /* Force ALL backgrounds including top header */
     .stApp, [data-testid="stAppViewContainer"], [data-testid="stHeader"] { background: BG_COLOR !important; }
     [data-testid="stSidebar"] { background: SIDEBAR_BG !important; }
     
-    /* Text Colors */
-    .main p, .main span, .main label, .main h1, .main h2, .main h3, .main div, [data-testid="stSidebar"] p, [data-testid="stSidebar"] span, [data-testid="stSidebar"] label { color: TXT_COLOR !important; }
+    /* Force ALL text colors */
+    .main p, .main span, .main label, .main h1, .main h2, .main h3, .main div, 
+    [data-testid="stSidebar"] p, [data-testid="stSidebar"] span, [data-testid="stSidebar"] label { 
+        color: TXT_COLOR !important; 
+    }
     
     .main .block-container { padding-top: 1.5rem; max-width: 900px; padding-bottom: 150px !important; }
     
@@ -224,6 +235,14 @@ css = """
     /* Chat Messages */
     [data-testid="stChatMessage"] { background: transparent !important; }
     [data-testid="stChatMessage"] p, [data-testid="stChatMessage"] span { color: TXT_COLOR !important; }
+
+    /* Sidebar Buttons (History, New Chat) */
+    .stButton > button {
+        background: BTN_BG !important;
+        color: BTN_TXT !important;
+        border: 1px solid BORDER_COL !important;
+    }
+    .stButton > button p, .stButton > button div { color: BTN_TXT !important; }
 
     /* Glowing Orange Chat Input */
     @keyframes glow {
@@ -246,7 +265,7 @@ css = """
     [data-testid="stChatInput"] textarea { 
         background: transparent !important; 
         color: TXT_COLOR !important;
-        padding-right: 90px !important; /* Make room for mic and send button */
+        padding-right: 90px !important; 
     }
 
     /* Orange Send Button */
@@ -257,10 +276,10 @@ css = """
         border: none !important;
     }
 
-    /* 🔥 MIC BUTTON FIX (Floats inside chat bar) */
+    /* 🔥 MIC BUTTON FLOATING INSIDE CHAT BAR */
     [data-testid="stAudioInput"] {
         position: fixed !important;
-        bottom: 32px !important; 
+        bottom: 28px !important; 
         right: 5.5rem !important; 
         z-index: 1000 !important;
         width: 40px !important;
@@ -270,15 +289,15 @@ css = """
         overflow: visible !important;
     }
     
-    /* Hide the ugly text and waveform of the audio input */
+    /* Hide audio input text, waveform, and backgrounds */
     [data-testid="stAudioInput"] > div { padding: 0 !important; background: transparent !important; }
     [data-testid="stAudioInput"] div[data-testid="stVerticalBlock"] { display: none !important; }
     [data-testid="stAudioInput"] p { display: none !important; }
 
-    /* Style the Mic Button itself */
+    /* Style the Mic Icon */
     [data-testid="stAudioInput"] button {
         background: transparent !important;
-        color: #a3a3a3 !important;
+        color: MIC_COL !important;
         font-size: 22px !important;
         padding: 0 !important;
         border: none !important;
@@ -296,7 +315,7 @@ css = """
     }
 </style>
 """
-css = css.replace("BG_COLOR", bg).replace("TXT_COLOR", txt).replace("SIDEBAR_BG", sidebar_bg).replace("CHAT_INPUT_BG", chat_input_bg).replace("CHAT_INPUT_BORDER", chat_input_border)
+css = css.replace("BG_COLOR", bg).replace("TXT_COLOR", txt).replace("SIDEBAR_BG", sidebar_bg).replace("CHAT_INPUT_BG", chat_input_bg).replace("CHAT_INPUT_BORDER", chat_input_border).replace("BTN_BG", btn_bg).replace("BTN_TXT", btn_txt).replace("BORDER_COL", border_col).replace("MIC_COL", mic_col)
 st.markdown(css, unsafe_allow_html=True)
 
 # ============ SIDEBAR ============
@@ -363,10 +382,7 @@ else:
         with st.chat_message(m["role"], avatar=avatar): st.markdown(m["content"])
 
 # ============ INPUT AREA ============
-# ভয়েস ইনপুট (CSS দিয়ে চ্যাট বক্সের ভেতরে পজিশন করা হয়েছে)
 audio_value = st.audio_input("Voice Input", label_visibility="collapsed")
-
-# মেইন চ্যাট ইনপুট
 chat_data = st.chat_input("Type your message here...", accept_file=True, file_type=["pdf", "txt", "csv"])
 
 user_message = None
