@@ -271,7 +271,7 @@ def search_web(query):
         return formatted
     except Exception as e:
         return f"Search failed: {e}"
- def speak_text(text):
+def speak_text(text):
     """Convert text to speech using the browser's built-in TTS"""
     js_text = json.dumps(text)
     js_code = f"""
