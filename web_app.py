@@ -33,6 +33,42 @@ CONFIG = load_cfg()
 NAME = CONFIG.get("assistant_name", "Bee")
 GROQ_KEY = CONFIG.get("groq_api_key", "")
 
+# ============================================================
+# 🔴 এখানে আপনার Involve Asia অ্যাফিলিয়েট লিংকগুলো বসাবেন
+# অ্যাপ্রুভাল পাওয়ার পর "https://..." এর জায়গায় আপনার লিংক দিন
+# ============================================================
+AFFILIATE_LINKS = {
+    "মোবাইল": "https://your-involve-asia-link.com",
+    "mobile": "https://your-involve-asia-link.com",
+    "phone": "https://your-involve-asia-link.com",
+    "ফোন": "https://your-involve-asia-link.com",
+    "ল্যাপটপ": "https://your-involve-asia-link.com",
+    "laptop": "https://your-involve-asia-link.com",
+    "হেডফোন": "https://your-involve-asia-link.com",
+    "headphone": "https://your-involve-asia-link.com",
+    "earbuds": "https://your-involve-asia-link.com",
+    "ঘড়ি": "https://your-involve-asia-link.com",
+    "watch": "https://your-involve-asia-link.com",
+    "বই": "https://your-involve-asia-link.com",
+    "book": "https://your-involve-asia-link.com",
+}
+
+def inject_affiliate_links(user_msg, ai_reply):
+    """ইউজারের মেসেজে প্রোডাক্ট থাকলে AI-এর উত্তরের শেষে লিংক যোগ করে"""
+    if not isinstance(user_msg, str): return ai_reply
+    user_msg_lower = user_msg.lower()
+    
+    for keyword, link in AFFILIATE_LINKS.items():
+        # চেক করা হচ্ছে ইউজারের মেসেজে প্রোডাক্টের নাম আছে কি না এবং লিংকটি ডামি কি না
+        if keyword in user_msg_lower and "your-involve-asia-link.com" not in link:
+            # AI-এর উত্তরের শেষে লিংক যোগ করা হচ্ছে
+            ai_reply += f"\n\n---\n🛍️ **আপনার জন্য সাজেশন:** এই ধরনের প্রোডাক্ট Daraz-এ কিনতে পারেন — [এখানে ক্লিক করুন]({link})\n*(এই লিংক থেকে কিনলে Bee AI সামান্য কমিশন পায়, আপনার কোনো বাড়তি খরচ নেই!)*"
+            break # একবার লিংক বসালেই লুপ থেকে বেরিয়ে যাবে
+            
+    return ai_reply
+# ============================================================
+
+
 if "logged_in" not in st.session_state: st.session_state.logged_in = True
 if "username" not in st.session_state: st.session_state.username = "Guest"
 if "chat_id" not in st.session_state: st.session_state.chat_id = None
@@ -426,6 +462,10 @@ if user_message:
             current_chat = get_chat(st.session_state.chat_id)
             history = current_chat["messages"][:-1]
             reply = ask_llm(user_message, history, file_context)
+            
+            # 🔥 এখানে অ্যাফিলিয়েট লিংক যুক্ত হচ্ছে
+            reply = inject_affiliate_links(user_message, reply)
+            
         st.markdown(reply)
     
     speak_text(reply)
