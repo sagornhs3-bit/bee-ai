@@ -1,4 +1,4 @@
-"""Bee - Ultimate AI Assistant (Perfect Light Theme, Voice Mode)"""
+"""Bee - Ultimate AI Assistant (Perfect Light Theme, System Auto, Voice Mode)"""
 
 import streamlit as st
 import json
@@ -35,9 +35,27 @@ GROQ_KEY = CONFIG.get("groq_api_key", "")
 
 if "logged_in" not in st.session_state: st.session_state.logged_in = True
 if "username" not in st.session_state: st.session_state.username = "Guest"
-if "theme" not in st.session_state: st.session_state.theme = "dark"
 if "chat_id" not in st.session_state: st.session_state.chat_id = None
 if "last_audio_hash" not in st.session_state: st.session_state.last_audio_hash = None
+
+# ============ SYSTEM AUTO THEME ============
+# সিস্টেমের থিম ডিটেক্ট করা (Streamlit-এর নতুন ভার্সনে কাজ করে)
+sys_theme = "dark"
+try:
+    if hasattr(st, 'context') and hasattr(st.context, 'theme'):
+        sys_theme = st.context.theme.type
+except Exception:
+    pass
+
+if "theme_choice" not in st.session_state:
+    st.session_state.theme_choice = "⚙️ System"
+
+if st.session_state.theme_choice == "⚙️ System":
+    dark = (sys_theme == "dark")
+elif st.session_state.theme_choice == "🌙 Dark":
+    dark = True
+else:
+    dark = False
 
 # ============ INTRO ANIMATION ============
 if "intro_done" not in st.session_state: st.session_state.intro_done = False
@@ -111,7 +129,7 @@ def get_groq():
         except Exception: _groq = None
     return _groq
 
-# ============ HELPERS (TRANSFORMER VOICE) ============
+# ============ HELPERS ============
 def speak_text(text):
     st.toast("🤖 Transformer Bee কথা বলছে...")
     js_text = json.dumps(text)
@@ -187,13 +205,11 @@ Rules: Reply in the same language as the user. Be detailed. Use Web Context if p
         return f"Error: {e}"
 
 # ============ THEME SETUP ============
-dark = st.session_state.theme == "dark"
 if dark:
     bg = "#0e1117"
     txt = "#fafafa"
     sidebar_bg = "#0e1117"
     chat_input_bg = "#262730" 
-    chat_input_border = "#f97316"
     btn_bg = "#262730"
     btn_txt = "#fafafa"
     border_col = "#3a3d45"
@@ -201,21 +217,22 @@ else:
     bg = "#ffffff"
     txt = "#1a1a1a"
     sidebar_bg = "#f8f9fa"
-    chat_input_bg = "#ffffff"  # Force white chat box
-    chat_input_border = "#f97316"
+    chat_input_bg = "#ffffff" 
     btn_bg = "#e9ecef"
     btn_txt = "#1a1a1a"
     border_col = "#ced4da"
 
 css = """
 <style>
-    /* 🔥 FORCE LIGHT/DARK BACKGROUNDS EVERYWHERE */
-    .stApp, [data-testid="stAppViewContainer"], [data-testid="stHeader"], [data-testid="stBottom"], .main, .block-container, [data-testid="stVerticalBlock"] { 
+    /* 🔥 FORCE ALL BACKGROUNDS */
+    .stApp, [data-testid="stAppViewContainer"], [data-testid="stHeader"], 
+    [data-testid="stBottom"], [data-testid="stBottom"] > div, [data-testid="stBottom"] > div > div,
+    .main, .block-container, [data-testid="stVerticalBlock"] { 
         background-color: BG_COLOR !important; 
     }
     [data-testid="stSidebar"] { background-color: SIDEBAR_BG !important; }
     
-    /* Hide "Manage app" and native menus */
+    /* Hide "Manage app", Footer, Menu */
     [data-testid="stStatusWidget"] { display: none !important; }
     footer { visibility: hidden; } #MainMenu { visibility: hidden; }
 
@@ -225,9 +242,8 @@ css = """
         color: TXT_COLOR !important; 
     }
 
-    /* Top Header Icons (Share, Star, etc.) */
+    /* Top Header Icons */
     [data-testid="stHeader"] svg { fill: TXT_COLOR !important; stroke: TXT_COLOR !important; }
-    [data-testid="stHeader"] button { color: TXT_COLOR !important; }
 
     /* Name Input Box */
     [data-testid="stTextInput"] input {
@@ -255,22 +271,27 @@ css = """
     }
     .stButton > button p, .stButton > button div { color: BTN_TXT !important; }
 
-    /* 🔥 FORCE CHAT INPUT BOX */
+    /* Glowing Chat Input */
+    @keyframes glow {
+        0% { box-shadow: 0 0 5px rgba(249, 115, 22, 0.3); border-color: rgba(249, 115, 22, 0.3) !important; }
+        50% { box-shadow: 0 0 15px rgba(249, 115, 22, 0.8); border-color: rgba(249, 115, 22, 0.8) !important; }
+        100% { box-shadow: 0 0 5px rgba(249, 115, 22, 0.3); border-color: rgba(249, 115, 22, 0.3) !important; }
+    }
+    
     [data-testid="stChatInput"] {
         position: fixed !important; bottom: 20px !important; left: 21rem !important; right: 2rem !important;
         z-index: 999 !important; max-width: 900px !important;
         background-color: CHAT_INPUT_BG !important; 
-        border: 2px solid CHAT_INPUT_BORDER !important; 
+        border: 2px solid #f97316 !important; 
         border-radius: 25px !important;
+        animation: glow 3s infinite !important;
         padding: 5px 10px !important;
     }
     
-    /* Make inner parts of chat box transparent */
     [data-testid="stChatInput"] > div, [data-testid="stChatInput"] div[data-testid="stVerticalBlock"] {
         background-color: transparent !important;
     }
 
-    /* Chat Input Text Area */
     [data-testid="stChatInput"] textarea { 
         background-color: transparent !important; 
         color: TXT_COLOR !important;
@@ -286,15 +307,21 @@ css = """
         border-radius: 50% !important; border: none !important;
     }
 
-    /* 🔥 FORCE AUDIO INPUT (Voice Mode) */
+    /* 🔥 FORCE AUDIO INPUT (Removes all black boxes) */
     [data-testid="stAudioInput"] {
         background-color: CHAT_INPUT_BG !important;
         border: 1px solid BORDER_COL !important;
         border-radius: 10px !important;
-        padding: 5px !important;
     }
-    [data-testid="stAudioInput"] > div { background-color: transparent !important; }
-    [data-testid="stAudioInput"] button { color: TXT_COLOR !important; }
+    [data-testid="stAudioInput"] > div, 
+    [data-testid="stAudioInput"] div[class*="Timer"], 
+    [data-testid="stAudioInput"] div[class*="Waveform"] { 
+        background-color: transparent !important; 
+        color: TXT_COLOR !important;
+    }
+    [data-testid="stAudioInput"] svg { fill: TXT_COLOR !important; }
+    [data-testid="stAudioInput"] button { background: transparent !important; }
+    [data-testid="stAudioInput"] audio { display: none !important; }
 
     /* Mobile Optimization */
     @media (max-width: 1024px) {
@@ -306,7 +333,7 @@ css = """
     }
 </style>
 """
-css = css.replace("BG_COLOR", bg).replace("TXT_COLOR", txt).replace("SIDEBAR_BG", sidebar_bg).replace("CHAT_INPUT_BG", chat_input_bg).replace("CHAT_INPUT_BORDER", chat_input_border).replace("BTN_BG", btn_bg).replace("BTN_TXT", btn_txt).replace("BORDER_COL", border_col)
+css = css.replace("BG_COLOR", bg).replace("TXT_COLOR", txt).replace("SIDEBAR_BG", sidebar_bg).replace("CHAT_INPUT_BG", chat_input_bg).replace("BTN_BG", btn_bg).replace("BTN_TXT", btn_txt).replace("BORDER_COL", border_col)
 st.markdown(css, unsafe_allow_html=True)
 
 # ============ SIDEBAR ============
@@ -341,10 +368,15 @@ with st.sidebar:
                 st.rerun()
     st.divider()
     
+    # Theme Toggle (with System Auto)
     st.markdown("**🎨 Theme**")
-    theme = st.radio("Theme", ["🌙 Dark", "☀️ Light"], index=0 if dark else 1, horizontal=True, label_visibility="collapsed")
-    new_t = "dark" if "Dark" in theme else "light"
-    if new_t != st.session_state.theme: st.session_state.theme = new_t; st.rerun()
+    theme_options = ["⚙️ System", "🌙 Dark", "☀️ Light"]
+    current_idx = theme_options.index(st.session_state.theme_choice) if st.session_state.theme_choice in theme_options else 0
+    
+    selected_theme = st.radio("Theme", theme_options, index=current_idx, horizontal=True, label_visibility="collapsed")
+    if selected_theme != st.session_state.theme_choice:
+        st.session_state.theme_choice = selected_theme
+        st.rerun()
     
     st.divider()
     st.markdown("**👤 Your Name**")
