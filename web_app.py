@@ -1,4 +1,4 @@
-"""Bee - Ultimate AI Assistant (ChatGPT Style, Auto Theme, Image Gen)"""
+"""Bee - Ultimate AI Assistant (Fixed Animations, Auto Theme, Image Gen)"""
 
 import streamlit as st
 import json
@@ -16,22 +16,20 @@ import PyPDF2
 BEE_DIR = Path(__file__).parent
 sys.path.insert(0, str(BEE_DIR))
 
-# আপনার লোকাল মডিউল (যদি থাকে)
+# আপনার লোকাল মডিউল
 try:
     from memory import (get_user_name, set_user_name, build_memory_context,
                         remember, recall, get_all_facts)
 except ImportError:
-    # মেমোরি মডিউল না থাকলে বেসিক ফাংশন
     def get_user_name(): return "Guest"
     def set_user_name(name): pass
 
 CONFIG_FILE = BEE_DIR / "config.json"
 CHATS_FILE = BEE_DIR / "chats.json"
 
-# পেজ কনফিগারেশন
 st.set_page_config(
     page_title="Bee AI", 
-    page_icon="https://raw.githubusercontent.com/saghnhs3-bit/bee-ai/main/bumblebee.png", 
+    page_icon="https://raw.githubusercontent.com/sagornhs3-bit/bee-ai/main/bumblebee.png", 
     layout="wide",
     initial_sidebar_state="expanded"
 )
@@ -53,7 +51,22 @@ GROQ_KEY = CONFIG.get("groq_api_key", "")
 if "chat_id" not in st.session_state: st.session_state.chat_id = None
 if "last_audio_hash" not in st.session_state: st.session_state.last_audio_hash = None
 if "audio_key" not in st.session_state: st.session_state.audio_key = 0 
-if "theme" not in st.session_state: st.session_state.theme = "System"
+if "theme_choice" not in st.session_state: st.session_state.theme_choice = "⚙️ System"
+
+# ============ সিস্টেম অটো থিম ডিটেকশন ============
+sys_theme = "dark"
+try:
+    if hasattr(st, 'context') and hasattr(st.context, 'theme'):
+        sys_theme = st.context.theme.type
+except Exception:
+    pass
+
+if st.session_state.theme_choice == "⚙️ System":
+    dark = (sys_theme == "dark")
+elif st.session_state.theme_choice == "🌙 Dark":
+    dark = True
+else:
+    dark = False
 
 # ============ স্টোরেজ ফাংশন ============
 def load_chats():
@@ -141,20 +154,17 @@ def extract_text_from_file(uploaded_file):
     except Exception: return ""
     return ""
 
-# ============ ইমেজ জেনারেশন (নতুন ফিচার) ============
+# ============ ইমেজ জেনারেশন ============
 def generate_image(prompt):
-    with st.spinner("🎨 ছবি তৈরি করা হচ্ছে, একটু অপেক্ষা করুন..."):
+    with st.spinner("🎨 ছবি তৈরি করা হচ্ছে..."):
         try:
-            # Pollinations.ai ব্যবহার করে ফ্রি ইমেজ জেনারেশন (কোনো API key লাগে না)
             encoded_prompt = urllib.parse.quote(prompt)
             url = f"https://image.pollinations.ai/prompt/{encoded_prompt}?width=1024&height=1024&nologo=true"
             response = requests.get(url, timeout=60)
             if response.status_code == 200:
                 return response.content
-            else:
-                return None
-        except Exception as e:
-            st.error(f"ইমেজ তৈরি করতে সমস্যা: {e}")
+            return None
+        except Exception:
             return None
 
 # ============ AI লজিক ============
@@ -170,7 +180,7 @@ def ask_llm(prompt, chat_history, file_context=""):
 3. Keep the answer well-formatted but clean.
 """
     messages = [{"role": "system", "content": sys_prompt}]
-    for msg in chat_history[-10:]: # শেষ ১০টি মেসেজ মনে রাখবে
+    for msg in chat_history[-10:]:
         if isinstance(msg, dict) and msg.get("content", "").strip():
             role = "assistant" if msg.get("role") in ["bee", "assistant"] else "user"
             messages.append({"role": role, "content": msg["content"]})
@@ -182,36 +192,112 @@ def ask_llm(prompt, chat_history, file_context=""):
     except Exception as e:
         return f"Error: {e}"
 
-# ============ অটোমেটিক থিম CSS ============
-# Streamlit নেটিভভাবে থিম হ্যান্ডেল করে, আমরা শুধু চ্যাটবক্স সুন্দর করবো
-st.markdown("""
+# ============ থিম কালার (অটো লাইট/ডার্ক) ============
+if dark:
+    bg = "#0e1117"; txt = "#fafafa"; sidebar_bg = "#0e1117"
+    chat_input_bg = "#262730"; btn_bg = "#262730"; btn_txt = "#fafafa"; border_col = "#3a3d45"
+else:
+    bg = "#ffffff"; txt = "#1a1a1a"; sidebar_bg = "#f8f9fa"
+    chat_input_bg = "#ffffff"; btn_bg = "#e9ecef"; btn_txt = "#1a1a1a"; border_col = "#ced4da"
+
+# ============ CSS (আগের ডিজাইন ফিরিয়ে আনা হয়েছে) ============
+css = f"""
 <style>
-    /* চ্যাট ইনপুটকে ChatGPT এর মতো ফ্লোটিং লুক দেওয়া */
-    [data-testid="stChatInput"] {
-        border-radius: 20px !important;
-    }
-    /* হেডার লোগো অ্যানিমেশন */
-    @keyframes float {
-        0% { transform: translateY(0px); }
-        50% { transform: translateY(-5px); }
-        100% { transform: translateY(0px); }
-    }
-    .logo-3d {
+    /* অটো থিমের জন্য ডাইনামিক ভেরিয়েবল */
+    :root {{
+        --bg-color: {bg};
+        --txt-color: {txt};
+        --sidebar-bg: {sidebar_bg};
+        --btn-bg: {btn_bg};
+        --btn-txt: {btn_txt};
+        --border-col: {border_col};
+    }}
+
+    .stApp {{ background-color: var(--bg-color) !important; }}
+    [data-testid="stSidebar"] {{ background-color: var(--sidebar-bg) !important; }}
+    
+    /* টেক্সট কালার ফিক্স */
+    .main p, .main span, .main label, .main h1, .main h2, .main h3, .main h4, .main h5, .main h6, .main li, .main td, .main th,
+    [data-testid="stChatMessage"] *, [data-testid="stMarkdownContainer"] *,
+    [data-testid="stSidebar"] p, [data-testid="stSidebar"] span, [data-testid="stSidebar"] label {{
+        color: var(--txt-color) !important; 
+    }}
+
+    /* সাইডবার বাটন কালো বক্স ফিক্স */
+    [data-testid="stSidebar"] .stButton > button {{
+        background-color: transparent !important;
+        color: var(--txt-color) !important;
+        border: 1px solid var(--border-col) !important;
+        border-radius: 10px !important;
+    }}
+    [data-testid="stSidebar"] .stButton > button:hover {{
+        border-color: #f97316 !important;
+        color: #f97316 !important;
+    }}
+
+    /* ভয়েস মোডের কালো বক্স ফিক্স */
+    [data-testid="stAudioInput"] {{
+        background-color: transparent !important;
+        border: 1px solid var(--border-col) !important;
+        border-radius: 10px !important;
+    }}
+    [data-testid="stAudioInput"] > div {{
+        background-color: transparent !important;
+    }}
+
+    /* লোগো অ্যানিমেশন (ভাঙা লিংক ফিক্স করা হয়েছে) */
+    @keyframes float {{
+        0% {{ transform: translateY(0px); filter: drop-shadow(0px 10px 15px rgba(0,0,0,0.4)); }}
+        50% {{ transform: translateY(-10px); filter: drop-shadow(0px 20px 25px rgba(0,0,0,0.6)); }}
+        100% {{ transform: translateY(0px); filter: drop-shadow(0px 10px 15px rgba(0,0,0,0.4)); }}
+    }}
+    .logo-3d {{
         animation: float 3s ease-in-out infinite;
         border-radius: 50%;
-        max-height: 60px;
-    }
-    /* সাইডবারের বাটন স্টাইল */
-    .stButton > button {
-        border-radius: 10px !important;
-        transition: all 0.3s ease;
-    }
-    .stButton > button:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-    }
+        max-height: 70px;
+        object-fit: contain;
+    }}
+
+    /* হেডার গ্রেডিয়েন্ট */
+    .header {{
+        background: linear-gradient(135deg, #f59e0b 0%, #ef4444 100%) !important;
+        padding: 1.5rem; border-radius: 15px; margin-bottom: 2rem;
+        display: flex; align-items: center; box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+    }}
+    .header h1 {{ margin: 0; font-size: 2rem; color: #ffffff !important; }}
+    .header p {{ margin: 0.3rem 0 0; color: #ffffff !important; opacity: 0.9; }}
+
+    /* চ্যাট ইনপুট গ্লোয়িং ইফেক্ট (ChatGPT স্টাইল) */
+    @keyframes glow {{
+        0% {{ box-shadow: 0 0 5px rgba(249, 115, 22, 0.3); border-color: rgba(249, 115, 22, 0.3) !important; }}
+        50% {{ box-shadow: 0 0 20px rgba(249, 115, 22, 0.8); border-color: rgba(249, 115, 22, 0.8) !important; }}
+        100% {{ box-shadow: 0 0 5px rgba(249, 115, 22, 0.3); border-color: rgba(249, 115, 22, 0.3) !important; }}
+    }}
+    [data-testid="stChatInput"] {{
+        position: fixed !important; bottom: 20px !important; left: 21rem !important; right: 2rem !important;
+        z-index: 999 !important; max-width: 900px !important;
+        background-color: {chat_input_bg} !important; 
+        border: 2px solid #f97316 !important; border-radius: 25px !important; 
+        animation: glow 3s infinite !important; padding: 5px 10px !important;
+    }}
+    [data-testid="stChatInput"] textarea {{
+        background-color: transparent !important; color: var(--txt-color) !important; 
+    }}
+    [data-testid="stChatInput"] button {{
+        background-color: #f97316 !important; color: white !important; border-radius: 50% !important;
+    }}
+
+    /* অন্যান্য বাটন স্টাইল */
+    .stButton > button {{
+        background-color: var(--btn-bg) !important; color: var(--btn-txt) !important; 
+        border: 1px solid var(--border-col) !important; border-radius: 10px !important;
+    }}
+    
+    @media (max-width: 1024px) {{ [data-testid="stChatInput"] {{ left: 2rem !important; right: 2rem !important; }} }}
+    @media (max-width: 768px) {{ [data-testid="stChatInput"] {{ left: 1rem !important; right: 1rem !important; bottom: 10px !important; }} }}
 </style>
-""", unsafe_allow_html=True)
+"""
+st.markdown(css, unsafe_allow_html=True)
 
 # ============ সাইডবার ============
 with st.sidebar:
@@ -223,7 +309,6 @@ with st.sidebar:
     if st.button("➕  New Chat", use_container_width=True, type="primary"):
         new_chat(); st.rerun()
     
-    # ভয়েস মোড
     st.markdown("**🎤 Voice Mode**")
     audio_value = st.audio_input("Record", label_visibility="collapsed", key=f"audio_{st.session_state.audio_key}")
     audio_to_process = None
@@ -239,7 +324,6 @@ with st.sidebar:
     
     st.divider()
     
-    # হিস্ট্রি
     st.markdown("**💬 History**")
     chats = load_chats()["chats"]
     if not chats: st.caption("No chats yet")
@@ -257,24 +341,32 @@ with st.sidebar:
     
     st.divider()
     
-    # ইউজার নেম
+    st.markdown("**🎨 Theme**")
+    theme_options = ["⚙️ System", "🌙 Dark", "☀️ Light"]
+    current_idx = theme_options.index(st.session_state.theme_choice) if st.session_state.theme_choice in theme_options else 0
+    selected_theme = st.radio("Theme", theme_options, index=current_idx, horizontal=True, label_visibility="collapsed")
+    if selected_theme != st.session_state.theme_choice:
+        st.session_state.theme_choice = selected_theme
+        st.rerun()
+
+    st.divider()
+    
     new_name = st.text_input("Your Name", value=uname or "", placeholder="Enter your name")
     if st.button("💾 Save Name", use_container_width=True):
         if new_name and new_name.strip() != uname: 
             set_user_name(new_name.strip()); st.rerun()
 
-# ============ মেইন চ্যাট এরিয়া ============
+# ============ মেইন এরিয়া ============
 st.markdown(f"""
-<div style="display: flex; align-items: center; margin-bottom: 2rem;">
-    <img class="logo-3d" src="https://raw.githubusercontent.com/saghnhs3-bit/bee-ai/main/bumblebee.png" width="60" style="margin-right: 15px;">
+<div class="header">
+    <img class="logo-3d" src="https://raw.githubusercontent.com/sagornhs3-bit/bee-ai/main/bumblebee.png" width="70" style="margin-right: 20px;">
     <div>
-        <h1 style="margin: 0; font-size: 1.8rem;">{NAME} AI</h1>
-        <p style="margin: 0; opacity: 0.7; font-size: 0.9rem;">Your Personal Assistant & Image Generator</p>
+        <h1 style="margin: 0;">{NAME} AI</h1>
+        <p style="margin: 0;">Your Personal Assistant & Image Generator</p>
     </div>
 </div>
 """, unsafe_allow_html=True)
 
-# নতুন চ্যাট শুরু
 if st.session_state.chat_id is None:
     new_chat()
     st.rerun()
@@ -284,16 +376,14 @@ if cur is None:
     new_chat()
     st.rerun()
 
-# মেসেজ ডিসপ্লে
 if not cur["messages"]:
     uname = get_user_name() or "friend"
-    with st.chat_message("assistant", avatar="https://raw.githubusercontent.com/saghnhs3-bit/bee-ai/main/bumblebee.png"):
+    with st.chat_message("assistant", avatar="https://raw.githubusercontent.com/sagornhs3-bit/bee-ai/main/bumblebee.png"):
         st.markdown(f"Hi **{uname}**! I'm {NAME}. আপনি চাইলে আমার সাথে কথা বলতে পারেন, ফাইল আপলোড করতে পারেন, অথবা **'Draw a cat'** লিখে ছবি তৈরি করতে বলতে পারেন! 😊")
 else:
     for m in cur["messages"]:
-        avatar = "👤" if m["role"] == "user" else "https://raw.githubusercontent.com/saghnhs3-bit/bee-ai/main/bumblebee.png"
+        avatar = "👤" if m["role"] == "user" else "https://raw.githubusercontent.com/sagornhs3-bit/bee-ai/main/bumblebee.png"
         with st.chat_message(m["role"], avatar=avatar): 
-            # ইমেজ হলে ডিসপ্লে করা
             if m["content"].startswith("![IMAGE]"):
                 img_url = m["content"].replace("![IMAGE]", "")
                 st.image(img_url, use_column_width=True)
@@ -329,23 +419,18 @@ if user_message:
     with st.chat_message("user", avatar="👤"): 
         st.markdown(user_message)
 
-    # চেক করা হচ্ছে ইউজার ছবি বানাতে চাচ্ছে কিনা
     is_image_request = any(kw in user_message.lower() for kw in ["image", "draw", "picture", "ছবি", "আঁকো", "generate"])
     
-    with st.chat_message("assistant", avatar="https://raw.githubusercontent.com/saghnhs3-bit/bee-ai/main/bumblebee.png"):
+    with st.chat_message("assistant", avatar="https://raw.githubusercontent.com/sagornhs3-bit/bee-ai/main/bumblebee.png"):
         if is_image_request:
-            # ইমেজ জেনারেট করা
             img_data = generate_image(user_message)
             if img_data:
                 st.image(img_data, caption=user_message, use_column_width=True)
-                # চ্যাট হিস্ট্রিতে ইমেজ হিসেবে সেভ করা
-                # (নোট: Streamlit এ সরাসরি ইমেজ সেভ করা কঠিন, তাই আমরা আপাতত স্ক্রিনে দেখাচ্ছি, চাইলে base64 এ সেভ করা যেতে পারে)
                 add_msg(st.session_state.chat_id, "bee", f"Here is the image for: {user_message} (Generated)")
             else:
                 st.error("দুঃখিত, ছবি তৈরি করা যায়নি। আবার চেষ্টা করুন।")
                 add_msg(st.session_state.chat_id, "bee", "Image generation failed.")
         else:
-            # টেক্সট রেসপন্স
             with st.spinner("Bee is thinking..."):
                 current_chat = get_chat(st.session_state.chat_id)
                 history = current_chat["messages"][:-1]
