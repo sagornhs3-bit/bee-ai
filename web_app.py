@@ -1,9 +1,10 @@
-"""Bee - Ultimate AI Assistant (Glassmorphism & True Glow)"""
+"""Bee - Ultimate AI Assistant (Fixed Bangladesh Time + Glass Glow)"""
 
 import streamlit as st
 import json
 import uuid
 import datetime
+from zoneinfo import ZoneInfo # 🔥 বাংলাদেশের সময় ঠিক করার জন্য
 import sys
 import time
 import hashlib
@@ -326,8 +327,15 @@ def ask_llm(prompt, chat_history, file_context=""):
         with st.spinner("🌐 ইন্টারনেটে খুঁজছি..."):
             web_context = search_web(prompt)
 
+    # 🔥 বাংলাদেশের সঠিক লোকাল টাইম বের করা
+    dhaka_time = datetime.datetime.now(ZoneInfo("Asia/Dhaka"))
+    current_time_str = dhaka_time.strftime("%I:%M %p, %d %B %Y")
+
     sys_prompt = f"""You are {NAME}, a helpful AI assistant.
 {file_context}
+
+## Context Information:
+- Current Date & Time in Bangladesh: {current_time_str}
 
 ## Web Context:
 {web_context}
@@ -335,7 +343,7 @@ def ask_llm(prompt, chat_history, file_context=""):
 ## Rules:
 1. Reply in the EXACT same language the user uses.
 2. NEVER use markdown headers. Use bullet points.
-3. Be highly intelligent and helpful.
+3. If the user asks about the time or date, ALWAYS use the provided Bangladesh Time above. Do not use UTC or IST.
 """
     
     messages = [{"role": "system", "content": sys_prompt}]
@@ -389,7 +397,6 @@ css = f"""
         background-attachment: fixed !important;
     }}
     
-    /* For Light Theme, make gradient softer */
     @media (prefers-color-scheme: light) {{
         .stApp {{
             background: linear-gradient(135deg, #fdfbfb 0%, #ebedee 50%, #f4f6f8 100%) !important;
@@ -404,7 +411,6 @@ css = f"""
         100% {{ background-position: 0% 50%; }}
     }}
 
-    /* Force Transparency for Glass Effect */
     [data-testid="stAppViewContainer"], [data-testid="stHeader"], [data-testid="stVerticalBlock"], .main, .block-container {{
         background: transparent !important;
     }}
@@ -442,7 +448,6 @@ css = f"""
         box-shadow: 0 4px 20px rgba(0,0,0,0.1) !important;
     }}
 
-    /* AI Message Animated Glow */
     [data-testid="stChatMessage"]:not(:has([data-testid="chatAvatarIcon-user"])) {{
         animation: aiGlow 3s infinite alternate !important;
     }}
@@ -451,7 +456,6 @@ css = f"""
         100% {{ box-shadow: 0 0 20px rgba(249, 115, 22, 0.4) !important; border-color: rgba(249, 115, 22, 0.5) !important; }}
     }}
 
-    /* User Message Right Align + Animated Glow */
     [data-testid="stChatMessage"]:has([data-testid="chatAvatarIcon-user"]) {{
         flex-direction: row-reverse !important;
         background: rgba(249, 115, 22, 0.15) !important; 
@@ -490,26 +494,12 @@ css = f"""
     [data-testid="stAudioInput"] button {{ background-color: #f97316 !important; color: white !important; border: none !important; }}
     [data-testid="stAudioInput"] button svg {{ fill: white !important; color: white !important; }}
 
-    /* 🔥 FIXED CHAT INPUT BOX (No Stains, Pure Glass & Glow) */
+    /* 🔥 FIXED CHAT INPUT BOX */
     [data-testid="stChatInput"] {{ 
-        position: fixed !important; 
-        bottom: 20px !important; 
-        left: 21rem !important; 
-        right: 2rem !important; 
-        z-index: 999 !important; 
-        max-width: 900px !important; 
-        
-        background: {chat_input_bg} !important; 
-        backdrop-filter: blur(20px) !important; 
-        -webkit-backdrop-filter: blur(20px) !important;
-        
-        /* Clean Border and Glow (No box-shadow inset causing stains) */
-        border: 2px solid #f97316 !important; 
-        border-radius: 30px !important; 
-        padding: 2px 10px !important; 
+        position: fixed !important; bottom: 20px !important; left: 21rem !important; right: 2rem !important; z-index: 999 !important; max-width: 900px !important; 
+        background: {chat_input_bg} !important; backdrop-filter: blur(20px) !important; -webkit-backdrop-filter: blur(20px) !important;
+        border: 2px solid #f97316 !important; border-radius: 30px !important; padding: 2px 10px !important; 
         box-shadow: 0 0 15px rgba(249, 115, 22, 0.4) !important;
-        
-        /* Animated Glow */
         animation: inputGlow 3s infinite alternate !important;
     }}
     
@@ -518,17 +508,8 @@ css = f"""
         100% {{ box-shadow: 0 0 25px rgba(249, 115, 22, 0.7) !important; border-color: rgba(249, 115, 22, 1) !important; }}
     }}
 
-    /* Force all inner containers to be transparent to kill the stain */
-    [data-testid="stChatInput"] > div, 
-    [data-testid="stChatInput"] div[data-testid="stVerticalBlock"],
-    [data-testid="stChatInput"] div[data-testid="stHorizontalBlock"] {{ 
-        background-color: transparent !important; 
-        border: none !important; 
-        box-shadow: none !important;
-    }}
-    
+    [data-testid="stChatInput"] > div, [data-testid="stChatInput"] div[data-testid="stVerticalBlock"], [data-testid="stChatInput"] div[data-testid="stHorizontalBlock"] {{ background-color: transparent !important; border: none !important; box-shadow: none !important; }}
     [data-testid="stChatInput"] textarea {{ background-color: transparent !important; color: {txt} !important; padding-right: 80px !important; border: none !important; box-shadow: none !important; }}
-    
     [data-testid="stChatInput"] button {{ background-color: #f97316 !important; color: white !important; border-radius: 50% !important; transition: all 0.3s !important; border: none !important; }}
     [data-testid="stChatInput"] button:hover {{ transform: scale(1.1) !important; box-shadow: 0 0 15px rgba(249, 115, 22, 0.8) !important; }}
 
