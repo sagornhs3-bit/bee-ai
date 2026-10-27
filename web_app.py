@@ -193,23 +193,27 @@ if dark:
     sidebar_bg = "#0e1117"
     chat_input_bg = "rgba(30, 30, 30, 0.8)"
     chat_input_border = "rgba(249, 115, 22, 0.5)"
-    msg_bg = "#262730"
+    header_bg = "#0e1117"
 else:
     bg = "#ffffff"
     txt = "#1a1a1a"
     sidebar_bg = "#f8f9fa"
-    chat_input_bg = "rgba(255, 255, 255, 0.9)"
-    chat_input_border = "rgba(249, 115, 22, 1.0)"
-    msg_bg = "#f0f2f6"
+    chat_input_bg = "rgba(255, 255, 255, 0.95)" # Light mode chat bg
+    chat_input_border = "rgba(249, 115, 22, 0.8)"
+    header_bg = "#ffffff" # Top header white
 
 css = """
 <style>
-    .stApp { background: BG_COLOR !important; }
+    /* Main Backgrounds */
+    .stApp, [data-testid="stAppViewContainer"], [data-testid="stHeader"] { background: BG_COLOR !important; }
     [data-testid="stSidebar"] { background: SIDEBAR_BG !important; }
-    .main p, .main span, .main label, .main h1, .main h2, .main h3, [data-testid="stSidebar"] p, [data-testid="stSidebar"] span, [data-testid="stSidebar"] label { color: TXT_COLOR !important; }
+    
+    /* Text Colors */
+    .main p, .main span, .main label, .main h1, .main h2, .main h3, .main div, [data-testid="stSidebar"] p, [data-testid="stSidebar"] span, [data-testid="stSidebar"] label { color: TXT_COLOR !important; }
     
     .main .block-container { padding-top: 1.5rem; max-width: 900px; padding-bottom: 150px !important; }
     
+    /* Header Gradient */
     .header { background: linear-gradient(135deg, #f59e0b 0%, #ef4444 100%) !important; padding: 1.4rem 1.6rem; border-radius: 14px; margin-bottom: 1.2rem; display: flex; align-items: center; overflow: hidden; }
     .header h1 { margin: 0; font-size: 1.8rem; color: #ffffff !important; }
     .header p { margin: 0.3rem 0 0; opacity: 0.95; font-size: 0.95rem; color: #ffffff !important; }
@@ -217,6 +221,7 @@ css = """
     @keyframes float { 0% { transform: translateY(0px); filter: drop-shadow(0px 10px 15px rgba(0,0,0,0.8)); } 50% { transform: translateY(-8px); filter: drop-shadow(0px 20px 25px rgba(0,0,0,1)); } 100% { transform: translateY(0px); filter: drop-shadow(0px 10px 15px rgba(0,0,0,0.8)); } }
     .logo-3d { animation: float 4s ease-in-out infinite; border-radius: 50%; mix-blend-mode: screen; max-height: 80px; object-fit: contain; }
 
+    /* Chat Messages */
     [data-testid="stChatMessage"] { background: transparent !important; }
     [data-testid="stChatMessage"] p, [data-testid="stChatMessage"] span { color: TXT_COLOR !important; }
 
@@ -241,7 +246,7 @@ css = """
     [data-testid="stChatInput"] textarea { 
         background: transparent !important; 
         color: TXT_COLOR !important;
-        padding-right: 90px !important;
+        padding-right: 90px !important; /* Make room for mic and send button */
     }
 
     /* Orange Send Button */
@@ -255,7 +260,7 @@ css = """
     /* 🔥 MIC BUTTON FIX (Floats inside chat bar) */
     [data-testid="stAudioInput"] {
         position: fixed !important;
-        bottom: 28px !important; 
+        bottom: 32px !important; 
         right: 5.5rem !important; 
         z-index: 1000 !important;
         width: 40px !important;
@@ -358,7 +363,10 @@ else:
         with st.chat_message(m["role"], avatar=avatar): st.markdown(m["content"])
 
 # ============ INPUT AREA ============
+# ভয়েস ইনপুট (CSS দিয়ে চ্যাট বক্সের ভেতরে পজিশন করা হয়েছে)
 audio_value = st.audio_input("Voice Input", label_visibility="collapsed")
+
+# মেইন চ্যাট ইনপুট
 chat_data = st.chat_input("Type your message here...", accept_file=True, file_type=["pdf", "txt", "csv"])
 
 user_message = None
