@@ -1,4 +1,4 @@
-"""Bee - Ultimate AI Assistant (Supabase + Cookies + Location + Multilingual)"""
+"""Bee - Ultimate AI Assistant (Permanent Login + Supabase + Location + Multilingual)"""
 
 import streamlit as st
 import json
@@ -84,28 +84,33 @@ if "is_premium" not in st.session_state: st.session_state.is_premium = False
 if "msg_count" not in st.session_state: st.session_state.msg_count = 0
 if "chat_id" not in st.session_state: st.session_state.chat_id = None
 
-# 🔥 কুকি চেক করে অটো লগইন
+# 🔥 কুকি চেক করে অটো লগইন (স্মুথ স্পিনারসহ)
 if not st.session_state.logged_in:
     saved_user = cookie_manager.get(cookie="bee_user")
+    
     if saved_user:
-        try:
-            res = supabase.table("users").select("*").eq("username", saved_user).execute()
-            if res.data:
-                user = res.data[0]
-                st.session_state.logged_in = True
-                st.session_state.username = user["username"]
-                st.session_state.is_premium = user["is_premium"]
-                st.session_state.chat_id = None # লগইনের পর নতুন চ্যাট শুরু হবে
-                
-                today = datetime.date.today().strftime("%Y-%m-%d")
-                if user["last_date"] != today:
-                    st.session_state.msg_count = 0
-                    supabase.table("users").update({"msg_count": 0, "last_date": today}).eq("username", user["username"]).execute()
+        with st.spinner("🔄 অটো লগইন হচ্ছে..."):
+            try:
+                res = supabase.table("users").select("*").eq("username", saved_user).execute()
+                if res.data:
+                    user = res.data[0]
+                    st.session_state.logged_in = True
+                    st.session_state.username = user["username"]
+                    st.session_state.is_premium = user["is_premium"]
+                    st.session_state.chat_id = None # নতুন চ্যাট শুরু হবে
+                    
+                    today = datetime.date.today().strftime("%Y-%m-%d")
+                    if user["last_date"] != today:
+                        st.session_state.msg_count = 0
+                        supabase.table("users").update({"msg_count": 0, "last_date": today}).eq("username", user["username"]).execute()
+                    else:
+                        st.session_state.msg_count = user["msg_count"]
+                    st.rerun()
                 else:
-                    st.session_state.msg_count = user["msg_count"]
-                st.rerun()
-        except Exception:
-            pass
+                    # ডেটাবেসে ইউজার না থাকলে কুকি ডিলিট
+                    cookie_manager.delete("bee_user")
+            except Exception:
+                pass
 
 # ============================================================
 # 🔐 LOGIN & SIGN UP SYSTEM
@@ -148,8 +153,8 @@ if not st.session_state.logged_in:
                         st.session_state.is_premium = user["is_premium"]
                         st.session_state.chat_id = None # নতুন চ্যাট ফোর্স করা হলো
                         
-                        # কুকি সেভ করা হলো ৩০ দিনের জন্য
-                        expires = datetime.datetime.now() + datetime.timedelta(days=30)
+                        # 🔥 কুকি সেভ করা হলো ১০০ বছর (৩৬,৫০০ দিন) এর জন্য
+                        expires = datetime.datetime.now() + datetime.timedelta(days=36500)
                         cookie_manager.set("bee_user", user["username"], expires_at=expires)
                         
                         today = datetime.date.today().strftime("%Y-%m-%d")
