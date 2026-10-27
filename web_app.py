@@ -1,12 +1,15 @@
-"""Bee - Web Chat with Voice, Search & Glass UI"""
+"""Bee - Ultimate AI Assistant (Voice, Search, File Upload, Multi-lang)"""
 
 import streamlit as st
 import json
 import uuid
 import datetime
 import sys
+import os
+import time
 from pathlib import Path
 import streamlit.components.v1 as components
+import PyPDF2
 
 BEE_DIR = Path(__file__).parent
 sys.path.insert(0, str(BEE_DIR))
@@ -40,9 +43,8 @@ def load_cfg():
 CONFIG = load_cfg()
 NAME = CONFIG.get("assistant_name", "Bee")
 GROQ_KEY = CONFIG.get("groq_api_key", "")
-OLLAMA_MODEL = CONFIG.get("ollama_model", "llama3.2:3b")
 
-# ============ SESSION STATE (AUTO LOGIN) ============
+# ============ SESSION STATE ============
 if "logged_in" not in st.session_state:
     st.session_state.logged_in = True
 if "username" not in st.session_state:
@@ -66,10 +68,7 @@ if not st.session_state.intro_done:
             background-color: #0e1117; display: flex; flex-direction: column;
             justify-content: center; align-items: center; z-index: 99999;
         }
-        .splash-logo {
-            width: 150px; animation: zoomPulse 2s infinite alternate;
-            mix-blend-mode: screen;
-        }
+        .splash-logo { width: 150px; animation: zoomPulse 2s infinite alternate; mix-blend-mode: screen; }
         @keyframes zoomPulse {
             0% { transform: scale(0.9); filter: drop-shadow(0 0 10px #f59e0b); }
             100% { transform: scale(1.1); filter: drop-shadow(0 0 30px #ef4444); }
@@ -84,8 +83,7 @@ if not st.session_state.intro_done:
         <h2 class="splash-text">BEE AI</h2>
     </div>
     """, unsafe_allow_html=True)
-    import time
-    time.sleep(3)
+    time.sleep(2)
     st.session_state.intro_done = True
     st.rerun()
 
@@ -138,32 +136,14 @@ def get_groq():
         except Exception:
             _groq = None
     return _groq
-  
-def transcribe_audio(audio_file):
-    """Convert spoken audio to text using Groq Whisper API"""
-    client = get_groq()
-    if not client or not audio_file:
-        return None
-    try:
-        # Groq-এর Whisper API দিয়ে অডিও টেক্সটে রূপান্তর
-        transcription = client.audio.transcriptions.create(
-            file=("audio.wav", audio_file.read()),
-            model="whisper-large-v3-turbo",
-            language="bn", # বাংলা ভাষার জন্য
-            response_format="text"
-        )
-        return transcription.strip()
-    except Exception as e:
-        st.error(f"Voice Error: {e}")
-        return None
-      
+
+# ============ VOICE & SEARCH HELPERS ============
 def speak_text(text):
-    """Browser-based Text-to-Speech"""
     js_text = json.dumps(text)
     js_code = f"""
     <script>
         var msg = new SpeechSynthesisUtterance({js_text});
-        msg.lang = 'bn-BD'; // বাংলা ভয়েস
+        msg.lang = 'auto'; // ব্রাউজার নিজেই ভাষা বুঝে নেবে
         msg.rate = 1.0;
         window.speechSynthesis.cancel();
         window.speechSynthesis.speak(msg);
@@ -171,62 +151,86 @@ def speak_text(text):
     """
     components.html(js_code, height=0)
 
+def transcribe_audio(audio_file):
+    client = get_groq()
+    if not client or not audio_file:
+        return None
+    try:
+        transcription = client.audio.transcriptions.create(
+            file=("audio.wav", audio_file.read()),
+            model="whisper-large-v3-turbo",
+            language="bn", # বাংলা ভয়েসের জন্য
+            response_format="text"
+        )
+        return transcription.strip()
+    except Exception as e:
+        st.error(f"Voice Error: {e}")
+        return None
+
 def search_web(query):
     try:
         from duckduckgo_search import DDGS
-        results = DDGS().text(query, max_results=3)
+        # ডিপ সার্চ: টপ ৫টি রেজাল্ট নেওয়া হচ্ছে
+        results = DDGS().text(query, max_results=5)
         if not results: return "No search results found."
         formatted = ""
         for i, res in enumerate(results):
-            formatted += f"\nResult {i+1}: {res['title']}\nSnippet: {res['body']}\n"
+            formatted += f"\n[Result {i+1}]: {res['title']}\n{res['body']}\n"
         return formatted
     except Exception as e:
         return f"Search error: {e}"
 
-def build_sys():
+def extract_text_from_file(uploaded_file):
+    if uploaded_file.name.endswith('.pdf'):
+        reader = PyPDF2.PdfReader(uploaded_file)
+        text = ""
+        for page in reader.pages:
+            text += page.extract_text() + "\n"
+        return text[:4000] # প্রথম ৪০০০ অক্ষর
+    elif uploaded_file.name.endswith('.txt') or uploaded_file.name.endswith('.csv'):
+        return str(uploaded_file.read(), "utf-8")[:4000]
+    return ""
+
+# ============ AI LOGIC ============
+def build_sys(file_context=""):
     mem = build_memory_context()
     mem_block = f"\n\nUser info:\n{mem}\n" if mem else ""
-    return f"""You are {NAME} — a highly intelligent, helpful AI assistant.
-{mem_block}
+    file_block = f"\n\n## Attached File Context:\n{file_context}\n" if file_context else ""
+    
+    return f"""You are {NAME} — a highly intelligent, helpful, and empathetic AI assistant.
+You have real-time internet search capability and can read attached files.
+{mem_block}{file_block}
 
 ## Rules:
-1. Always reply in Bengali (unless the user speaks in English).
-2. Give detailed, helpful answers. Use bullet points if needed.
-3. If you don't know, say so.
+1. **Language:** You MUST reply in the EXACT same language the user uses. If they write in Bengali, reply in Bengali. If English, reply in English.
+2. **Web Search:** You HAVE internet access. If Web Context is provided, use it to answer accurately. NEVER say "I don't have web search".
+3. **Files:** If file context is provided, read it carefully to answer the user's question.
+4. **Detail:** Give detailed, well-structured answers. Use bullet points if needed.
 """
 
-def ask_llm(prompt, chat_history):
+def ask_llm(prompt, chat_history, file_context=""):
     web_context = ""
-    # সার্চ করার ট্রিগার শব্দ
+    # সার্চ ট্রিগার
     search_triggers = ["search", "who is", "news", "ke", "ki", "kobe", "koto", "খবর", "কে", "কি", "কবে", "কত", "current", "today"]
     if any(w in prompt.lower() for w in search_triggers):
-        with st.spinner("🌐 আমি ইন্টারনেটে খুঁজছি..."):
-            # "search" শব্দটা বাদ দিয়ে সার্চ করা হচ্ছে
+        with st.spinner("🌐 আমি ইন্টারনেটে ডিপ সার্চ করছি..."):
             clean_query = prompt.lower().replace("search", "").strip()
             web_context = search_web(clean_query)
 
-    # AI-কে কঠোরভাবে বলা হচ্ছে যে তার সার্চ করার ক্ষমতা আছে
-    sys_prompt = f"""You are {NAME} — a highly intelligent AI assistant with real-time internet search capability.
-    
-## Web Search Context (Just fetched from the internet):
-{web_context}
-
-## Rules:
-1. You HAVE internet access. If Web Context is provided above, you MUST use it to answer the question. NEVER say "I don't have web search capability".
-2. Always reply in Bengali (unless the user speaks in English).
-3. Give detailed, helpful answers. Use bullet points if needed.
-4. If the context is empty, you may use your general knowledge.
-"""
-
+    sys_prompt = build_sys(file_context) + f"\n\n## Web Search Context:\n{web_context}\n"
     client = get_groq()
+    
     if not client:
         return "দুঃখিত, Groq API Key সেট করা নেই।"
-    # আগের চ্যাট হিস্ট্রি তৈরি করা (যাতে AI মনে রাখতে পারে)
+    
+    # চ্যাট হিস্ট্রি তৈরি (Indentation Error Free)
     messages = [{"role": "system", "content": sys_prompt}]
     for msg in chat_history:
-               role = "assistant" if msg["role"] == "bee" else msg["role"]
+        role = "assistant" if msg["role"] == "bee" else msg["role"]
         messages.append({"role": role, "content": msg["content"]})
-   try:
+    messages.append({"role": "user", "content": prompt})
+
+    try:
         r = client.chat.completions.create(
             model="openai/gpt-oss-120b",
             messages=messages,
@@ -235,7 +239,7 @@ def ask_llm(prompt, chat_history):
         return r.choices[0].message.content.strip()
     except Exception as e:
         return f"Groq Error: {e}"
-      
+
 def route(text):
     t = text.lower()
     try:
@@ -248,17 +252,9 @@ def route(text):
         if any(w in t for w in ["weather", "আবহাওয়া", "abohawa"]):
             from plugins import weather
             return weather.get_weather()
-        if any(w in t for w in ["joke", "জোকস", "moja"]):
-            from plugins import fun
-            return fun.get_joke()
     except Exception:
         pass
     return None
-
-def get_reply(text):
-    a = route(text)
-    if a: return a
-    return ask_llm(text)
 
 # ============ CSS ============
 dark = st.session_state.theme == "dark"
@@ -278,7 +274,7 @@ css = """
         color: TXT_COLOR !important;
     }
     
-    .main .block-container { padding-top: 1.5rem; max-width: 900px; padding-bottom: 120px !important; }
+    .main .block-container { padding-top: 1.5rem; max-width: 900px; padding-bottom: 220px !important; }
     
     .header {
         background: linear-gradient(135deg, #f59e0b 0%, #ef4444 100%) !important;
@@ -299,21 +295,6 @@ css = """
     [data-testid="stChatMessage"] { background: transparent !important; }
     [data-testid="stChatMessage"] p, [data-testid="stChatMessage"] span { color: TXT_COLOR !important; }
 
-    /* Voice Input Styling */
-    [data-testid="stAudioInput"] {
-        background: rgba(30, 30, 30, 0.4) !important;
-        backdrop-filter: blur(15px) !important;
-        border: 1px solid rgba(255, 255, 255, 0.15) !important;
-        border-radius: 20px !important;
-        padding: 10px !important;
-        margin-bottom: 10px !important;
-    }
-    [data-testid="stAudioInput"] button {
-        background-color: #ef4444 !important; /* লাল রেকর্ড বাটন */
-        border-radius: 50% !important;
-        color: white !important;
-    }
-    
     /* Glassmorphism Chat Input */
     [data-testid="stChatInput"] {
         position: fixed !important;
@@ -324,31 +305,35 @@ css = """
         max-width: 900px !important;
         background: rgba(255, 255, 255, 0.05) !important;
         backdrop-filter: blur(15px) !important;
-        -webkit-backdrop-filter: blur(15px) !important;
         border: 1px solid rgba(255, 255, 255, 0.2) !important;
         border-radius: 20px !important;
         box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5) !important;
         padding: 5px 15px !important;
     }
-    [data-testid="stChatInput"] textarea { background: transparent !important; color: white !important; }
+    
+    /* Voice & File Input Styling */
+    [data-testid="stAudioInput"] {
+        background: rgba(30, 30, 30, 0.4) !important;
+        backdrop-filter: blur(15px) !important;
+        border: 1px solid rgba(255, 255, 255, 0.15) !important;
+        border-radius: 20px !important;
+        padding: 10px !important;
+        margin-bottom: 10px !important;
+    }
 
     footer { visibility: hidden; }
     #MainMenu { visibility: hidden; }
 
     @media (max-width: 768px) {
-        .main .block-container { padding-top: 1rem; padding-bottom: 20px !important; }
+        .main .block-container { padding-top: 1rem; padding-bottom: 250px !important; }
         [data-testid="stChatInput"] {
-            position: relative !important; 
-            left: 0 !important; right: 0 !important; bottom: 0 !important;
-            max-width: 100% !important; width: 100% !important;
-            border-radius: 10px !important;
+            position: fixed !important; left: 1rem !important; right: 1rem !important; bottom: 10px !important; max-width: 100% !important; width: auto !important;
         }
     }
 </style>
 """
 css = css.replace("BG_COLOR", bg).replace("TXT_COLOR", txt).replace("SIDEBAR_BG", sidebar_bg)
 st.markdown(css, unsafe_allow_html=True)
-
 
 # ============ SIDEBAR ============
 with st.sidebar:
@@ -420,6 +405,7 @@ if cur is None:
     new_chat()
     st.rerun()
 
+# Display Messages
 if not cur["messages"]:
     uname = get_user_name() or "friend"
     with st.chat_message("assistant", avatar="https://raw.githubusercontent.com/sagornhs3-bit/bee-ai/main/bumblebee.png"):
@@ -430,52 +416,49 @@ else:
         with st.chat_message(m["role"], avatar=avatar):
             st.markdown(m["content"])
 
-# ============ VOICE INPUT ============
+# ============ INPUT AREA ============
+# ফাইল আপলোড
+uploaded_file = st.file_uploader("📎 Attach a file (PDF, TXT, CSV)", type=["pdf", "txt", "csv"], label_visibility="collapsed")
+file_context = ""
+if uploaded_file is not None:
+    with st.spinner("Reading file..."):
+        file_context = extract_text_from_file(uploaded_file)
+        st.success(f"File '{uploaded_file.name}' attached. Ask me anything about it!")
+
+# ভয়েস ইনপুট
 st.markdown("**🎤 Voice Input (মাইকে কথা বলুন)**")
 audio_value = st.audio_input("Record your voice", label_visibility="collapsed")
 
-if audio_value is not None:
-    with st.spinner("🎤 আপনার কথা শোনা হচ্ছে..."):
-        voice_text = transcribe_audio(audio_value)
-        if voice_text:
-            # ভয়েস থেকে পাওয়া টেক্সট সরাসরি প্রসেস করা
-            add_msg(st.session_state.chat_id, "user", voice_text)
-            with st.chat_message("user", avatar="👤"):
-                st.markdown(voice_text)
-
-            with st.chat_message("assistant", avatar="https://raw.githubusercontent.com/sagornhs3-bit/bee-ai/main/bumblebee.png"):
-                with st.spinner("Bee is thinking..."):
-                    current_chat = get_chat(st.session_state.chat_id)
-                    history = current_chat["messages"][:-1]
-                    action_result = route(voice_text)
-                    reply = action_result if action_result else ask_llm(voice_text, history)
-                st.markdown(reply)
-            
-            speak_text(reply)
-            add_msg(st.session_state.chat_id, "bee", reply)
-            st.rerun() # মাইক রিসেট করার জন্য
-          
+# চ্যাট ইনপুট
 user_in = st.chat_input("Type your message here...")
 
+# ============ HANDLE INPUT (Voice or Text) ============
+user_message = None
+
 if user_in and user_in.strip():
-    text = user_in.strip()
-    add_msg(st.session_state.chat_id, "user", text)
+    user_message = user_in.strip()
+elif audio_value is not None:
+    with st.spinner("🎤 আপনার কথা শোনা হচ্ছে..."):
+        user_message = transcribe_audio(audio_value)
 
+if user_message:
+    add_msg(st.session_state.chat_id, "user", user_message)
+    
+    # UI-তে ইউজারের মেসেজ দেখানো
     with st.chat_message("user", avatar="👤"):
-        st.markdown(text)
+        st.markdown(user_message)
 
+    # AI-এর রেসপন্স
     with st.chat_message("assistant", avatar="https://raw.githubusercontent.com/sagornhs3-bit/bee-ai/main/bumblebee.png"):
         with st.spinner("Bee is thinking..."):
-            # আগের চ্যাটগুলো নেওয়া হচ্ছে
             current_chat = get_chat(st.session_state.chat_id)
-            history = current_chat["messages"][:-1] # বর্তমান মেসেজ বাদে আগেরগুলো
+            history = current_chat["messages"][:-1]
             
-            # সার্চ/রুট বা AI থেকে উত্তর নেওয়া হচ্ছে
-            action_result = route(text)
+            action_result = route(user_message)
             if action_result:
                 reply = action_result
             else:
-                reply = ask_llm(text, history)
+                reply = ask_llm(user_message, history, file_context)
                 
         st.markdown(reply)
     
