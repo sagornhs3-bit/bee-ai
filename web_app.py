@@ -1,4 +1,4 @@
-"""Bee - Ultimate AI Assistant (ChatGPT-Style Voice Mode + Light Theme Fix)"""
+"""Bee - Ultimate AI Assistant (ChatGPT Voice Mode + Light Theme + Fixed Model)"""
 
 import streamlit as st
 import json
@@ -345,10 +345,16 @@ def ask_llm(prompt, chat_history, file_context=""):
     messages.append({"role": "user", "content": prompt})
 
     try:
-        r = client.chat.completions.create(model="llama-3.3-70b-versatile", messages=messages, temperature=0.5)
+        # 🔥 Groq এর নতুন সক্রিয় মডেল (llama-3.3 বন্ধ হয়ে যাওয়ায় এটি ব্যবহার করা হলো)
+        r = client.chat.completions.create(model="llama-3.1-70b-versatile", messages=messages, temperature=0.5)
         return r.choices[0].message.content.strip()
     except Exception as e:
-        return f"Error: {e}"
+        # যদি উপরের মডেল কাজ না করে, তবে এটি ফলব্যাক হিসেবে কাজ করবে
+        try:
+            r = client.chat.completions.create(model="llama3-70b-8192", messages=messages, temperature=0.5)
+            return r.choices[0].message.content.strip()
+        except Exception as e2:
+            return f"Error: {e2}"
 
 # ============================================================
 # 🎨 PREMIUM CSS (ChatGPT Voice UI + Fixed Light Theme)
@@ -735,7 +741,7 @@ if (not st.session_state.is_premium) and (st.session_state.msg_count >= DAILY_LI
             elif unlock_input != "":
                 st.error("❌ ভুল আনলক কোড!")
 else:
-    # Text Input Only (Voice is handled via Sidebar Button)
+    # Text Input Only
     chat_data = st.chat_input("Type your message here...", accept_file=True, file_type=["pdf", "txt", "csv"])
     
     if chat_data:
@@ -749,7 +755,7 @@ else:
             file_context = extract_text_from_file(uploaded_file)
             st.toast(f"📎 File '{uploaded_file.name}' attached!")
 
-# ============ HANDLE TEXT INPUT (No Auto-Speak) ============
+# ============ HANDLE TEXT INPUT ============
 if user_message:
     if not st.session_state.is_premium:
         st.session_state.msg_count += 1
@@ -765,8 +771,6 @@ if user_message:
             history = current_chat["messages"][:-1]
             reply = ask_llm(user_message, history, file_context)
         st.markdown(reply)
-    
-    # No speak_text here (Only speak in Voice UI)
         
     add_msg(st.session_state.chat_id, "bee", reply)
     st.rerun()
