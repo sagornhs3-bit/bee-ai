@@ -1,4 +1,4 @@
-"""Bee - Ultimate AI Assistant (Dreamy Light Theme + Colorful & Fixed Voice UI)"""
+"""Bee - Ultimate AI Assistant (ChatGPT-Style Voice Mode + Light Theme Fix)"""
 
 import streamlit as st
 import json
@@ -78,6 +78,7 @@ if "is_premium" not in st.session_state: st.session_state.is_premium = False
 if "msg_count" not in st.session_state: st.session_state.msg_count = 0
 if "chat_id" not in st.session_state: st.session_state.chat_id = None
 if "emoji_append" not in st.session_state: st.session_state.emoji_append = ""
+if "voice_ui" not in st.session_state: st.session_state.voice_ui = False # Voice UI State
 
 if not st.session_state.logged_in:
     saved_user = cookie_manager.get(cookie="bee_user")
@@ -350,7 +351,7 @@ def ask_llm(prompt, chat_history, file_context=""):
         return f"Error: {e}"
 
 # ============================================================
-# 🎨 PREMIUM CSS (Dreamy Pastel Theme + Fixed Voice/Emoji)
+# 🎨 PREMIUM CSS (ChatGPT Voice UI + Fixed Light Theme)
 # ============================================================
 if dark:
     bg_base = "#0e1117"
@@ -363,18 +364,22 @@ if dark:
     border_col = "rgba(255,255,255,0.1)"
     glass_bg = "rgba(255, 255, 255, 0.05)"
     watermark_opacity = "0.08"
+    radio_bg = "#262730"
+    radio_border = "#ffffff"
 else:
-    # ☀️ Dreamy Pastel Light Theme (Peach & Blue)
+    # ☀️ Dreamy Pastel Light Theme
     bg_base = "#ffffff"
     bg_gradient = "linear-gradient(135deg, #FFFDFB 0%, #FFF0F5 50%, #F0F8FF 100%)"
     txt = "#1a1a1a" 
-    sidebar_bg = "rgba(255, 255, 255, 0.6)" # Glassmorphic Sidebar
+    sidebar_bg = "rgba(255, 255, 255, 0.6)"
     chat_input_bg = "rgba(255, 255, 255, 0.95)" 
     btn_bg = "rgba(255, 255, 255, 0.9)" 
     btn_txt = "#1a1a1a" 
     border_col = "rgba(0,0,0,0.1)" 
     glass_bg = "rgba(255, 255, 255, 0.7)" 
     watermark_opacity = "0.08"
+    radio_bg = "#ffffff"
+    radio_border = "#f97316"
 
 css = f"""
 <style>
@@ -405,11 +410,10 @@ css = f"""
         z-index: 1;
     }}
     
-    /* Sidebar (Glass Effect) */
+    /* Sidebar */
     [data-testid="stSidebar"] {{ 
         background: {sidebar_bg} !important; 
         backdrop-filter: blur(15px) !important;
-        -webkit-backdrop-filter: blur(15px) !important;
         border-right: 1px solid {border_col} !important;
     }}
     
@@ -422,7 +426,6 @@ css = f"""
     [data-testid="stChatMessage"] {{
         background: {glass_bg} !important;
         backdrop-filter: blur(10px) !important;
-        -webkit-backdrop-filter: blur(10px) !important;
         border: 1px solid {border_col} !important;
         border-radius: 15px !important;
         padding: 15px !important;
@@ -456,7 +459,7 @@ css = f"""
     }}
     .logo-3d {{ animation: talk 3s ease-in-out infinite; border-radius: 50%; mix-blend-mode: multiply; max-height: 80px; object-fit: contain; }}
     
-    /* Buttons (Sidebar Fix for Light Mode) */
+    /* Buttons */
     .stButton > button {{
         background-color: {btn_bg} !important;
         color: {btn_txt} !important;
@@ -473,21 +476,36 @@ css = f"""
         color: {btn_txt} !important;
     }}
 
+    /* 🔥 Streamlit Radio Button Fix (White & Orange) */
+    [data-testid="stRadio"] div[role="radiogroup"] > label > div:first-child {{
+        background-color: {radio_bg} !important;
+        border: 2px solid {radio_border} !important;
+    }}
+    [data-testid="stRadio"] div[role="radiogroup"] > label > div:first-child > div {{
+        background-color: #f97316 !important;
+        transform: scale(1.2) !important;
+    }}
+
     /* 🔥 Voice Input Fix (Remove Black Box) */
     [data-testid="stAudioInput"] {{
         background-color: #ffffff !important;
-        border-radius: 10px !important;
-        border: 1px solid {border_col} !important;
-        box-shadow: 0 2px 10px rgba(0,0,0,0.05) !important;
-        padding: 5px !important;
+        border-radius: 12px !important;
+        border: 2px solid #f97316 !important;
+        box-shadow: 0 4px 15px rgba(249, 115, 22, 0.15) !important;
+        padding: 10px !important;
     }}
     [data-testid="stAudioInput"] * {{
         color: #1a1a1a !important;
-        fill: #1a1a1a !important;
+        fill: #f97316 !important;
     }}
     [data-testid="stAudioInput"] button {{
-        background-color: transparent !important;
+        background-color: #f97316 !important;
+        color: white !important;
         border: none !important;
+    }}
+    [data-testid="stAudioInput"] button svg {{
+        fill: white !important;
+        color: white !important;
     }}
 
     /* Input Box */
@@ -502,54 +520,103 @@ css = f"""
     [data-testid="stChatInput"] textarea {{ background-color: transparent !important; color: {txt} !important; padding-right: 80px !important; }}
     [data-testid="stChatInput"] button {{ background-color: #f97316 !important; color: white !important; border-radius: 50% !important; }}
 
-    /* Hide default borders and backgrounds in Bottom area */
+    /* Hide default Streamlit UI */
     [data-testid="stBottom"] > div {{ background: transparent !important; }}
-    [data-testid="stBottom"] > div > div {{ background: transparent !important; }}
-
-    /* 🔥 Header & Sidebar Toggle Fix */
-    #MainMenu {{visibility: hidden;}}
-    footer {{visibility: hidden;}}
-    [data-testid="stHeader"] {{
-        background: transparent !important;
-        z-index: 999;
-    }}
+    #MainMenu {{visibility: hidden;}} footer {{visibility: hidden;}}
+    [data-testid="stHeader"] {{ background: transparent !important; z-index: 999; }}
     .stDeployButton {{display: none !important;}}
     
     /* Sidebar Toggle Arrow */
     [data-testid="collapsedControl"] {{
-        display: flex !important;
-        visibility: visible !important;
-        opacity: 1 !important;
-        position: fixed !important;
-        top: 15px !important;
-        left: 15px !important;
-        z-index: 99999 !important;
-        background-color: #f97316 !important; 
-        color: white !important;
-        border-radius: 50% !important;
-        padding: 8px !important;
+        display: flex !important; visibility: visible !important; opacity: 1 !important;
+        position: fixed !important; top: 15px !important; left: 15px !important; z-index: 99999 !important;
+        background-color: #f97316 !important; color: white !important;
+        border-radius: 50% !important; padding: 8px !important;
         box-shadow: 0 4px 10px rgba(0,0,0,0.2) !important;
     }}
-    [data-testid="collapsedControl"] svg {{
-        fill: white !important;
-        color: white !important;
-    }}
+    [data-testid="collapsedControl"] svg {{ fill: white !important; color: white !important; }}
     
-    /* Emoji Popover Fix */
+    /* Emoji Popover */
     [data-testid="stPopover"] > button {{
-        background-color: {btn_bg} !important;
-        color: {btn_txt} !important;
-        border: 1px solid {border_col} !important;
-        box-shadow: 0 2px 5px rgba(0,0,0,0.02) !important;
+        background-color: {btn_bg} !important; color: {btn_txt} !important;
+        border: 1px solid {border_col} !important; box-shadow: 0 2px 5px rgba(0,0,0,0.02) !important;
     }}
     [data-testid="stPopoverBody"] {{
-        background-color: #ffffff !important;
-        border: 1px solid {border_col} !important;
+        background-color: #ffffff !important; border: 1px solid {border_col} !important;
         box-shadow: 0 10px 30px rgba(0,0,0,0.1) !important;
+    }}
+
+    /* 🎤 ChatGPT-Style Voice UI Card */
+    .voice-card {{
+        background: {glass_bg};
+        backdrop-filter: blur(25px);
+        border-radius: 30px;
+        padding: 50px 20px;
+        text-align: center;
+        box-shadow: 0 15px 50px rgba(0,0,0,0.1);
+        border: 2px solid rgba(249, 115, 22, 0.3);
+        margin-top: 5vh;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
     }}
 </style>
 """
 st.markdown(css, unsafe_allow_html=True)
+
+# ============================================================
+# 🎤 VOICE UI (Full Screen Interface)
+# ============================================================
+if st.session_state.voice_ui:
+    st.markdown(f"""
+    <div class="voice-card">
+        <img class="logo-3d" src="https://raw.githubusercontent.com/sagornhs3-bit/bee-ai/main/bumblebee.png" width="150">
+        <h2 style="margin-top: 20px; color: {txt};">Listening...</h2>
+        <p style="color: gray; margin-bottom: 30px;">Tap the mic below and speak your mind.</p>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    col1, col2, col3 = st.columns([1, 2, 1])
+    with col2:
+        audio_val = st.audio_input("Record", label_visibility="collapsed", key="voice_recorder")
+        
+        st.markdown("<br>", unsafe_allow_html=True)
+        btn_col1, btn_col2 = st.columns(2)
+        with btn_col1:
+            if st.button("🚀 Send to Bee", use_container_width=True, type="primary"):
+                if audio_val:
+                    with st.spinner("🎤 Processing voice..."):
+                        user_msg = transcribe_audio(audio_val)
+                        if user_msg:
+                            if st.session_state.chat_id is None:
+                                new_chat()
+                                
+                            # Save User Message
+                            add_msg(st.session_state.chat_id, "user", user_msg)
+                            
+                            # Get AI Reply
+                            current_chat = get_chat(st.session_state.chat_id)
+                            history = current_chat["messages"][:-1]
+                            reply = ask_llm(user_msg, history)
+                            
+                            # Save AI Reply
+                            add_msg(st.session_state.chat_id, "bee", reply)
+                            
+                            # Speak the reply
+                            speak_text(reply)
+                            
+                            # Close Voice UI and go back to chat
+                            st.session_state.voice_ui = False
+                            st.rerun()
+                else:
+                    st.warning("Please record something first.")
+        with btn_col2:
+            if st.button("❌ Close", use_container_width=True):
+                st.session_state.voice_ui = False
+                st.rerun()
+                
+    st.stop() # Stop rendering normal chat while in voice UI
 
 # ============ SIDEBAR ============
 with st.sidebar:
@@ -574,20 +641,10 @@ with st.sidebar:
         
     st.divider()
     
-    # 🎤 Voice Mode
-    st.markdown("**🎤 Voice Mode**")
-    audio_value = st.audio_input("Record your voice", label_visibility="collapsed", key=f"audio_{st.session_state.get('audio_key', 0)}")
-    
-    audio_to_process = None
-    if audio_value is not None:
-        col1, col2 = st.columns(2)
-        with col1:
-            if st.button("✅ Send", use_container_width=True, type="primary"):
-                audio_to_process = audio_value
-        with col2:
-            if st.button("❌ Cancel", use_container_width=True):
-                st.session_state.audio_key = st.session_state.get('audio_key', 0) + 1
-                st.rerun()
+    # 🎤 New Voice Mode Button
+    if st.button("🎤 Start Voice Chat", use_container_width=True):
+        st.session_state.voice_ui = True
+        st.rerun()
                 
     # 😊 Emoji Picker
     with st.popover("😊 Emoji", use_container_width=True):
@@ -678,7 +735,7 @@ if (not st.session_state.is_premium) and (st.session_state.msg_count >= DAILY_LI
             elif unlock_input != "":
                 st.error("❌ ভুল আনলক কোড!")
 else:
-    # Text Input
+    # Text Input Only (Voice is handled via Sidebar Button)
     chat_data = st.chat_input("Type your message here...", accept_file=True, file_type=["pdf", "txt", "csv"])
     
     if chat_data:
@@ -691,18 +748,8 @@ else:
             uploaded_file = chat_data.files[0]
             file_context = extract_text_from_file(uploaded_file)
             st.toast(f"📎 File '{uploaded_file.name}' attached!")
-            
-    elif audio_to_process is not None:
-        audio_bytes = audio_to_process.getvalue()
-        audio_hash = hash(audio_bytes)
-        if st.session_state.get('last_audio_hash') != audio_hash:
-            st.session_state.last_audio_hash = audio_hash
-            with st.spinner("🎤 আপনার কথা শোনা হচ্ছে..."):
-                user_message = transcribe_audio(audio_to_process)
-            if user_message:
-                st.session_state.audio_key = st.session_state.get('audio_key', 0) + 1 
 
-# ============ HANDLE INPUT & GENERATE REPLY ============
+# ============ HANDLE TEXT INPUT (No Auto-Speak) ============
 if user_message:
     if not st.session_state.is_premium:
         st.session_state.msg_count += 1
@@ -719,7 +766,7 @@ if user_message:
             reply = ask_llm(user_message, history, file_context)
         st.markdown(reply)
     
-    speak_text(reply)
+    # No speak_text here (Only speak in Voice UI)
         
     add_msg(st.session_state.chat_id, "bee", reply)
     st.rerun()
