@@ -1,4 +1,4 @@
-"""Bee - Ultimate AI Assistant (Voice in Sidebar, Fully Optimized UI)"""
+"""Bee - Ultimate AI Assistant (Voice in Sidebar, Bug Fixed)"""
 
 import streamlit as st
 import json
@@ -37,6 +37,8 @@ if "logged_in" not in st.session_state: st.session_state.logged_in = True
 if "username" not in st.session_state: st.session_state.username = "Guest"
 if "theme" not in st.session_state: st.session_state.theme = "dark"
 if "chat_id" not in st.session_state: st.session_state.chat_id = None
+# অডিও লুপ বন্ধ করার জন্য নতুন ভেরিয়েবল
+if "last_audio_hash" not in st.session_state: st.session_state.last_audio_hash = None
 
 # ============ INTRO ANIMATION ============
 if "intro_done" not in st.session_state: st.session_state.intro_done = False
@@ -208,33 +210,22 @@ else:
 
 css = """
 <style>
-    /* Force ALL Backgrounds */
-    .stApp, [data-testid="stAppViewContainer"], [data-testid="stHeader"], [data-testid="stBottom"] { 
-        background: BG_COLOR !important; 
-    }
+    .stApp, [data-testid="stAppViewContainer"], [data-testid="stHeader"], [data-testid="stBottom"] { background: BG_COLOR !important; }
     [data-testid="stSidebar"] { background: SIDEBAR_BG !important; }
     
-    /* Hide Manage App Button completely */
+    /* Hide Manage App Button */
     [data-testid="stStatusWidget"] { display: none !important; }
     footer { visibility: hidden; } #MainMenu { visibility: hidden; }
 
-    /* Force Text Colors */
     .main p, .main span, .main label, .main h1, .main h2, .main h3, .main div, 
-    [data-testid="stSidebar"] p, [data-testid="stSidebar"] span, [data-testid="stSidebar"] label { 
-        color: TXT_COLOR !important; 
-    }
+    [data-testid="stSidebar"] p, [data-testid="stSidebar"] span, [data-testid="stSidebar"] label { color: TXT_COLOR !important; }
 
-    /* Force Input Box (Name) */
     [data-testid="stTextInput"] input {
-        background: BG_COLOR !important;
-        color: TXT_COLOR !important;
-        border: 1px solid BORDER_COL !important;
-        border-radius: 8px !important;
+        background: BG_COLOR !important; color: TXT_COLOR !important;
+        border: 1px solid BORDER_COL !important; border-radius: 8px !important;
     }
 
     .main .block-container { padding-top: 1.5rem; max-width: 900px; padding-bottom: 150px !important; }
-    
-    /* Header Gradient */
     .header { background: linear-gradient(135deg, #f59e0b 0%, #ef4444 100%) !important; padding: 1.4rem 1.6rem; border-radius: 14px; margin-bottom: 1.2rem; display: flex; align-items: center; overflow: hidden; }
     .header h1 { margin: 0; font-size: 1.8rem; color: #ffffff !important; }
     .header p { margin: 0.3rem 0 0; opacity: 0.95; font-size: 0.95rem; color: #ffffff !important; }
@@ -242,19 +233,14 @@ css = """
     @keyframes float { 0% { transform: translateY(0px); filter: drop-shadow(0px 10px 15px rgba(0,0,0,0.8)); } 50% { transform: translateY(-8px); filter: drop-shadow(0px 20px 25px rgba(0,0,0,1)); } 100% { transform: translateY(0px); filter: drop-shadow(0px 10px 15px rgba(0,0,0,0.8)); } }
     .logo-3d { animation: float 4s ease-in-out infinite; border-radius: 50%; mix-blend-mode: screen; max-height: 80px; object-fit: contain; }
 
-    /* Chat Messages */
     [data-testid="stChatMessage"] { background: transparent !important; }
     [data-testid="stChatMessage"] p, [data-testid="stChatMessage"] span { color: TXT_COLOR !important; }
 
-    /* Sidebar Buttons */
     .stButton > button {
-        background: BTN_BG !important;
-        color: BTN_TXT !important;
-        border: 1px solid BORDER_COL !important;
+        background: BTN_BG !important; color: BTN_TXT !important; border: 1px solid BORDER_COL !important;
     }
     .stButton > button p, .stButton > button div { color: BTN_TXT !important; }
 
-    /* Glowing Orange Chat Input */
     @keyframes glow {
         0% { box-shadow: 0 0 5px rgba(249, 115, 22, 0.3); border-color: rgba(249, 115, 22, 0.3) !important; }
         50% { box-shadow: 0 0 15px rgba(249, 115, 22, 0.8); border-color: rgba(249, 115, 22, 0.8) !important; }
@@ -264,32 +250,22 @@ css = """
     [data-testid="stChatInput"] {
         position: fixed !important; bottom: 20px !important; left: 21rem !important; right: 2rem !important;
         z-index: 999 !important; max-width: 900px !important;
-        background: CHAT_INPUT_BG !important; 
-        border: 2px solid CHAT_INPUT_BORDER !important; 
-        border-radius: 25px !important;
-        animation: glow 3s infinite !important;
-        padding: 5px 10px !important;
+        background: CHAT_INPUT_BG !important; border: 2px solid CHAT_INPUT_BORDER !important; 
+        border-radius: 25px !important; animation: glow 3s infinite !important; padding: 5px 10px !important;
     }
     
     [data-testid="stChatInput"] textarea { 
-        background: transparent !important; 
-        color: TXT_COLOR !important;
-        padding-right: 80px !important; 
+        background: transparent !important; color: TXT_COLOR !important; padding-right: 80px !important; 
     }
 
-    /* Orange Send Button */
     [data-testid="stChatInput"] button {
-        background-color: #f97316 !important; 
-        color: white !important;
-        border-radius: 50% !important;
-        border: none !important;
+        background-color: #f97316 !important; color: white !important; border-radius: 50% !important; border: none !important;
     }
 
-    /* Mobile & Tablet Optimization */
+    /* Mobile Optimization */
     @media (max-width: 1024px) {
         [data-testid="stChatInput"] { left: 2rem !important; right: 2rem !important; }
     }
-    
     @media (max-width: 768px) {
         .main .block-container { padding-bottom: 120px !important; }
         [data-testid="stChatInput"] { left: 1rem !important; right: 1rem !important; bottom: 10px !important; width: calc(100% - 2rem) !important; }
@@ -310,7 +286,7 @@ with st.sidebar:
         new_chat(); st.rerun()
     st.divider()
     
-    # 🔥 VOICE MODE (Moved to Sidebar)
+    # Voice Mode
     st.markdown("**🎤 Voice Mode**")
     audio_value = st.audio_input("Record your voice", label_visibility="collapsed")
     
@@ -382,11 +358,19 @@ if chat_data:
         uploaded_file = chat_data.files[0]
         file_context = extract_text_from_file(uploaded_file)
         st.toast(f"📎 File '{uploaded_file.name}' attached!")
+        
+# 🔥 FIX: Prevent Infinite Loop for Audio Input
 elif audio_value is not None:
-    with st.spinner("🎤 আপনার কথা শোনা হচ্ছে..."):
-        user_message = transcribe_audio(audio_value)
-    if user_message:
-        st.toast(f"🗣️ আপনি বলেছেন: {user_message}")
+    audio_bytes = audio_value.getvalue()
+    audio_hash = hash(audio_bytes)
+    
+    # অডিওটি যদি আগে প্রসেস না হয়ে থাকে, তবেই প্রসেস করবে
+    if st.session_state.last_audio_hash != audio_hash:
+        st.session_state.last_audio_hash = audio_hash
+        with st.spinner("🎤 আপনার কথা শোনা হচ্ছে..."):
+            user_message = transcribe_audio(audio_value)
+        if user_message:
+            st.toast(f"🗣️ আপনি বলেছেন: {user_message}")
 
 # ============ HANDLE INPUT ============
 if user_message:
