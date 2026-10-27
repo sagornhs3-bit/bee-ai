@@ -1,4 +1,4 @@
-"""Bee - Ultimate AI Assistant (Fixed Model & Right-Aligned User Messages)"""
+"""Bee - Ultimate AI Assistant (Fixed Right-Align & Image Gen)"""
 
 import streamlit as st
 import json
@@ -306,19 +306,26 @@ def ask_llm(prompt, chat_history, file_context=""):
     client = get_groq()
     if not client: return "API Key নেই।"
 
-    image_keywords = ["ছবি তৈরি", "ছবি বানাও", "draw", "generate image", "picture of", "paint"]
+    # 🔥 ইমেজ জেনারেশন কীওয়ার্ড আপডেট করা হয়েছে (pic, image, ছবি যুক্ত করা হয়েছে)
+    image_keywords = ["ছবি তৈরি", "ছবি বানাও", "draw", "generate image", "picture of", "paint", "pic", "image", "photo", "আঁকো", "আঁক"]
+    
+    # চেক করা হচ্ছে ইউজার ইমেজ চাইছে কি না
     if any(kw in prompt.lower() for kw in image_keywords):
         with st.spinner("🎨 ছবি তৈরি করা হচ্ছে..."):
             clean_prompt = prompt
+            # কীওয়ার্ডগুলো বাদ দেওয়া হচ্ছে যাতে শুধু মূল বিষয়বস্তু থাকে
             for kw in image_keywords:
                 clean_prompt = clean_prompt.replace(kw, "")
             clean_prompt = clean_prompt.strip()
-            if not clean_prompt: clean_prompt = "beautiful scenery"
+            
+            # যদি প্রম্পট খুব ছোট হয় (যেমন: "akta pic just"), তবে একটি ডিফল্ট সুন্দর ছবি তৈরি হবে
+            if len(clean_prompt) < 3: 
+                clean_prompt = "beautiful aesthetic scenery, highly detailed"
             
             encoded_prompt = urllib.parse.quote(clean_prompt)
             img_url = f"https://image.pollinations.ai/prompt/{encoded_prompt}?width=1024&height=1024&nologo=true"
             
-            return f"আপনার অনুরোধ অনুযায়ী ছবিটি তৈরি করেছি:\n\n![Generated Image]({img_url})\n\n_ছবিটি ডাউনলোড করতে ছবির ওপর রাইট ক্লিক করুন।_"
+            return f"আপনার অনুরোধ অনুযায়ী ছবিটি তৈরি করেছি:\n\n![Generated Image]({img_url})\n\n_ছবিটি ডাউনলোড করতে ছবির ওপর রাইট ক্লিক করুন।_"
 
     web_context = ""
     if any(w in prompt.lower() for w in ["search", "who is", "news", "খবর", "current", "today", "weather", "time"]):
@@ -345,7 +352,6 @@ def ask_llm(prompt, chat_history, file_context=""):
     messages.append({"role": "user", "content": prompt})
 
     try:
-        # 🔥 Groq-এর সক্রিয় এবং শক্তিশালী মডেল
         r = client.chat.completions.create(model="openai/gpt-oss-120b", messages=messages, temperature=0.5)
         return r.choices[0].message.content.strip()
     except Exception as e:
@@ -368,7 +374,6 @@ if dark:
     radio_bg = "#262730"
     radio_border = "#ffffff"
 else:
-    # ☀️ Dreamy Pastel Light Theme
     bg_base = "#ffffff"
     bg_gradient = "linear-gradient(135deg, #FFFDFB 0%, #FFF0F5 50%, #F0F8FF 100%)"
     txt = "#1a1a1a" 
@@ -384,12 +389,10 @@ else:
 
 css = f"""
 <style>
-    /* 🌟 Premium Background */
     .stApp, [data-testid="stAppViewContainer"], [data-testid="stHeader"], [data-testid="stBottom"], [data-testid="stBottom"] > div {{
         background: {bg_gradient} !important;
     }}
 
-    /* 🌟 Watermark */
     [data-testid="stAppViewContainer"]::before {{
         content: "";
         position: fixed; top: 50%; left: 50%;
@@ -402,10 +405,8 @@ css = f"""
 
     .main .block-container {{ padding-top: 1.5rem; max-width: 900px; padding-bottom: 150px !important; z-index: 1; }}
     
-    /* Sidebar */
     [data-testid="stSidebar"] {{ background: {sidebar_bg} !important; backdrop-filter: blur(15px) !important; border-right: 1px solid {border_col} !important; }}
     
-    /* Text Colors */
     .main p, .main span, .main label, .main h1, .main h2, .main h3, .main h4, .main h5, .main h6, .main li, .main td, .main th,
     [data-testid="stChatMessage"] *, [data-testid="stMarkdownContainer"] *,
     [data-testid="stSidebar"] p, [data-testid="stSidebar"] span, [data-testid="stSidebar"] label {{ color: {txt} !important; }}
@@ -419,7 +420,7 @@ css = f"""
         display: flex !important; flex-direction: row !important; align-items: flex-start !important;
     }}
 
-    /* 🔥 User Message Right Align */
+    /* 🔥 User Message Right Align (Messenger Style) */
     [data-testid="stChatMessage"]:has([data-testid="chatAvatarIcon-user"]) {{
         flex-direction: row-reverse !important;
         background: rgba(249, 115, 22, 0.1) !important; 
@@ -429,12 +430,10 @@ css = f"""
         text-align: right !important;
     }}
     
-    /* Header */
     .header {{ background: linear-gradient(135deg, #f59e0b 0%, #ef4444 100%) !important; padding: 1.4rem 1.6rem; border-radius: 14px; margin-bottom: 1.2rem; display: flex; align-items: center; overflow: hidden; box-shadow: 0 8px 20px rgba(239, 68, 68, 0.2); }}
     .header h1 {{ margin: 0; font-size: 1.8rem; color: #ffffff !important; }}
     .header p {{ margin: 0.3rem 0 0; opacity: 0.95; font-size: 0.95rem; color: #ffffff !important; }}
     
-    /* 🐝 Animated Logo */
     @keyframes talk {{
         0% {{ transform: translateY(0px) scale(1); filter: drop-shadow(0 0 10px rgba(249, 115, 22, 0.3)); }}
         50% {{ transform: translateY(-8px) scale(1.05); filter: drop-shadow(0 0 25px rgba(249, 115, 22, 0.8)); }}
@@ -442,42 +441,34 @@ css = f"""
     }}
     .logo-3d {{ animation: talk 3s ease-in-out infinite; border-radius: 50%; mix-blend-mode: multiply; max-height: 80px; object-fit: contain; }}
     
-    /* Buttons */
     .stButton > button {{ background-color: {btn_bg} !important; color: {btn_txt} !important; border: 1px solid {border_col} !important; border-radius: 10px !important; box-shadow: 0 2px 5px rgba(0,0,0,0.02) !important; transition: all 0.2s !important; }}
     .stButton > button:hover {{ border-color: #f97316 !important; color: #f97316 !important; }}
     .stButton > button p, .stButton > div {{ color: {btn_txt} !important; }}
 
-    /* 🔥 Radio Button Fix */
     [data-testid="stRadio"] div[role="radiogroup"] > label > div:first-child {{ background-color: {radio_bg} !important; border: 2px solid {radio_border} !important; }}
     [data-testid="stRadio"] div[role="radiogroup"] > label > div:first-child > div {{ background-color: #f97316 !important; transform: scale(1.2) !important; }}
 
-    /* 🔥 Voice Input Fix */
     [data-testid="stAudioInput"] {{ background-color: #ffffff !important; border-radius: 12px !important; border: 2px solid #f97316 !important; box-shadow: 0 4px 15px rgba(249, 115, 22, 0.15) !important; padding: 10px !important; }}
     [data-testid="stAudioInput"] * {{ color: #1a1a1a !important; fill: #f97316 !important; }}
     [data-testid="stAudioInput"] button {{ background-color: #f97316 !important; color: white !important; border: none !important; }}
     [data-testid="stAudioInput"] button svg {{ fill: white !important; color: white !important; }}
 
-    /* Input Box */
     [data-testid="stChatInput"] {{ position: fixed !important; bottom: 20px !important; left: 21rem !important; right: 2rem !important; z-index: 999 !important; max-width: 900px !important; background: {chat_input_bg} !important; backdrop-filter: blur(15px) !important; border: 2px solid #f97316 !important; border-radius: 25px !important; padding: 5px 10px !important; box-shadow: 0 4px 20px rgba(0,0,0,0.08) !important; }}
     [data-testid="stChatInput"] > div {{ background-color: transparent !important; }}
     [data-testid="stChatInput"] textarea {{ background-color: transparent !important; color: {txt} !important; padding-right: 80px !important; }}
     [data-testid="stChatInput"] button {{ background-color: #f97316 !important; color: white !important; border-radius: 50% !important; }}
 
-    /* Hide default Streamlit UI */
     [data-testid="stBottom"] > div {{ background: transparent !important; }}
     #MainMenu {{visibility: hidden;}} footer {{visibility: hidden;}}
     [data-testid="stHeader"] {{ background: transparent !important; z-index: 999; }}
     .stDeployButton {{display: none !important;}}
     
-    /* Sidebar Toggle Arrow */
     [data-testid="collapsedControl"] {{ display: flex !important; visibility: visible !important; opacity: 1 !important; position: fixed !important; top: 15px !important; left: 15px !important; z-index: 99999 !important; background-color: #f97316 !important; color: white !important; border-radius: 50% !important; padding: 8px !important; box-shadow: 0 4px 10px rgba(0,0,0,0.2) !important; }}
     [data-testid="collapsedControl"] svg {{ fill: white !important; color: white !important; }}
     
-    /* Emoji Popover */
     [data-testid="stPopover"] > button {{ background-color: {btn_bg} !important; color: {btn_txt} !important; border: 1px solid {border_col} !important; box-shadow: 0 2px 5px rgba(0,0,0,0.02) !important; }}
     [data-testid="stPopoverBody"] {{ background-color: #ffffff !important; border: 1px solid {border_col} !important; box-shadow: 0 10px 30px rgba(0,0,0,0.1) !important; }}
 
-    /* 🎤 ChatGPT-Style Voice UI Card */
     .voice-card {{ background: {glass_bg}; backdrop-filter: blur(25px); border-radius: 30px; padding: 50px 20px; text-align: center; box-shadow: 0 15px 50px rgba(0,0,0,0.1); border: 2px solid rgba(249, 115, 22, 0.3); margin-top: 5vh; display: flex; flex-direction: column; align-items: center; justify-content: center; }}
 </style>
 """
@@ -609,7 +600,9 @@ if not cur["messages"]:
         st.markdown(f"Hi **{st.session_state.username}**! I'm {NAME} — your personal AI. How can I help you today? 😊")
 else:
     for m in cur["messages"]:
-        with st.chat_message(m["role"]): 
+        # 🔥 এখানে avatar সেট করা হয়েছে যাতে CSS ঠিকমতো কাজ করে
+        avatar_icon = "👤" if m["role"] == "user" else "https://raw.githubusercontent.com/sagornhs3-bit/bee-ai/main/bumblebee.png"
+        with st.chat_message(m["role"], avatar=avatar_icon): 
             st.markdown(m["content"])
 
 # ============ INPUT AREA ============
@@ -651,7 +644,8 @@ if user_message:
         supabase.table("users").update({"msg_count": st.session_state.msg_count}).eq("username", st.session_state.username).execute()
         
     add_msg(st.session_state.chat_id, "user", user_message)
-    with st.chat_message("user"): 
+    # 🔥 avatar যোগ করা হলো
+    with st.chat_message("user", avatar="👤"): 
         st.markdown(user_message)
 
     with st.chat_message("assistant", avatar="https://raw.githubusercontent.com/sagornhs3-bit/bee-ai/main/bumblebee.png"):
