@@ -1,4 +1,4 @@
-"""Bee - Ultimate AI Assistant (Permanent Login + Supabase + Location + Multilingual)"""
+"""Bee - Ultimate AI Assistant (Glass UI + Image Gen + Voice + Web Search)"""
 
 import streamlit as st
 import json
@@ -8,6 +8,7 @@ import sys
 import time
 import hashlib
 import requests
+import urllib.parse
 from pathlib import Path
 import streamlit.components.v1 as components
 import PyPDF2
@@ -28,7 +29,7 @@ CONFIG_FILE = BEE_DIR / "config.json"
 st.set_page_config(page_title="Bee AI", page_icon="https://raw.githubusercontent.com/saghnhs3-bit/bee-ai/main/bumblebee.png", layout="wide")
 
 # ============================================================
-# ☁️ SUPABASE CONFIGURATION & COOKIE MANAGER
+# ☁️ SUPABASE & COOKIE CONFIGURATION
 # ============================================================
 SUPABASE_URL = "https://cbhqkxrldihvohplusyw.supabase.co"
 SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNiaHFreHJsZGlodm9ocGx1c3l3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTMxMDM3OTUsImV4cCI6MjEwODY3OTc5NX0.Z_F2stGOybDL0liwsiYQAzldWist1sPTy7RTZSz38iE"
@@ -44,7 +45,7 @@ def hash_password(password):
     return hashlib.sha256(password.encode()).hexdigest()
 
 # ============================================================
-# 🎬 INTRO ANIMATION (Logo First)
+# 🎬 INTRO ANIMATION
 # ============================================================
 if "intro_done" not in st.session_state: 
     st.session_state.intro_done = False
@@ -54,16 +55,9 @@ if not st.session_state.intro_done:
     <style>
         #MainMenu {visibility: hidden;} header {visibility: hidden;} footer {visibility: hidden;}
         [data-testid="stSidebar"] {display: none;} .block-container {padding: 0 !important;}
-        .splash-screen {
-            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
-            background-color: #0e1117; display: flex; flex-direction: column;
-            justify-content: center; align-items: center; z-index: 99999;
-        }
+        .splash-screen { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background-color: #0e1117; display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 99999; }
         .splash-logo { width: 150px; animation: zoomPulse 2s infinite alternate; mix-blend-mode: screen; }
-        @keyframes zoomPulse { 
-            0% { transform: scale(0.9); filter: drop-shadow(0 0 10px #f59e0b); } 
-            100% { transform: scale(1.1); filter: drop-shadow(0 0 30px #ef4444); } 
-        }
+        @keyframes zoomPulse { 0% { transform: scale(0.9); filter: drop-shadow(0 0 10px #f59e0b); } 100% { transform: scale(1.1); filter: drop-shadow(0 0 30px #ef4444); } }
         .splash-text { color: white; margin-top: 20px; font-family: sans-serif; letter-spacing: 2px; }
     </style>
     <div class="splash-screen">
@@ -76,18 +70,17 @@ if not st.session_state.intro_done:
     st.rerun()
 
 # ============================================================
-# 🔐 AUTO-LOGIN VIA COOKIE & INITIALIZATION
+# 🔐 AUTO-LOGIN & INITIALIZATION
 # ============================================================
 if "logged_in" not in st.session_state: st.session_state.logged_in = False
 if "username" not in st.session_state: st.session_state.username = ""
 if "is_premium" not in st.session_state: st.session_state.is_premium = False
 if "msg_count" not in st.session_state: st.session_state.msg_count = 0
 if "chat_id" not in st.session_state: st.session_state.chat_id = None
+if "emoji_append" not in st.session_state: st.session_state.emoji_append = ""
 
-# 🔥 কুকি চেক করে অটো লগইন (স্মুথ স্পিনারসহ)
 if not st.session_state.logged_in:
     saved_user = cookie_manager.get(cookie="bee_user")
-    
     if saved_user:
         with st.spinner("🔄 অটো লগইন হচ্ছে..."):
             try:
@@ -97,7 +90,7 @@ if not st.session_state.logged_in:
                     st.session_state.logged_in = True
                     st.session_state.username = user["username"]
                     st.session_state.is_premium = user["is_premium"]
-                    st.session_state.chat_id = None # নতুন চ্যাট শুরু হবে
+                    st.session_state.chat_id = None 
                     
                     today = datetime.date.today().strftime("%Y-%m-%d")
                     if user["last_date"] != today:
@@ -107,26 +100,20 @@ if not st.session_state.logged_in:
                         st.session_state.msg_count = user["msg_count"]
                     st.rerun()
                 else:
-                    # ডেটাবেসে ইউজার না থাকলে কুকি ডিলিট
                     cookie_manager.delete("bee_user")
             except Exception:
                 pass
 
 # ============================================================
-# 🔐 LOGIN & SIGN UP SYSTEM
+# 🔐 LOGIN & SIGN UP
 # ============================================================
 if not st.session_state.logged_in:
     st.markdown("""
     <style>
         .login-container .block-container { max-width: 450px !important; padding-top: 5vh !important; }
-        .login-container .stButton > button {
-            background-color: #f97316 !important; color: white !important;
-            border: none !important; border-radius: 8px !important; font-weight: bold !important;
-        }
+        .login-container .stButton > button { background-color: #f97316 !important; color: white !important; border: none !important; border-radius: 8px !important; font-weight: bold !important; }
         .login-container .stTextInput > div > div > input { border-radius: 8px !important; }
-        @media (max-width: 768px) {
-            .login-container .block-container { padding-top: 2vh !important; padding-left: 15px !important; padding-right: 15px !important; }
-        }
+        @media (max-width: 768px) { .login-container .block-container { padding-top: 2vh !important; padding-left: 15px !important; padding-right: 15px !important; } }
     </style>
     """, unsafe_allow_html=True)
 
@@ -144,16 +131,14 @@ if not st.session_state.logged_in:
             if login_user and login_pass:
                 hashed_pw = hash_password(login_pass)
                 res = supabase.table("users").select("*").or_(f"username.eq.{login_user},email.eq.{login_user}").execute()
-                
                 if res.data:
                     user = res.data[0]
                     if user["password"] == hashed_pw:
                         st.session_state.logged_in = True
                         st.session_state.username = user["username"]
                         st.session_state.is_premium = user["is_premium"]
-                        st.session_state.chat_id = None # নতুন চ্যাট ফোর্স করা হলো
+                        st.session_state.chat_id = None 
                         
-                        # 🔥 কুকি সেভ করা হলো ১০০ বছর (৩৬,৫০০ দিন) এর জন্য
                         expires = datetime.datetime.now() + datetime.timedelta(days=36500)
                         cookie_manager.set("bee_user", user["username"], expires_at=expires)
                         
@@ -186,10 +171,7 @@ if not st.session_state.logged_in:
                 else:
                     hashed_pw = hash_password(new_pass)
                     today = datetime.date.today().strftime("%Y-%m-%d")
-                    data = {
-                        "username": new_user, "email": new_email, "password": hashed_pw,
-                        "is_premium": False, "msg_count": 0, "last_date": today
-                    }
+                    data = {"username": new_user, "email": new_email, "password": hashed_pw, "is_premium": False, "msg_count": 0, "last_date": today}
                     try:
                         supabase.table("users").insert(data).execute()
                         st.success("✅ Account created successfully! Please login.")
@@ -202,7 +184,7 @@ if not st.session_state.logged_in:
     st.stop()
 
 # ============================================================
-# 🔓 MAIN APP
+# 🔓 MAIN APP CONFIGURATIONS
 # ============================================================
 def load_cfg():
     try:
@@ -215,25 +197,6 @@ def load_cfg():
 CONFIG = load_cfg()
 NAME = CONFIG.get("assistant_name", "Bee")
 GROQ_KEY = CONFIG.get("groq_api_key", "")
-
-AFFILIATE_LINKS = {
-    "মোবাইল": "https://your-involve-asia-link.com", "mobile": "https://your-involve-asia-link.com",
-    "phone": "https://your-involve-asia-link.com", "ফোন": "https://your-involve-asia-link.com",
-    "ল্যাপটপ": "https://your-involve-asia-link.com", "laptop": "https://your-involve-asia-link.com",
-    "হেডফোন": "https://your-involve-asia-link.com", "headphone": "https://your-involve-asia-link.com",
-    "earbuds": "https://your-involve-asia-link.com", "ঘড়ি": "https://your-involve-asia-link.com",
-    "watch": "https://your-involve-asia-link.com", "বই": "https://your-involve-asia-link.com",
-    "book": "https://your-involve-asia-link.com",
-}
-
-def inject_affiliate_links(user_msg, ai_reply):
-    if not isinstance(user_msg, str): return ai_reply
-    user_msg_lower = user_msg.lower()
-    for keyword, link in AFFILIATE_LINKS.items():
-        if keyword in user_msg_lower and "your-involve-asia-link.com" not in link:
-            ai_reply += f"\n\n---\n🛍️ **আপনার জন্য সাজেশন:** এই ধরনের প্রোডাক্ট Daraz-এ কিনতে পারেন — [এখানে ক্লিক করুন]({link})\n*(এই লিংক থেকে কিনলে Bee AI সামান্য কমিশন পায়, আপনার কোনো বাড়তি খরচ নেই!)*"
-            break
-    return ai_reply
 
 DAILY_LIMIT = 20 
 BKASH_NUMBER = "01840506838"
@@ -258,11 +221,9 @@ def load_chats():
 
 def new_chat():
     data = load_chats()
-    # যদি সবচেয়ে নতুন চ্যাটটি ফাঁকা থাকে, তবে সেটাই ব্যবহার করবে
     if data["chats"] and data["chats"][0]["title"] == "New Chat" and len(data["chats"][0]["messages"]) == 0:
         st.session_state.chat_id = data["chats"][0]["id"]
         return
-    # নাহলে নতুন চ্যাট তৈরি করবে
     cid = str(uuid.uuid4())
     supabase.table("chats").insert({"id": cid, "username": st.session_state.username, "title": "New Chat", "messages": []}).execute()
     st.session_state.chat_id = cid
@@ -295,29 +256,15 @@ def get_groq():
         except Exception: _groq = None
     return _groq
 
-# ============ LOCATION & TIME DETECTION ============
-@st.cache_data(ttl=3600)
-def get_user_location():
-    try:
-        res = requests.get("https://ipapi.co/json/", timeout=3).json()
-        city = res.get("city", "Unknown")
-        country = res.get("country_name", "Unknown")
-        return f"{city}, {country}"
-    except:
-        return "Unknown Location"
-
-# ============ HELPERS ============
+# ============ HELPERS (Voice, Search, Files) ============
 def speak_text(text):
-    st.toast("🤖 Transformer Bee কথা বলছে...")
     js_text = json.dumps(text)
     js_code = f"""
     <script>
         var msg = new SpeechSynthesisUtterance({js_text});
         var isBengali = /[\u0980-\u09FF]/.test({js_text});
         msg.lang = isBengali ? 'bn-BD' : 'en-US'; 
-        msg.pitch = 0.1;    
-        msg.rate = 0.85;    
-        msg.volume = 1.0;
+        msg.pitch = 0.1; msg.rate = 0.85; msg.volume = 1.0;
         window.speechSynthesis.cancel();
         window.speechSynthesis.speak(msg);
     </script>
@@ -338,7 +285,7 @@ def transcribe_audio(audio_file):
 def search_web(query):
     try:
         from duckduckgo_search import DDGS
-        results = DDGS().text(query, max_results=4)
+        results = DDGS().text(query, max_results=3)
         if not results: return "No search results."
         return "\n".join([f"{res['title']}: {res['body']}" for res in results])
     except Exception as e: return f"Search error: {e}"
@@ -353,31 +300,44 @@ def extract_text_from_file(uploaded_file):
     except Exception: return ""
     return ""
 
-# ============ AI LOGIC ============
+# ============ AI LOGIC (LLM + Image Gen) ============
 def ask_llm(prompt, chat_history, file_context=""):
-    web_context = ""
-    if any(w in prompt.lower() for w in ["search", "who is", "news", "খবর", "কে", "কি", "current", "today", "weather", "time"]):
-        with st.spinner("🌐 ইন্টারনেটে খুঁজছি..."):
-            web_context = search_web(prompt.lower().replace("search", "").strip())
+    client = get_groq()
+    if not client: return "API Key নেই।"
 
-    location = get_user_location()
-    today_str = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
+    # 🔥 Image Generation Logic (No API key needed, using Pollinations AI)
+    image_keywords = ["ছবি তৈরি", "ছবি বানাও", "draw", "generate image", "picture of", "paint"]
+    if any(kw in prompt.lower() for kw in image_keywords):
+        with st.spinner("🎨 ছবি তৈরি করা হচ্ছে..."):
+            # Extract prompt for image gen
+            clean_prompt = prompt
+            for kw in image_keywords:
+                clean_prompt = clean_prompt.replace(kw, "")
+            clean_prompt = clean_prompt.strip()
+            if not clean_prompt: clean_prompt = "beautiful scenery"
+            
+            encoded_prompt = urllib.parse.quote(clean_prompt)
+            img_url = f"https://image.pollinations.ai/prompt/{encoded_prompt}?width=1024&height=1024&nologo=true"
+            
+            return f"আপনার অনুরোধ অনুযায়ী ছবিটি তৈরি করেছি:\n\n![Generated Image]({img_url})\n\n_ছবিটি ডাউনলোড করতে ছবির ওপর রাইট ক্লিক করুন।_"
+
+    # Web Search
+    web_context = ""
+    if any(w in prompt.lower() for w in ["search", "who is", "news", "খবর", "current", "today", "weather", "time"]):
+        with st.spinner("🌐 ইন্টারনেটে খুঁজছি..."):
+            web_context = search_web(prompt)
 
     sys_prompt = f"""You are {NAME}, a helpful AI assistant.
 {file_context}
 
-## Context Information:
-- Current Date & Time: {today_str}
-- User's Approximate Location: {location}
-- Web Context (if any): {web_context}
+## Web Context:
+{web_context}
 
-## Important Rules:
-1. You MUST reply in the EXACT same language the user uses. If the user speaks in Bengali, you MUST reply in Bengali.
-2. NEVER use markdown headers. Use plain text or bullet points.
-3. If the user asks where they are or what time it is, use the Context Information provided above.
+## Rules:
+1. Reply in the EXACT same language the user uses.
+2. NEVER use markdown headers. Use bullet points.
+3. Be highly intelligent and helpful.
 """
-    client = get_groq()
-    if not client: return "API Key নেই।"
     
     messages = [{"role": "system", "content": sys_prompt}]
     for msg in chat_history:
@@ -387,52 +347,93 @@ def ask_llm(prompt, chat_history, file_context=""):
     messages.append({"role": "user", "content": prompt})
 
     try:
-        # Groq-এর স্ট্যাবল মডেল
-        r = client.chat.completions.create(model="llama3-70b-8192", messages=messages, temperature=0.4)
+        r = client.chat.completions.create(model="llama-3.3-70b-versatile", messages=messages, temperature=0.5)
         return r.choices[0].message.content.strip()
     except Exception as e:
         return f"Error: {e}"
 
-# ============ THEME SETUP ============
+# ============================================================
+# 🎨 PREMIUM CSS (Glassmorphism + Watermark + Animated Logo)
+# ============================================================
 if dark:
-    bg = "#0e1117"; txt = "#fafafa"; sidebar_bg = "#0e1117"; chat_input_bg = "#262730" 
-    btn_bg = "#262730"; btn_txt = "#fafafa"; border_col = "#3a3d45"
+    bg = "#0e1117"; txt = "#fafafa"; sidebar_bg = "#0e1117"; chat_input_bg = "rgba(38, 39, 48, 0.8)" 
+    btn_bg = "#262730"; btn_txt = "#fafafa"; border_col = "rgba(255,255,255,0.1)"
+    glass_bg = "rgba(255, 255, 255, 0.05)"
 else:
-    bg = "#ffffff"; txt = "#1a1a1a"; sidebar_bg = "#f8f9fa"; chat_input_bg = "#ffffff" 
-    btn_bg = "#e9ecef"; btn_txt = "#1a1a1a"; border_col = "#ced4da"
+    bg = "#ffffff"; txt = "#1a1a1a"; sidebar_bg = "#f8f9fa"; chat_input_bg = "rgba(255, 255, 255, 0.8)" 
+    btn_bg = "#e9ecef"; btn_txt = "#1a1a1a"; border_col = "rgba(0,0,0,0.1)"
+    glass_bg = "rgba(0, 0, 0, 0.03)"
 
-css = """
+css = f"""
 <style>
+    /* 🌟 Watermark */
+    .main .block-container::before {{
+        content: "";
+        position: fixed;
+        top: 50%; left: 50%;
+        transform: translate(-50%, -50%);
+        width: 500px; height: 500px;
+        background-image: url('https://raw.githubusercontent.com/sagornhs3-bit/bee-ai/main/bumblebee.png');
+        background-size: contain;
+        background-repeat: no-repeat;
+        opacity: 0.03;
+        z-index: 0;
+        pointer-events: none;
+    }}
+
     .stApp, [data-testid="stAppViewContainer"], [data-testid="stHeader"], 
     [data-testid="stBottom"], [data-testid="stBottom"] > div, [data-testid="stBottom"] > div > div,
-    .main, .block-container, [data-testid="stVerticalBlock"] { background-color: BG_COLOR !important; }
-    [data-testid="stSidebar"] { background-color: SIDEBAR_BG !important; }
-    [data-testid="stStatusWidget"] { display: none !important; }
-    footer { visibility: hidden; } #MainMenu { visibility: hidden; }
+    .main, .block-container, [data-testid="stVerticalBlock"] {{ background-color: {bg} !important; z-index: 1; }}
+    [data-testid="stSidebar"] {{ background-color: {sidebar_bg} !important; }}
+    
     .main p, .main span, .main label, .main h1, .main h2, .main h3, .main h4, .main h5, .main h6, .main li, .main td, .main th,
     [data-testid="stChatMessage"] *, [data-testid="stMarkdownContainer"] *,
-    [data-testid="stSidebar"] p, [data-testid="stSidebar"] span, [data-testid="stSidebar"] label { color: TXT_COLOR !important; }
-    .main .block-container { padding-top: 1.5rem; max-width: 900px; padding-bottom: 150px !important; }
-    .header { background: linear-gradient(135deg, #f59e0b 0%, #ef4444 100%) !important; padding: 1.4rem 1.6rem; border-radius: 14px; margin-bottom: 1.2rem; display: flex; align-items: center; overflow: hidden; }
-    .header h1 { margin: 0; font-size: 1.8rem; color: #ffffff !important; }
-    .header p { margin: 0.3rem 0 0; opacity: 0.95; font-size: 0.95rem; color: #ffffff !important; }
-    @keyframes float { 0% { transform: translateY(0px); } 50% { transform: translateY(-8px); } 100% { transform: translateY(0px); } }
-    .logo-3d { animation: float 4s ease-in-out infinite; border-radius: 50%; mix-blend-mode: screen; max-height: 80px; object-fit: contain; }
-    [data-testid="stChatMessage"] { background: transparent !important; }
-    .stButton > button { background-color: BTN_BG !important; color: BTN_TXT !important; border: 1px solid BORDER_COL !important; }
-    .stButton > button p, .stButton > div { color: BTN_TXT !important; }
-    [data-testid="stChatInput"] {
+    [data-testid="stSidebar"] p, [data-testid="stSidebar"] span, [data-testid="stSidebar"] label {{ color: {txt} !important; }}
+
+    .main .block-container {{ padding-top: 1.5rem; max-width: 900px; padding-bottom: 150px !important; }}
+    
+    /* 💎 Glassmorphism Chat Bubbles */
+    [data-testid="stChatMessage"] {{
+        background: {glass_bg} !important;
+        backdrop-filter: blur(10px) !important;
+        -webkit-backdrop-filter: blur(10px) !important;
+        border: 1px solid {border_col} !important;
+        border-radius: 15px !important;
+        padding: 15px !important;
+        margin-bottom: 15px !important;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.1) !important;
+    }}
+    
+    /* Header */
+    .header {{ background: linear-gradient(135deg, #f59e0b 0%, #ef4444 100%) !important; padding: 1.4rem 1.6rem; border-radius: 14px; margin-bottom: 1.2rem; display: flex; align-items: center; overflow: hidden; }}
+    .header h1 {{ margin: 0; font-size: 1.8rem; color: #ffffff !important; }}
+    .header p {{ margin: 0.3rem 0 0; opacity: 0.95; font-size: 0.95rem; color: #ffffff !important; }}
+    
+    /* 🐝 Animated Logo */
+    @keyframes float {{
+        0% {{ transform: translateY(0px) scale(1); filter: drop-shadow(0px 5px 15px rgba(249, 115, 22, 0.3)); }}
+        50% {{ transform: translateY(-5px) scale(1.05); filter: drop-shadow(0px 10px 25px rgba(249, 115, 22, 0.6)); }}
+        100% {{ transform: translateY(0px) scale(1); filter: drop-shadow(0px 5px 15px rgba(249, 115, 22, 0.3)); }}
+    }}
+    .logo-3d {{ animation: float 3s ease-in-out infinite; border-radius: 50%; mix-blend-mode: screen; max-height: 80px; object-fit: contain; }}
+    
+    /* Input Box */
+    [data-testid="stChatInput"] {{
         position: fixed !important; bottom: 20px !important; left: 21rem !important; right: 2rem !important;
         z-index: 999 !important; max-width: 900px !important;
-        background-color: CHAT_INPUT_BG !important; border: 2px solid #f97316 !important; 
+        background: {chat_input_bg} !important; backdrop-filter: blur(15px) !important;
+        border: 2px solid #f97316 !important; 
         border-radius: 25px !important; padding: 5px 10px !important;
-    }
-    [data-testid="stChatInput"] > div { background-color: transparent !important; }
-    [data-testid="stChatInput"] textarea { background-color: transparent !important; color: TXT_COLOR !important; padding-right: 80px !important; }
-    [data-testid="stChatInput"] button { background-color: #f97316 !important; color: white !important; border-radius: 50% !important; }
+    }}
+    [data-testid="stChatInput"] > div {{ background-color: transparent !important; }}
+    [data-testid="stChatInput"] textarea {{ background-color: transparent !important; color: {txt} !important; padding-right: 80px !important; }}
+    [data-testid="stChatInput"] button {{ background-color: #f97316 !important; color: white !important; border-radius: 50% !important; }}
+
+    /* Hide standard Streamlit elements */
+    [data-testid="stStatusWidget"] {{ display: none !important; }}
+    footer {{ visibility: hidden; }} #MainMenu {{ visibility: hidden; }}
 </style>
 """
-css = css.replace("BG_COLOR", bg).replace("TXT_COLOR", txt).replace("SIDEBAR_BG", sidebar_bg).replace("CHAT_INPUT_BG", chat_input_bg).replace("BTN_BG", btn_bg).replace("BTN_TXT", btn_txt).replace("BORDER_COL", border_col)
 st.markdown(css, unsafe_allow_html=True)
 
 # ============ SIDEBAR ============
@@ -441,14 +442,12 @@ with st.sidebar:
     st.caption(f"👤 **{st.session_state.username}**")
     
     if st.button("🚪 Logout", use_container_width=True):
-        # লগআউটের সময় কুকি ডিলিট করা হবে
         cookie_manager.delete("bee_user")
         st.session_state.logged_in = False
         st.session_state.username = ""
         st.rerun()
         
     st.divider()
-    
     if st.button("➕  New Chat", use_container_width=True, type="primary"):
         new_chat(); st.rerun()
     st.divider()
@@ -498,7 +497,7 @@ with st.sidebar:
     if selected_theme != st.session_state.theme_choice:
         st.session_state.theme_choice = selected_theme; st.rerun()
 
-# ============ MAIN ============
+# ============ MAIN CHAT AREA ============
 st.markdown(f"""
 <div class="header">
     <img class="logo-3d" src="https://raw.githubusercontent.com/sagornhs3-bit/bee-ai/main/bumblebee.png" width="80" style="margin-right: 20px;">
@@ -522,27 +521,23 @@ if not cur["messages"]:
 else:
     for m in cur["messages"]:
         avatar = "👤" if m["role"] == "user" else "https://raw.githubusercontent.com/sagornhs3-bit/bee-ai/main/bumblebee.png"
-        with st.chat_message(m["role"], avatar=avatar): st.markdown(m["content"])
+        with st.chat_message(m["role"], avatar=avatar): 
+            st.markdown(m["content"])
 
-# ============ INPUT AREA & PAYWALL ============
+# ============ EMOJI PICKER & INPUT ============
 user_message = None
 file_context = ""
 
+# Premium Paywall
 if (not st.session_state.is_premium) and (st.session_state.msg_count >= DAILY_LIMIT):
     st.warning("⚠️ আপনার আজকের ফ্রি মেসেজ লিমিট শেষ!")
     with st.container(border=True):
         st.markdown("### 💎 Lifetime Pro — Unlimited Access")
-        st.markdown("একবার পেমেন্ট করুন, সারাজীবনের জন্য আনলিমিটেড ব্যবহার করুন (কোনো মাসিক ফি নেই)।")
-        st.markdown(f"**পেমেন্ট:** মাত্র **৫০০ টাকা (≈ $4.99)**")
-        st.markdown(f"📱 **bKash:** `{BKASH_NUMBER}` (Send Money)")
-        st.markdown("---")
-        st.markdown("**টাকা পাঠানোর পর নিচে আপনার TrxID এবং Unlock Code দিন:**")
+        st.markdown(f"**পেমেন্ট:** মাত্র **৫০০ টাকা (≈ $4.99)** | 📱 **bKash:** `{BKASH_NUMBER}`")
         
         col1, col2 = st.columns(2)
-        with col1:
-            user_trx = st.text_input("TrxID (যেমন: 9F5A2B1C)")
-        with col2:
-            unlock_input = st.text_input("Unlock Code", type="password")
+        with col1: user_trx = st.text_input("TrxID (যেমন: 9F5A2B1C)")
+        with col2: unlock_input = st.text_input("Unlock Code", type="password")
             
         if st.button("🔓 Unlock Lifetime Pro", use_container_width=True, type="primary"):
             if unlock_input == CODE_LIFETIME:
@@ -551,12 +546,26 @@ if (not st.session_state.is_premium) and (st.session_state.msg_count >= DAILY_LI
                 st.success("🎉 অভিনন্দন! আপনি এখন Lifetime Pro ইউজার।")
                 time.sleep(1); st.rerun()
             elif unlock_input != "":
-                st.error("❌ ভুল আনলক কোড! টাকা পাঠিয়ে আমাদের সাথে যোগাযোগ করুন।")
+                st.error("❌ ভুল আনলক কোড!")
 else:
+    # 🔥 Quick Emoji Bar
+    st.markdown("<p style='font-size: 14px; color: gray; margin-bottom: 5px;'>Quick Emojis:</p>", unsafe_allow_html=True)
+    emoji_cols = st.columns(10)
+    emojis = ["😊", "😂", "❤️", "👍", "🔥", "😍", "🙏", "😎", "😢", "🤔"]
+    for i, em in enumerate(emojis):
+        if emoji_cols[i].button(em, key=f"em_{em}"):
+            st.session_state.emoji_append += em
+            st.rerun()
+
+    # Text Input
     chat_data = st.chat_input("Type your message here...", accept_file=True, file_type=["pdf", "txt", "csv"])
     
     if chat_data:
         user_message = chat_data.text
+        if st.session_state.emoji_append:
+            user_message = st.session_state.emoji_append + " " + (user_message or "")
+            st.session_state.emoji_append = "" # Reset after use
+            
         if chat_data.files:
             uploaded_file = chat_data.files[0]
             file_context = extract_text_from_file(uploaded_file)
@@ -572,23 +581,29 @@ else:
             if user_message:
                 st.session_state.audio_key = st.session_state.get('audio_key', 0) + 1 
 
-# ============ HANDLE INPUT ============
+# ============ HANDLE INPUT & GENERATE REPLY ============
 if user_message:
     if not st.session_state.is_premium:
         st.session_state.msg_count += 1
         supabase.table("users").update({"msg_count": st.session_state.msg_count}).eq("username", st.session_state.username).execute()
         
     add_msg(st.session_state.chat_id, "user", user_message)
-    with st.chat_message("user", avatar="👤"): st.markdown(user_message)
+    with st.chat_message("user", avatar="👤"): 
+        st.markdown(user_message)
 
     with st.chat_message("assistant", avatar="https://raw.githubusercontent.com/sagornhs3-bit/bee-ai/main/bumblebee.png"):
         with st.spinner("Bee is thinking..."):
             current_chat = get_chat(st.session_state.chat_id)
             history = current_chat["messages"][:-1]
             reply = ask_llm(user_message, history, file_context)
-            reply = inject_affiliate_links(user_message, reply)
         st.markdown(reply)
     
-    speak_text(reply)
+    # 🔥 AI Speaks the reply
+    # যদি ইউজার ভয়েসে কথা বলে, তবে অবশ্যই উত্তরটা বলবে
+    if audio_to_process is not None or any(w in user_message.lower() for w in ["bolo", "speak", "say"]):
+        speak_text(reply)
+    else:
+        speak_text(reply) # By default speaks every time, you can change this
+        
     add_msg(st.session_state.chat_id, "bee", reply)
     st.rerun()
