@@ -1,4 +1,4 @@
-"""Bee - Ultimate AI Assistant (Perfect Light Theme, System Auto, Manual Voice Cancel)"""
+"""Bee - Ultimate AI Assistant (Perfect Text Contrast, No Hash Tags)"""
 
 import streamlit as st
 import json
@@ -37,7 +37,7 @@ if "logged_in" not in st.session_state: st.session_state.logged_in = True
 if "username" not in st.session_state: st.session_state.username = "Guest"
 if "chat_id" not in st.session_state: st.session_state.chat_id = None
 if "last_audio_hash" not in st.session_state: st.session_state.last_audio_hash = None
-if "audio_key" not in st.session_state: st.session_state.audio_key = 0 # Cancel button er jonno
+if "audio_key" not in st.session_state: st.session_state.audio_key = 0 
 
 # ============ SYSTEM AUTO THEME ============
 sys_theme = "dark"
@@ -181,12 +181,23 @@ def extract_text_from_file(uploaded_file):
 # ============ AI LOGIC ============
 def ask_llm(prompt, chat_history, file_context=""):
     web_context = ""
-    if any(w in prompt.lower() for w in ["search", "who is", "news", "খবর", "কে", "কি", "current", "today"]):
+    if any(w in prompt.lower() for w in ["search", "who is", "news", "খবর", "কে", "কি", "current", "today", "weather", "time"]):
         with st.spinner("🌐 ইন্টারনেটে খুঁজছি..."):
             web_context = search_web(prompt.lower().replace("search", "").strip())
 
-    sys_prompt = f"""You are {NAME}, a helpful AI. {file_context} \n Web: {web_context}
-Rules: Reply in the same language as the user. Be detailed. Use Web Context if provided. Never say you can't search."""
+    # 🔥 PROMPT UPDATED: Told AI to NOT use hash tags or headers
+    sys_prompt = f"""You are {NAME}, a helpful AI assistant.
+{file_context}
+
+## Web Context:
+{web_context}
+
+## Important Rules:
+1. Reply in the EXACT same language the user uses.
+2. NEVER use markdown headers (like #, ##, ###) or hash tags. Use plain text or bullet points only.
+3. If Web Context is provided, use it to give accurate answers. Do not say "I cannot search".
+4. Keep the answer well-formatted but clean.
+"""
 
     client = get_groq()
     if not client: return "API Key নেই।"
@@ -224,7 +235,7 @@ else:
 
 css = """
 <style>
-    /* Force Main, Bottom, and Header Backgrounds */
+    /* Force ALL Backgrounds */
     .stApp, [data-testid="stAppViewContainer"], [data-testid="stHeader"], 
     [data-testid="stBottom"], [data-testid="stBottom"] > div, [data-testid="stBottom"] > div > div,
     .main, .block-container, [data-testid="stVerticalBlock"] { 
@@ -236,10 +247,23 @@ css = """
     [data-testid="stStatusWidget"] { display: none !important; }
     footer { visibility: hidden; } #MainMenu { visibility: hidden; }
 
-    /* Text Colors */
-    .main p, .main span, .main label, .main h1, .main h2, .main h3, .main div, 
+    /* 🔥 FORCE ALL TEXT TO BE VISIBLE (Including Tables, Paragraphs, Lists) */
+    .main p, .main span, .main label, .main h1, .main h2, .main h3, .main h4, .main h5, .main h6, .main li, .main td, .main th,
+    [data-testid="stChatMessage"] *, 
+    [data-testid="stMarkdownContainer"] *,
     [data-testid="stSidebar"] p, [data-testid="stSidebar"] span, [data-testid="stSidebar"] label { 
         color: TXT_COLOR !important; 
+    }
+
+    /* Table Formatting */
+    [data-testid="stMarkdownContainer"] table {
+        border-collapse: collapse;
+        width: 100%;
+        margin: 10px 0;
+    }
+    [data-testid="stMarkdownContainer"] th, [data-testid="stMarkdownContainer"] td {
+        border: 1px solid BORDER_COL !important;
+        padding: 8px;
     }
 
     /* Top Header Icons */
@@ -263,7 +287,6 @@ css = """
 
     /* Chat Messages */
     [data-testid="stChatMessage"] { background: transparent !important; }
-    [data-testid="stChatMessage"] p, [data-testid="stChatMessage"] span { color: TXT_COLOR !important; }
 
     /* Sidebar Buttons */
     .stButton > button {
@@ -271,33 +294,22 @@ css = """
     }
     .stButton > button p, .stButton > button div { color: BTN_TXT !important; }
 
-    /* 🔥 FIX 1: Radio Button Black Dot -> Orange Dot */
+    /* Radio Button Dot Fix */
     [data-testid="stRadio"] div[role="radiogroup"] > label > div:first-child {
-        background-color: transparent !important;
-        border-color: BORDER_COL !important;
+        background-color: transparent !important; border-color: BORDER_COL !important;
     }
     [data-testid="stRadio"] div[role="radiogroup"] > label > div:first-child > div {
-        background-color: #f97316 !important; /* Orange */
+        background-color: #f97316 !important;
     }
 
-    /* 🔥 FIX 2: Voice Mode Black Box (Timer/Playback) -> Hidden */
-    [data-testid="stAudioInput"] {
-        background-color: BG_COLOR !important;
-        border: 1px solid BORDER_COL !important;
-        border-radius: 10px !important;
-    }
+    /* Audio Input Cleanup */
+    [data-testid="stAudioInput"] { background-color: BG_COLOR !important; border: 1px solid BORDER_COL !important; border-radius: 10px !important; }
     [data-testid="stAudioInput"] > div { background-color: transparent !important; }
-    /* Hide the native audio player and timer completely */
-    [data-testid="stAudioInput"] audio { display: none !important; }
-    [data-testid="stAudioInput"] div[class*="Timer"],
-    [data-testid="stAudioInput"] div[class*="Waveform"],
-    [data-testid="stAudioInput"] div[class*="Playback"] { 
-        display: none !important; 
-    }
+    [data-testid="stAudioInput"] audio, [data-testid="stAudioInput"] div[class*="Timer"], 
+    [data-testid="stAudioInput"] div[class*="Waveform"], [data-testid="stAudioInput"] div[class*="Playback"] { display: none !important; }
     [data-testid="stAudioInput"] svg { fill: TXT_COLOR !important; }
-    [data-testid="stAudioInput"] button { background: transparent !important; }
 
-    /* Glowing Chat Input */
+    /* Chat Input */
     @keyframes glow {
         0% { box-shadow: 0 0 5px rgba(249, 115, 22, 0.3); border-color: rgba(249, 115, 22, 0.3) !important; }
         50% { box-shadow: 0 0 15px rgba(249, 115, 22, 0.8); border-color: rgba(249, 115, 22, 0.8) !important; }
@@ -307,29 +319,18 @@ css = """
     [data-testid="stChatInput"] {
         position: fixed !important; bottom: 20px !important; left: 21rem !important; right: 2rem !important;
         z-index: 999 !important; max-width: 900px !important;
-        background-color: CHAT_INPUT_BG !important; 
-        border: 2px solid #f97316 !important; 
-        border-radius: 25px !important;
-        animation: glow 3s infinite !important;
-        padding: 5px 10px !important;
+        background-color: CHAT_INPUT_BG !important; border: 2px solid #f97316 !important; 
+        border-radius: 25px !important; animation: glow 3s infinite !important; padding: 5px 10px !important;
     }
-    
     [data-testid="stChatInput"] > div, [data-testid="stChatInput"] div[data-testid="stVerticalBlock"] {
         background-color: transparent !important;
     }
-
     [data-testid="stChatInput"] textarea { 
-        background-color: transparent !important; 
-        color: TXT_COLOR !important;
-        padding-right: 80px !important; 
+        background-color: transparent !important; color: TXT_COLOR !important; padding-right: 80px !important; 
     }
-    [data-testid="stChatInput"] textarea::placeholder {
-        color: TXT_COLOR !important; opacity: 0.6;
-    }
-
+    [data-testid="stChatInput"] textarea::placeholder { color: TXT_COLOR !important; opacity: 0.6; }
     [data-testid="stChatInput"] button {
-        background-color: #f97316 !important; color: white !important;
-        border-radius: 50% !important; border: none !important;
+        background-color: #f97316 !important; color: white !important; border-radius: 50% !important; border: none !important;
     }
 
     /* Mobile Optimization */
@@ -356,7 +357,7 @@ with st.sidebar:
         new_chat(); st.rerun()
     st.divider()
     
-    # Voice Mode with Manual Send/Cancel
+    # Voice Mode
     st.markdown("**🎤 Voice Mode**")
     audio_value = st.audio_input("Record your voice", label_visibility="collapsed", key=f"audio_{st.session_state.audio_key}")
     
@@ -368,7 +369,6 @@ with st.sidebar:
                 audio_to_process = audio_value
         with col2:
             if st.button("❌ Cancel", use_container_width=True):
-                # Clear the audio input by changing its key
                 st.session_state.audio_key += 1
                 st.rerun()
     
@@ -389,11 +389,10 @@ with st.sidebar:
                 st.rerun()
     st.divider()
     
-    # Theme Toggle (with System Auto)
+    # Theme
     st.markdown("**🎨 Theme**")
     theme_options = ["⚙️ System", "🌙 Dark", "☀️ Light"]
     current_idx = theme_options.index(st.session_state.theme_choice) if st.session_state.theme_choice in theme_options else 0
-    
     selected_theme = st.radio("Theme", theme_options, index=current_idx, horizontal=True, label_visibility="collapsed")
     if selected_theme != st.session_state.theme_choice:
         st.session_state.theme_choice = selected_theme
@@ -456,7 +455,7 @@ elif audio_to_process is not None:
             user_message = transcribe_audio(audio_to_process)
         if user_message:
             st.toast(f"🗣️ আপনি বলেছেন: {user_message}")
-            st.session_state.audio_key += 1 # Clear audio after processing
+            st.session_state.audio_key += 1 
 
 # ============ HANDLE INPUT ============
 if user_message:
