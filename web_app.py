@@ -177,28 +177,49 @@ def build_sys():
 3. If you don't know, say so.
 """
 
-def ask_llm(prompt):
+def ask_llm(prompt, chat_history):
     web_context = ""
+    # সার্চ করার ট্রিগার শব্দ
     search_triggers = ["search", "who is", "news", "ke", "ki", "kobe", "koto", "খবর", "কে", "কি", "কবে", "কত", "current", "today"]
     if any(w in prompt.lower() for w in search_triggers):
         with st.spinner("🌐 আমি ইন্টারনেটে খুঁজছি..."):
-            web_context = search_web(prompt)
+            # "search" শব্দটা বাদ দিয়ে সার্চ করা হচ্ছে
+            clean_query = prompt.lower().replace("search", "").strip()
+            web_context = search_web(clean_query)
 
-    sys_prompt = build_sys() + f"\n\n## Web Search Context:\n{web_context}\n"
-    client = get_groq()
+    # AI-কে কঠোরভাবে বলা হচ্ছে যে তার সার্চ করার ক্ষমতা আছে
+    sys_prompt = f"""You are {NAME} — a highly intelligent AI assistant with real-time internet search capability.
     
+## Web Search Context (Just fetched from the internet):
+{web_context}
+
+## Rules:
+1. You HAVE internet access. If Web Context is provided above, you MUST use it to answer the question. NEVER say "I don't have web search capability".
+2. Always reply in Bengali (unless the user speaks in English).
+3. Give detailed, helpful answers. Use bullet points if needed.
+4. If the context is empty, you may use your general knowledge.
+"""
+
+    client = get_groq()
     if not client:
         return "দুঃখিত, Groq API Key সেট করা নেই।"
+    
+    # আগের চ্যাট হিস্ট্রি তৈরি করা (যাতে AI মনে রাখতে পারে)
+    messages = [{"role": "system", "content": sys_prompt}]
+    for msg in chat_history:
+        messages.append({"role": msg["role"], "content": msg["content"]})
+    messages.append({"role": "user", "content": prompt})
+
     try:
         r = client.chat.completions.create(
             model="openai/gpt-oss-120b",
-            messages=[{"role": "system", "content": sys_prompt}, {"role": "user", "content": prompt}],
+            messages=messages,
             temperature=0.3,
         )
         return r.choices[0].message.content.strip()
     except Exception as e:
         return f"Groq Error: {e}"
-
+      
 def route(text):
     t = text.lower()
     try:
@@ -389,7 +410,17 @@ if user_in and user_in.strip():
 
     with st.chat_message("assistant", avatar="https://raw.githubusercontent.com/sagornhs3-bit/bee-ai/main/bumblebee.png"):
         with st.spinner("Bee is thinking..."):
-            reply = get_reply(text)
+            # আগের চ্যাটগুলো নেওয়া হচ্ছে
+            current_chat = get_chat(st.session_state.chat_id)
+            history = current_chat["messages"][:-1] # বর্তমান মেসেজ বাদে আগেরগুলো
+            
+            # সার্চ/রুট বা AI থেকে উত্তর নেওয়া হচ্ছে
+            action_result = route(text)
+            if action_result:
+                reply = action_result
+            else:
+                reply = ask_llm(text, history)
+                
         st.markdown(reply)
     
     speak_text(reply)
