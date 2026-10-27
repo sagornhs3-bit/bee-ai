@@ -4,5 +4,4 @@ requests
 Pillow
 numpy
 duckduckgo-search
-openai
 PyPDF2
