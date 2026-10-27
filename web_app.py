@@ -1,4 +1,4 @@
-"""Bee - Ultimate AI Assistant (Perfect Text Contrast, No Hash Tags)"""
+"""Bee - Ultimate AI Assistant (Starts with New Chat, Perfect Text Contrast)"""
 
 import streamlit as st
 import json
@@ -19,7 +19,7 @@ from memory import (get_user_name, set_user_name, build_memory_context,
 CONFIG_FILE = BEE_DIR / "config.json"
 CHATS_FILE = BEE_DIR / "chats.json"
 
-st.set_page_config(page_title="Bee AI", page_icon="https://raw.githubusercontent.com/sagornhs3-bit/bee-ai/main/bumblebee.png", layout="wide")
+st.set_page_config(page_title="Bee AI", page_icon="https://raw.githubusercontent.com/saghnhs3-bit/bee-ai/main/bumblebee.png", layout="wide")
 
 def load_cfg():
     try:
@@ -94,6 +94,11 @@ def save_chats(data):
 
 def new_chat():
     data = load_chats()
+    # 🔥 FIX: Prevent spam of empty "New Chat" entries
+    if data["chats"] and data["chats"][0]["title"] == "New Chat" and len(data["chats"][0]["messages"]) == 0:
+        st.session_state.chat_id = data["chats"][0]["id"]
+        return
+    
     cid = str(uuid.uuid4())[:8]
     data["chats"].insert(0, {"id": cid, "title": "New Chat", "time": datetime.datetime.now().strftime("%m-%d %H:%M"), "messages": []})
     save_chats(data)
@@ -185,7 +190,6 @@ def ask_llm(prompt, chat_history, file_context=""):
         with st.spinner("🌐 ইন্টারনেটে খুঁজছি..."):
             web_context = search_web(prompt.lower().replace("search", "").strip())
 
-    # 🔥 PROMPT UPDATED: Told AI to NOT use hash tags or headers
     sys_prompt = f"""You are {NAME}, a helpful AI assistant.
 {file_context}
 
@@ -235,7 +239,6 @@ else:
 
 css = """
 <style>
-    /* Force ALL Backgrounds */
     .stApp, [data-testid="stAppViewContainer"], [data-testid="stHeader"], 
     [data-testid="stBottom"], [data-testid="stBottom"] > div, [data-testid="stBottom"] > div > div,
     .main, .block-container, [data-testid="stVerticalBlock"] { 
@@ -243,38 +246,22 @@ css = """
     }
     [data-testid="stSidebar"] { background-color: SIDEBAR_BG !important; }
     
-    /* Hide Manage App, Footer, Menu */
     [data-testid="stStatusWidget"] { display: none !important; }
     footer { visibility: hidden; } #MainMenu { visibility: hidden; }
 
-    /* 🔥 FORCE ALL TEXT TO BE VISIBLE (Including Tables, Paragraphs, Lists) */
     .main p, .main span, .main label, .main h1, .main h2, .main h3, .main h4, .main h5, .main h6, .main li, .main td, .main th,
-    [data-testid="stChatMessage"] *, 
-    [data-testid="stMarkdownContainer"] *,
+    [data-testid="stChatMessage"] *, [data-testid="stMarkdownContainer"] *,
     [data-testid="stSidebar"] p, [data-testid="stSidebar"] span, [data-testid="stSidebar"] label { 
         color: TXT_COLOR !important; 
     }
 
-    /* Table Formatting */
-    [data-testid="stMarkdownContainer"] table {
-        border-collapse: collapse;
-        width: 100%;
-        margin: 10px 0;
-    }
-    [data-testid="stMarkdownContainer"] th, [data-testid="stMarkdownContainer"] td {
-        border: 1px solid BORDER_COL !important;
-        padding: 8px;
-    }
-
-    /* Top Header Icons */
+    [data-testid="stMarkdownContainer"] table { border-collapse: collapse; width: 100%; margin: 10px 0; }
+    [data-testid="stMarkdownContainer"] th, [data-testid="stMarkdownContainer"] td { border: 1px solid BORDER_COL !important; padding: 8px; }
     [data-testid="stHeader"] svg { fill: TXT_COLOR !important; stroke: TXT_COLOR !important; }
 
-    /* Name Input Box */
     [data-testid="stTextInput"] input {
-        background-color: BG_COLOR !important;
-        color: TXT_COLOR !important;
-        border: 1px solid BORDER_COL !important;
-        border-radius: 8px !important;
+        background-color: BG_COLOR !important; color: TXT_COLOR !important;
+        border: 1px solid BORDER_COL !important; border-radius: 8px !important;
     }
 
     .main .block-container { padding-top: 1.5rem; max-width: 900px; padding-bottom: 150px !important; }
@@ -284,37 +271,21 @@ css = """
     
     @keyframes float { 0% { transform: translateY(0px); filter: drop-shadow(0px 10px 15px rgba(0,0,0,0.8)); } 50% { transform: translateY(-8px); filter: drop-shadow(0px 20px 25px rgba(0,0,0,1)); } 100% { transform: translateY(0px); filter: drop-shadow(0px 10px 15px rgba(0,0,0,0.8)); } }
     .logo-3d { animation: float 4s ease-in-out infinite; border-radius: 50%; mix-blend-mode: screen; max-height: 80px; object-fit: contain; }
-
-    /* Chat Messages */
     [data-testid="stChatMessage"] { background: transparent !important; }
 
-    /* Sidebar Buttons */
-    .stButton > button {
-        background-color: BTN_BG !important; color: BTN_TXT !important; border: 1px solid BORDER_COL !important;
-    }
+    .stButton > button { background-color: BTN_BG !important; color: BTN_TXT !important; border: 1px solid BORDER_COL !important; }
     .stButton > button p, .stButton > button div { color: BTN_TXT !important; }
 
-    /* Radio Button Dot Fix */
-    [data-testid="stRadio"] div[role="radiogroup"] > label > div:first-child {
-        background-color: transparent !important; border-color: BORDER_COL !important;
-    }
-    [data-testid="stRadio"] div[role="radiogroup"] > label > div:first-child > div {
-        background-color: #f97316 !important;
-    }
+    [data-testid="stRadio"] div[role="radiogroup"] > label > div:first-child { background-color: transparent !important; border-color: BORDER_COL !important; }
+    [data-testid="stRadio"] div[role="radiogroup"] > label > div:first-child > div { background-color: #f97316 !important; }
 
-    /* Audio Input Cleanup */
     [data-testid="stAudioInput"] { background-color: BG_COLOR !important; border: 1px solid BORDER_COL !important; border-radius: 10px !important; }
     [data-testid="stAudioInput"] > div { background-color: transparent !important; }
     [data-testid="stAudioInput"] audio, [data-testid="stAudioInput"] div[class*="Timer"], 
     [data-testid="stAudioInput"] div[class*="Waveform"], [data-testid="stAudioInput"] div[class*="Playback"] { display: none !important; }
     [data-testid="stAudioInput"] svg { fill: TXT_COLOR !important; }
 
-    /* Chat Input */
-    @keyframes glow {
-        0% { box-shadow: 0 0 5px rgba(249, 115, 22, 0.3); border-color: rgba(249, 115, 22, 0.3) !important; }
-        50% { box-shadow: 0 0 15px rgba(249, 115, 22, 0.8); border-color: rgba(249, 115, 22, 0.8) !important; }
-        100% { box-shadow: 0 0 5px rgba(249, 115, 22, 0.3); border-color: rgba(249, 115, 22, 0.3) !important; }
-    }
+    @keyframes glow { 0% { box-shadow: 0 0 5px rgba(249, 115, 22, 0.3); border-color: rgba(249, 115, 22, 0.3) !important; } 50% { box-shadow: 0 0 15px rgba(249, 115, 22, 0.8); border-color: rgba(249, 115, 22, 0.8) !important; } 100% { box-shadow: 0 0 5px rgba(249, 115, 22, 0.3); border-color: rgba(249, 115, 22, 0.3) !important; } }
     
     [data-testid="stChatInput"] {
         position: fixed !important; bottom: 20px !important; left: 21rem !important; right: 2rem !important;
@@ -322,25 +293,13 @@ css = """
         background-color: CHAT_INPUT_BG !important; border: 2px solid #f97316 !important; 
         border-radius: 25px !important; animation: glow 3s infinite !important; padding: 5px 10px !important;
     }
-    [data-testid="stChatInput"] > div, [data-testid="stChatInput"] div[data-testid="stVerticalBlock"] {
-        background-color: transparent !important;
-    }
-    [data-testid="stChatInput"] textarea { 
-        background-color: transparent !important; color: TXT_COLOR !important; padding-right: 80px !important; 
-    }
+    [data-testid="stChatInput"] > div, [data-testid="stChatInput"] div[data-testid="stVerticalBlock"] { background-color: transparent !important; }
+    [data-testid="stChatInput"] textarea { background-color: transparent !important; color: TXT_COLOR !important; padding-right: 80px !important; }
     [data-testid="stChatInput"] textarea::placeholder { color: TXT_COLOR !important; opacity: 0.6; }
-    [data-testid="stChatInput"] button {
-        background-color: #f97316 !important; color: white !important; border-radius: 50% !important; border: none !important;
-    }
+    [data-testid="stChatInput"] button { background-color: #f97316 !important; color: white !important; border-radius: 50% !important; border: none !important; }
 
-    /* Mobile Optimization */
-    @media (max-width: 1024px) {
-        [data-testid="stChatInput"] { left: 2rem !important; right: 2rem !important; }
-    }
-    @media (max-width: 768px) {
-        .main .block-container { padding-bottom: 120px !important; }
-        [data-testid="stChatInput"] { left: 1rem !important; right: 1rem !important; bottom: 10px !important; width: calc(100% - 2rem) !important; }
-    }
+    @media (max-width: 1024px) { [data-testid="stChatInput"] { left: 2rem !important; right: 2rem !important; } }
+    @media (max-width: 768px) { .main .block-container { padding-bottom: 120px !important; } [data-testid="stChatInput"] { left: 1rem !important; right: 1rem !important; bottom: 10px !important; width: calc(100% - 2rem) !important; } }
 </style>
 """
 css = css.replace("BG_COLOR", bg).replace("TXT_COLOR", txt).replace("SIDEBAR_BG", sidebar_bg).replace("CHAT_INPUT_BG", chat_input_bg).replace("BTN_BG", btn_bg).replace("BTN_TXT", btn_txt).replace("BORDER_COL", border_col)
@@ -357,7 +316,6 @@ with st.sidebar:
         new_chat(); st.rerun()
     st.divider()
     
-    # Voice Mode
     st.markdown("**🎤 Voice Mode**")
     audio_value = st.audio_input("Record your voice", label_visibility="collapsed", key=f"audio_{st.session_state.audio_key}")
     
@@ -389,7 +347,6 @@ with st.sidebar:
                 st.rerun()
     st.divider()
     
-    # Theme
     st.markdown("**🎨 Theme**")
     theme_options = ["⚙️ System", "🌙 Dark", "☀️ Light"]
     current_idx = theme_options.index(st.session_state.theme_choice) if st.session_state.theme_choice in theme_options else 0
@@ -415,13 +372,15 @@ st.markdown(f"""
 </div>
 """, unsafe_allow_html=True)
 
+# 🔥 FIX: Start with a new chat if session has no active chat
 if st.session_state.chat_id is None:
-    chats = load_chats()["chats"]
-    if chats: st.session_state.chat_id = chats[0]["id"]
-    else: new_chat(); st.rerun()
+    new_chat()
+    st.rerun()
 
 cur = get_chat(st.session_state.chat_id)
-if cur is None: new_chat(); st.rerun()
+if cur is None: 
+    new_chat()
+    st.rerun()
 
 if not cur["messages"]:
     uname = get_user_name() or "friend"
