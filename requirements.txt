@@ -5,3 +5,4 @@ Pillow
 numpy
 duckduckgo-search
 PyPDF2
+supabase
