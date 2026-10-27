@@ -263,7 +263,25 @@ css = """
         background-color: BG_COLOR !important; color: TXT_COLOR !important;
         border: 1px solid BORDER_COL !important; border-radius: 8px !important;
     }
+         /* ভয়েস মোডের কালো বক্স দূর করার জন্য */
+    [data-testid="stAudioInput"] {
+        background-color: transparent !important;
+        border: 1px solid BORDER_COL !important;
+        border-radius: 8px;
+    }
+    
+    /* সাইডবারের বাটনগুলোর কালো ব্যাকগ্রাউন্ড ঠিক করার জন্য */
+    [data-testid="stSidebar"] .stButton > button {
+        background-color: transparent !important;
+        color: TXT_COLOR !important;
+        border: 1px solid BORDER_COL !important;
+    }
 
+    /* টেক্সট ইনপুট ফিল্ডের কালো বক্স ঠিক করার জন্য */
+    [data-testid="stSidebar"] [data-testid="stTextInput"] input {
+        color: TXT_COLOR !important;
+        background-color: transparent !important;
+    }
     .main .block-container { padding-top: 1.5rem; max-width: 900px; padding-bottom: 150px !important; }
     .header { background: linear-gradient(135deg, #f59e0b 0%, #ef4444 100%) !important; padding: 1.4rem 1.6rem; border-radius: 14px; margin-bottom: 1.2rem; display: flex; align-items: center; overflow: hidden; }
     .header h1 { margin: 0; font-size: 1.8rem; color: #ffffff !important; }
