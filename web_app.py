@@ -256,7 +256,7 @@ def get_groq():
     return _groq
 
 # ============ LOCATION & TIME DETECTION ============
-@st.cache_data(ttl=3600) # ১ ঘণ্টার জন্য ক্যাশে রাখবে
+@st.cache_data(ttl=3600)
 def get_user_location():
     try:
         res = requests.get("https://ipapi.co/json/", timeout=3).json()
@@ -270,7 +270,6 @@ def get_user_location():
 def speak_text(text):
     st.toast("🤖 Transformer Bee কথা বলছে...")
     js_text = json.dumps(text)
-    # স্ক্রিপ্ট: যদি টেক্সটে বাংলা অক্ষর থাকে তবে বাংলায় বলবে, নাহলে ইংরেজিতে
     js_code = f"""
     <script>
         var msg = new SpeechSynthesisUtterance({js_text});
@@ -321,7 +320,6 @@ def ask_llm(prompt, chat_history, file_context=""):
         with st.spinner("🌐 ইন্টারনেটে খুঁজছি..."):
             web_context = search_web(prompt.lower().replace("search", "").strip())
 
-    # লোকেশন এবং তারিখ বের করা
     location = get_user_location()
     today_str = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
 
@@ -349,8 +347,8 @@ def ask_llm(prompt, chat_history, file_context=""):
     messages.append({"role": "user", "content": prompt})
 
     try:
-        # মডেল পরিবর্তন করে llama-3.3-70b-versatile করা হয়েছে
-        r = client.chat.completions.create(model="llama-3.3-70b-versatile", messages=messages, temperature=0.4)
+        # মডেল আপডেট করা হয়েছে (Groq এর স্ট্যাবল মডেল)
+        r = client.chat.completions.create(model="llama3-70b-8192", messages=messages, temperature=0.4)
         return r.choices[0].message.content.strip()
     except Exception as e:
         return f"Error: {e}"
