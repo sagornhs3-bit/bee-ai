@@ -191,42 +191,45 @@ if dark:
     bg = "#0e1117"
     txt = "#fafafa"
     sidebar_bg = "#0e1117"
-    chat_input_bg = "#262730" # Dark chat box
+    chat_input_bg = "#262730" 
     chat_input_border = "#f97316"
     btn_bg = "#262730"
     btn_txt = "#fafafa"
     border_col = "#3a3d45"
     mic_col = "#a3a3a3"
+    bottom_bg = "#0e1117"
 else:
     bg = "#ffffff"
     txt = "#1a1a1a"
     sidebar_bg = "#f8f9fa"
-    chat_input_bg = "#f0f2f6" # Light chat box
+    chat_input_bg = "#f0f2f6" 
     chat_input_border = "#f97316"
     btn_bg = "#e9ecef"
     btn_txt = "#1a1a1a"
     border_col = "#ced4da"
     mic_col = "#6c757d"
+    bottom_bg = "#ffffff"
 
 css = """
 <style>
-    /* Force Main and Bottom Backgrounds */
+    /* Force Main, Bottom, and Header Backgrounds */
     .stApp, [data-testid="stAppViewContainer"], [data-testid="stHeader"], [data-testid="stBottom"] { 
         background: BG_COLOR !important; 
     }
     [data-testid="stSidebar"] { background: SIDEBAR_BG !important; }
     
-    /* Force text colors everywhere */
+    /* Force Text Colors */
     .main p, .main span, .main label, .main h1, .main h2, .main h3, .main div, 
     [data-testid="stSidebar"] p, [data-testid="stSidebar"] span, [data-testid="stSidebar"] label { 
         color: TXT_COLOR !important; 
     }
 
-    /* Force Input Text Box (Name field) to be white/light */
-    .stTextInput input {
-        background: BG_COLOR !important;
+    /* Force Input Text Box (Name field) */
+    [data-testid="stTextInput"] input {
+        background: CHAT_INPUT_BG !important;
         color: TXT_COLOR !important;
         border: 1px solid BORDER_COL !important;
+        border-radius: 8px !important;
     }
     
     /* Top native header icons */
@@ -292,15 +295,16 @@ css = """
         position: fixed !important;
         bottom: 28px !important; 
         right: 5.5rem !important; 
-        z-index: 1000 !important;
+        z-index: 10000 !important; /* Sit above everything */
         width: 40px !important;
         height: 40px !important;
         background: transparent !important;
         border: none !important;
         box-shadow: none !important;
+        overflow: visible !important;
     }
     
-    /* Strip out Streamlit's default audio input UI elements */
+    /* Strip out ALL Streamlit audio input UI elements except the button */
     [data-testid="stAudioInput"] > div { 
         padding: 0 !important; 
         margin: 0 !important;
@@ -311,11 +315,13 @@ css = """
     [data-testid="stAudioInput"] div[data-testid="stHorizontalBlock"],
     [data-testid="stAudioInput"] p,
     [data-testid="stAudioInput"] span,
-    [data-testid="stAudioInput"] [data-testid="stMarkdownContainer"] { 
+    [data-testid="stAudioInput"] [data-testid="stMarkdownContainer"],
+    [data-testid="stAudioInput"] div[class*="Waveform"],
+    [data-testid="stAudioInput"] div[class*="Timer"] { 
         display: none !important; 
     }
 
-    /* Style the Mic Icon itself */
+    /* Style the Mic Icon button itself */
     [data-testid="stAudioInput"] button {
         background: transparent !important;
         color: MIC_COL !important;
@@ -325,7 +331,10 @@ css = """
         display: flex !important;
         align-items: center !important;
         justify-content: center !important;
+        width: 100% !important;
+        height: 100% !important;
     }
+    
     [data-testid="stAudioInput"] button svg {
         fill: MIC_COL !important;
         color: MIC_COL !important;
@@ -346,7 +355,7 @@ css = """
     }
 </style>
 """
-css = css.replace("BG_COLOR", bg).replace("TXT_COLOR", txt).replace("SIDEBAR_BG", sidebar_bg).replace("CHAT_INPUT_BG", chat_input_bg).replace("CHAT_INPUT_BORDER", chat_input_border).replace("BTN_BG", btn_bg).replace("BTN_TXT", btn_txt).replace("BORDER_COL", border_col).replace("MIC_COL", mic_col)
+css = css.replace("BG_COLOR", bg).replace("TXT_COLOR", txt).replace("SIDEBAR_BG", sidebar_bg).replace("CHAT_INPUT_BG", chat_input_bg).replace("CHAT_INPUT_BORDER", chat_input_border).replace("BTN_BG", btn_bg).replace("BTN_TXT", btn_txt).replace("BORDER_COL", border_col).replace("MIC_COL", mic_col).replace("BOTTOM_BG", bottom_bg)
 st.markdown(css, unsafe_allow_html=True)
 
 # ============ SIDEBAR ============
