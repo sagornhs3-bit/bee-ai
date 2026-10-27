@@ -1,4 +1,4 @@
-"""Bee - Ultimate AI Assistant (Supabase Integrated)"""
+"""Bee - Ultimate AI Assistant (Supabase + Intro Animation + Login)"""
 
 import streamlit as st
 import json
@@ -15,8 +15,12 @@ from supabase import create_client, Client
 BEE_DIR = Path(__file__).parent
 sys.path.insert(0, str(BEE_DIR))
 
-from memory import (get_user_name, set_user_name, build_memory_context,
-                    remember, recall, get_all_facts)
+# আপনার মেমোরি মডিউল (যদি থাকে)
+try:
+    from memory import (get_user_name, set_user_name, build_memory_context,
+                        remember, recall, get_all_facts)
+except ImportError:
+    pass
 
 CONFIG_FILE = BEE_DIR / "config.json"
 
@@ -38,8 +42,64 @@ def hash_password(password):
     return hashlib.sha256(password.encode()).hexdigest()
 
 # ============================================================
+# 🎬 INTRO ANIMATION (Logo First)
+# ============================================================
+if "intro_done" not in st.session_state: 
+    st.session_state.intro_done = False
+
+if not st.session_state.intro_done:
+    st.markdown("""
+    <style>
+        #MainMenu {visibility: hidden;} header {visibility: hidden;} footer {visibility: hidden;}
+        [data-testid="stSidebar"] {display: none;} .block-container {padding: 0 !important;}
+        .splash-screen {
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            background-color: #0e1117; display: flex; flex-direction: column;
+            justify-content: center; align-items: center; z-index: 99999;
+        }
+        .splash-logo { width: 150px; animation: zoomPulse 2s infinite alternate; mix-blend-mode: screen; }
+        @keyframes zoomPulse { 
+            0% { transform: scale(0.9); filter: drop-shadow(0 0 10px #f59e0b); } 
+            100% { transform: scale(1.1); filter: drop-shadow(0 0 30px #ef4444); } 
+        }
+        .splash-text { color: white; margin-top: 20px; font-family: sans-serif; letter-spacing: 2px; }
+    </style>
+    <div class="splash-screen">
+        <img class="splash-logo" src="https://raw.githubusercontent.com/sagornhs3-bit/bee-ai/main/bumblebee.png">
+        <h2 class="splash-text">BEE AI</h2>
+    </div>
+    """, unsafe_allow_html=True)
+    time.sleep(2)
+    st.session_state.intro_done = True
+    st.rerun()
+
+# ============================================================
 # 🔐 LOGIN & SIGN UP SYSTEM
 # ============================================================
+# লগইন পেজের জন্য কাস্টম CSS (সব ডিভাইসে সুন্দর দেখাবে)
+st.markdown("""
+<style>
+    /* মূল কন্টেইনারকে মাঝখানে আনবে (শুধু লগইন পেজের জন্য) */
+    .login-container .block-container { max-width: 450px !important; padding-top: 5vh !important; }
+    /* বাটনের রঙ কমলা করা হলো */
+    .login-container .stButton > button {
+        background-color: #f97316 !important;
+        color: white !important;
+        border: none !important;
+        border-radius: 8px !important;
+        font-weight: bold !important;
+    }
+    /* ইনপুট বক্সের ডিজাইন */
+    .login-container .stTextInput > div > div > input {
+        border-radius: 8px !important;
+    }
+    /* মোবাইলের জন্য বিশেষ ব্যবস্থা */
+    @media (max-width: 768px) {
+        .login-container .block-container { padding-top: 2vh !important; padding-left: 15px !important; padding-right: 15px !important; }
+    }
+</style>
+""", unsafe_allow_html=True)
+
 if "logged_in" not in st.session_state: st.session_state.logged_in = False
 if "username" not in st.session_state: st.session_state.username = ""
 if "is_premium" not in st.session_state: st.session_state.is_premium = False
@@ -47,7 +107,10 @@ if "msg_count" not in st.session_state: st.session_state.msg_count = 0
 if "chat_id" not in st.session_state: st.session_state.chat_id = None
 
 if not st.session_state.logged_in:
+    st.markdown("<div class='login-container'>", unsafe_allow_html=True)
     st.markdown("<h2 style='text-align: center;'>🐝 Welcome to Bee AI</h2>", unsafe_allow_html=True)
+    st.markdown("<p style='text-align: center; font-size: 14px; color: gray;'>Your Personal AI Assistant</p>", unsafe_allow_html=True)
+    
     tab1, tab2 = st.tabs(["🔑 Login", "📝 Sign Up"])
     
     with tab1:
@@ -114,10 +177,12 @@ if not st.session_state.logged_in:
                         st.error(f"Error: {e}")
             else:
                 st.warning("Please fill all fields.")
+    
+    st.markdown("</div>", unsafe_allow_html=True)
     st.stop() # Stop here if not logged in
 
 # ============================================================
-# 🔓 USER IS LOGGED IN
+# 🔓 MAIN APP (Only for Logged-in Users)
 # ============================================================
 def load_cfg():
     try:
@@ -131,6 +196,9 @@ CONFIG = load_cfg()
 NAME = CONFIG.get("assistant_name", "Bee")
 GROQ_KEY = CONFIG.get("groq_api_key", "")
 
+# ============================================================
+# 🔴 Involve Asia Affiliate Links
+# ============================================================
 AFFILIATE_LINKS = {
     "মোবাইল": "https://your-involve-asia-link.com",
     "mobile": "https://your-involve-asia-link.com",
@@ -186,7 +254,6 @@ def new_chat():
         return
     
     cid = str(uuid.uuid4())
-    # Insert empty chat in DB
     supabase.table("chats").insert({
         "id": cid, 
         "username": st.session_state.username, 
@@ -291,7 +358,7 @@ def ask_llm(prompt, chat_history, file_context=""):
     except Exception as e:
         return f"Error: {e}"
 
-# ============ THEME SETUP ============
+# ============ THEME SETUP (Main App) ============
 if dark:
     bg = "#0e1117"; txt = "#fafafa"; sidebar_bg = "#0e1117"; chat_input_bg = "#262730" 
     btn_bg = "#262730"; btn_txt = "#fafafa"; border_col = "#3a3d45"
@@ -442,7 +509,6 @@ if (not st.session_state.is_premium) and (st.session_state.msg_count >= DAILY_LI
             
         if st.button("🔓 Unlock Lifetime Pro", use_container_width=True, type="primary"):
             if unlock_input == CODE_LIFETIME:
-                # Update in DB
                 supabase.table("users").update({"is_premium": True}).eq("username", st.session_state.username).execute()
                 st.session_state.is_premium = True
                 st.success("🎉 অভিনন্দন! আপনি এখন Lifetime Pro ইউজার।")
@@ -473,7 +539,6 @@ else:
 if user_message:
     if not st.session_state.is_premium:
         st.session_state.msg_count += 1
-        # Update count in DB
         supabase.table("users").update({"msg_count": st.session_state.msg_count}).eq("username", st.session_state.username).execute()
         
     add_msg(st.session_state.chat_id, "user", user_message)
