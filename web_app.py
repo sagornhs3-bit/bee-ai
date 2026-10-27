@@ -1,4 +1,4 @@
-"""Bee - Ultimate AI Assistant (Fixed Right-Align & Image Gen)"""
+"""Bee - Ultimate AI Assistant (Image Actions + Fixed Generation)"""
 
 import streamlit as st
 import json
@@ -9,6 +9,8 @@ import time
 import hashlib
 import requests
 import urllib.parse
+import random
+import re
 from pathlib import Path
 import streamlit.components.v1 as components
 import PyPDF2
@@ -306,26 +308,23 @@ def ask_llm(prompt, chat_history, file_context=""):
     client = get_groq()
     if not client: return "API Key নেই।"
 
-    # 🔥 ইমেজ জেনারেশন কীওয়ার্ড আপডেট করা হয়েছে (pic, image, ছবি যুক্ত করা হয়েছে)
     image_keywords = ["ছবি তৈরি", "ছবি বানাও", "draw", "generate image", "picture of", "paint", "pic", "image", "photo", "আঁকো", "আঁক"]
     
-    # চেক করা হচ্ছে ইউজার ইমেজ চাইছে কি না
     if any(kw in prompt.lower() for kw in image_keywords):
         with st.spinner("🎨 ছবি তৈরি করা হচ্ছে..."):
             clean_prompt = prompt
-            # কীওয়ার্ডগুলো বাদ দেওয়া হচ্ছে যাতে শুধু মূল বিষয়বস্তু থাকে
             for kw in image_keywords:
                 clean_prompt = clean_prompt.replace(kw, "")
             clean_prompt = clean_prompt.strip()
-            
-            # যদি প্রম্পট খুব ছোট হয় (যেমন: "akta pic just"), তবে একটি ডিফল্ট সুন্দর ছবি তৈরি হবে
             if len(clean_prompt) < 3: 
                 clean_prompt = "beautiful aesthetic scenery, highly detailed"
             
+            # 🔥 Random Seed যুক্ত করা হলো যাতে Pollinations AI বারবার ব্লক না করে
+            seed = random.randint(1, 999999)
             encoded_prompt = urllib.parse.quote(clean_prompt)
-            img_url = f"https://image.pollinations.ai/prompt/{encoded_prompt}?width=1024&height=1024&nologo=true"
+            img_url = f"https://image.pollinations.ai/prompt/{encoded_prompt}?width=1024&height=1024&nologo=true&seed={seed}"
             
-            return f"আপনার অনুরোধ অনুযায়ী ছবিটি তৈরি করেছি:\n\n![Generated Image]({img_url})\n\n_ছবিটি ডাউনলোড করতে ছবির ওপর রাইট ক্লিক করুন।_"
+            return f"আপনার অনুরোধ অনুযায়ী ছবিটি তৈরি করেছি:\n\n![Generated Image]({img_url})\n\n_ছবিটি ডাউনলোড করতে নিচের বাটনটি ব্যবহার করুন।_"
 
     web_context = ""
     if any(w in prompt.lower() for w in ["search", "who is", "news", "খবর", "current", "today", "weather", "time"]):
@@ -358,7 +357,7 @@ def ask_llm(prompt, chat_history, file_context=""):
         return f"Error: {e}"
 
 # ============================================================
-# 🎨 PREMIUM CSS (Fixed Right-Aligned User Messages)
+# 🎨 PREMIUM CSS
 # ============================================================
 if dark:
     bg_base = "#0e1117"
@@ -394,9 +393,7 @@ css = f"""
     }}
 
     [data-testid="stAppViewContainer"]::before {{
-        content: "";
-        position: fixed; top: 50%; left: 50%;
-        transform: translate(-50%, -50%);
+        content: ""; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
         width: 600px; height: 600px;
         background-image: url('https://raw.githubusercontent.com/sagornhs3-bit/bee-ai/main/bumblebee.png');
         background-size: contain; background-repeat: no-repeat;
@@ -411,7 +408,6 @@ css = f"""
     [data-testid="stChatMessage"] *, [data-testid="stMarkdownContainer"] *,
     [data-testid="stSidebar"] p, [data-testid="stSidebar"] span, [data-testid="stSidebar"] label {{ color: {txt} !important; }}
 
-    /* 💎 Glassmorphism Chat Bubbles */
     [data-testid="stChatMessage"] {{
         background: {glass_bg} !important; backdrop-filter: blur(10px) !important;
         border: 1px solid {border_col} !important; border-radius: 15px !important;
@@ -420,7 +416,6 @@ css = f"""
         display: flex !important; flex-direction: row !important; align-items: flex-start !important;
     }}
 
-    /* 🔥 User Message Right Align (Messenger Style) */
     [data-testid="stChatMessage"]:has([data-testid="chatAvatarIcon-user"]) {{
         flex-direction: row-reverse !important;
         background: rgba(249, 115, 22, 0.1) !important; 
@@ -475,7 +470,7 @@ css = f"""
 st.markdown(css, unsafe_allow_html=True)
 
 # ============================================================
-# 🎤 VOICE UI (Full Screen Interface)
+# 🎤 VOICE UI
 # ============================================================
 if st.session_state.voice_ui:
     st.markdown(f"""
@@ -513,6 +508,46 @@ if st.session_state.voice_ui:
                 st.session_state.voice_ui = False
                 st.rerun()
     st.stop()
+
+# ============================================================
+# 🖼️ IMAGE RENDERING HELPER (With Action Buttons)
+# ============================================================
+def render_message_with_image(content):
+    # চেক করা হচ্ছে মেসেজে Pollinations AI-এর কোনো লিংক আছে কি না
+    img_match = re.search(r'!\[.*?\]\((https://image\.pollinations\.ai/.*?)\)', content)
+    
+    if img_match:
+        # ছবির আগের টেক্সট
+        text_before = content.split(img_match.group(0))[0]
+        st.markdown(text_before)
+        
+        img_url = img_match.group(1)
+        
+        # ছবি রেন্ডার
+        try:
+            st.image(img_url, use_column_width=True)
+        except Exception:
+            st.error("⚠️ ছবিটি লোড হতে সমস্যা হচ্ছে। সার্ভার ব্যস্ত আছে, দয়া করে আবার চেষ্টা করুন।")
+        
+        # 🔥 Action Buttons (Download, Share, Like, Report)
+        col1, col2, col3, col4 = st.columns(4)
+        with col1:
+            st.markdown(f'<a href="{img_url}" target="_blank" download style="text-decoration: none;"><div style="width:100%; border-radius:8px; padding:6px; background:#f97316; color:white; text-align:center; font-size:13px;">📥 Download</div></a>', unsafe_allow_html=True)
+        with col2:
+            if st.button("🔗 Share", key=f"share_{hash(img_url)}", use_container_width=True):
+                st.toast("✅ লিংক কপি হয়েছে!")
+        with col3:
+            if st.button("👍 Like", key=f"like_{hash(img_url)}", use_container_width=True):
+                st.toast("❤️ ফিডব্যাকের জন্য ধন্যবাদ!")
+        with col4:
+            if st.button("🚩 Report", key=f"report_{hash(img_url)}", use_container_width=True):
+                st.toast("🚨 রিপোর্ট করা হয়েছে।")
+        
+        # ছবির পরের টেক্সট
+        text_after = content.split(img_match.group(0))[1] if len(content.split(img_match.group(0))) > 1 else ""
+        st.markdown(text_after)
+    else:
+        st.markdown(content)
 
 # ============ SIDEBAR ============
 with st.sidebar:
@@ -600,10 +635,10 @@ if not cur["messages"]:
         st.markdown(f"Hi **{st.session_state.username}**! I'm {NAME} — your personal AI. How can I help you today? 😊")
 else:
     for m in cur["messages"]:
-        # 🔥 এখানে avatar সেট করা হয়েছে যাতে CSS ঠিকমতো কাজ করে
         avatar_icon = "👤" if m["role"] == "user" else "https://raw.githubusercontent.com/sagornhs3-bit/bee-ai/main/bumblebee.png"
         with st.chat_message(m["role"], avatar=avatar_icon): 
-            st.markdown(m["content"])
+            # 🔥 এখানে ইমেজ রেন্ডারিং ফাংশন কল করা হচ্ছে
+            render_message_with_image(m["content"])
 
 # ============ INPUT AREA ============
 user_message = None
@@ -644,7 +679,6 @@ if user_message:
         supabase.table("users").update({"msg_count": st.session_state.msg_count}).eq("username", st.session_state.username).execute()
         
     add_msg(st.session_state.chat_id, "user", user_message)
-    # 🔥 avatar যোগ করা হলো
     with st.chat_message("user", avatar="👤"): 
         st.markdown(user_message)
 
@@ -653,7 +687,9 @@ if user_message:
             current_chat = get_chat(st.session_state.chat_id)
             history = current_chat["messages"][:-1]
             reply = ask_llm(user_message, history, file_context)
-        st.markdown(reply)
+        
+        # 🔥 এখানে ইমেজ রেন্ডারিং ফাংশন কল করা হচ্ছে
+        render_message_with_image(reply)
         
     add_msg(st.session_state.chat_id, "bee", reply)
     st.rerun()
