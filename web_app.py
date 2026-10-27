@@ -1,4 +1,4 @@
-"""Bee - Ultimate AI Assistant (Persistent Login + Glass Glow + Flux Image)"""
+"""Bee - Ultimate AI Assistant (Final Version with Glass Glow & Image Gen)"""
 
 import streamlit as st
 import json
@@ -140,7 +140,7 @@ if not st.session_state.logged_in:
                         st.session_state.is_premium = user["is_premium"]
                         st.session_state.chat_id = None 
                         
-                        # 🔥 লগইন সেভ করা হচ্ছে URL-এ
+                        # লগইন সেভ করা হচ্ছে URL-এ
                         st.query_params["user"] = user["username"]
                         
                         today = datetime.date.today().strftime("%Y-%m-%d")
@@ -317,7 +317,6 @@ def ask_llm(prompt, chat_history, file_context=""):
             if len(clean_prompt) < 3: 
                 clean_prompt = "beautiful aesthetic scenery, highly detailed"
             
-            # 🔥 flux মডেল এবং Random Seed যুক্ত করা হলো
             seed = random.randint(1, 999999)
             encoded_prompt = urllib.parse.quote(clean_prompt)
             img_url = f"https://image.pollinations.ai/prompt/{encoded_prompt}?width=1024&height=1024&nologo=true&seed={seed}&model=flux"
@@ -355,43 +354,62 @@ def ask_llm(prompt, chat_history, file_context=""):
         return f"Error: {e}"
 
 # ============================================================
-# 🎨 PREMIUM CSS (Glassmorphism Glow + Light Theme Fix)
+# 🎨 PREMIUM CSS (Glassmorphism & Animated Glow Everywhere)
 # ============================================================
 if dark:
     bg_base = "#0e1117"
-    bg_gradient = "radial-gradient(circle at 50% 0%, #1f1e2e 0%, #0e1117 80%)"
+    bg_gradient = "radial-gradient(circle at 0% 0%, #1a1124 0%, transparent 50%), radial-gradient(circle at 100% 100%, #241211 0%, transparent 50%), #0e1117"
     txt = "#fafafa"
-    sidebar_bg = "#0e1117"
-    chat_input_bg = "rgba(38, 39, 48, 0.8)" 
+    sidebar_bg = "rgba(14, 17, 23, 0.7)"
+    chat_input_bg = "rgba(38, 39, 48, 0.6)" 
     btn_bg = "#262730"
     btn_txt = "#fafafa"
     border_col = "rgba(255,255,255,0.1)"
-    glass_bg = "rgba(255, 255, 255, 0.05)"
+    glass_bg = "rgba(30, 30, 40, 0.4)"
     watermark_opacity = "0.08"
     radio_bg = "#262730"
     radio_border = "#ffffff"
-    glow_color = "rgba(249, 115, 22, 0.3)"
 else:
     bg_base = "#ffffff"
-    bg_gradient = "linear-gradient(135deg, #FFFDFB 0%, #FFF0F5 50%, #F0F8FF 100%)"
+    bg_gradient = "radial-gradient(circle at 0% 0%, #fdfbfb 0%, transparent 50%), radial-gradient(circle at 100% 100%, #ebedee 0%, transparent 50%), #ffffff"
     txt = "#1a1a1a" 
-    sidebar_bg = "rgba(255, 255, 255, 0.6)"
-    chat_input_bg = "rgba(255, 255, 255, 0.95)" 
+    sidebar_bg = "rgba(255, 255, 255, 0.7)"
+    chat_input_bg = "rgba(255, 255, 255, 0.6)" 
     btn_bg = "rgba(255, 255, 255, 0.9)" 
     btn_txt = "#1a1a1a" 
     border_col = "rgba(0,0,0,0.1)" 
-    glass_bg = "rgba(255, 255, 255, 0.7)" 
+    glass_bg = "rgba(255, 255, 255, 0.5)" 
     watermark_opacity = "0.08"
     radio_bg = "#ffffff"
     radio_border = "#f97316"
-    glow_color = "rgba(249, 115, 22, 0.2)"
 
 css = f"""
 <style>
-    .stApp, [data-testid="stAppViewContainer"], [data-testid="stHeader"], [data-testid="stBottom"], [data-testid="stBottom"] > div {{
+    /* 🌟 Animated Glowing Background */
+    .stApp {{
         background: {bg_gradient} !important;
+        background-attachment: fixed !important;
     }}
 
+    /* 🌟 Moving Orb for Glass Blur Effect */
+    .stApp::after {{
+        content: "";
+        position: fixed;
+        top: 50%; left: 50%;
+        width: 800px; height: 800px;
+        background: radial-gradient(circle, rgba(249, 115, 22, 0.15) 0%, transparent 60%);
+        transform: translate(-50%, -50%);
+        animation: pulseOrb 10s ease-in-out infinite alternate;
+        z-index: 0;
+        pointer-events: none;
+    }}
+
+    @keyframes pulseOrb {{
+        0% {{ transform: translate(-50%, -50%) scale(0.8); opacity: 0.5; }}
+        100% {{ transform: translate(-50%, -50%) scale(1.2); opacity: 1; }}
+    }}
+
+    /* 🌟 Watermark */
     [data-testid="stAppViewContainer"]::before {{
         content: ""; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
         width: 600px; height: 600px;
@@ -408,36 +426,41 @@ css = f"""
     [data-testid="stChatMessage"] *, [data-testid="stMarkdownContainer"] *,
     [data-testid="stSidebar"] p, [data-testid="stSidebar"] span, [data-testid="stSidebar"] label {{ color: {txt} !important; }}
 
-    /* 💎 Glassmorphism & Animated Glow */
+    /* 💎 TRUE GLASSMORPHISM CHAT BUBBLES */
     [data-testid="stChatMessage"] {{
         background: {glass_bg} !important; 
-        backdrop-filter: blur(15px) !important;
-        -webkit-backdrop-filter: blur(15px) !important;
+        backdrop-filter: blur(20px) !important;
+        -webkit-backdrop-filter: blur(20px) !important;
         border: 1px solid {border_col} !important; 
-        border-radius: 16px !important;
-        padding: 15px !important; 
-        margin-bottom: 15px !important;
+        border-radius: 20px !important;
+        padding: 20px !important; 
+        margin-bottom: 20px !important;
         display: flex !important; 
         flex-direction: row !important; 
         align-items: flex-start !important;
-        animation: glowAnimation 3s infinite alternate !important;
+        z-index: 1;
+        box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.15) !important;
     }}
 
-    @keyframes glowAnimation {{
-        0% {{ box-shadow: 0 4px 20px rgba(0,0,0,0.05), 0 0 10px {glow_color} !important; }}
-        100% {{ box-shadow: 0 4px 20px rgba(0,0,0,0.1), 0 0 25px {glow_color} !important; }}
+    /* AI Message Animated Glow */
+    [data-testid="stChatMessage"]:not(:has([data-testid="chatAvatarIcon-user"])) {{
+        animation: aiGlow 4s infinite alternate !important;
+    }}
+    @keyframes aiGlow {{
+        0% {{ border-color: rgba(255, 255, 255, 0.1) !important; box-shadow: 0 0 10px rgba(255, 255, 255, 0.05) !important; }}
+        100% {{ border-color: rgba(249, 115, 22, 0.5) !important; box-shadow: 0 0 30px rgba(249, 115, 22, 0.3) !important; }}
     }}
 
-    /* 🔥 User Message Right Align */
+    /* User Message Right Align + Animated Glow */
     [data-testid="stChatMessage"]:has([data-testid="chatAvatarIcon-user"]) {{
         flex-direction: row-reverse !important;
         background: rgba(249, 115, 22, 0.15) !important; 
-        border-color: rgba(249, 115, 22, 0.4) !important;
-        animation: glowUserAnimation 3s infinite alternate !important;
+        border: 1px solid rgba(249, 115, 22, 0.3) !important;
+        animation: userGlow 4s infinite alternate !important;
     }}
-    @keyframes glowUserAnimation {{
-        0% {{ box-shadow: 0 4px 20px rgba(0,0,0,0.05), 0 0 10px rgba(249, 115, 22, 0.2) !important; }}
-        100% {{ box-shadow: 0 4px 20px rgba(0,0,0,0.1), 0 0 25px rgba(249, 115, 22, 0.6) !important; }}
+    @keyframes userGlow {{
+        0% {{ box-shadow: 0 0 10px rgba(249, 115, 22, 0.1) !important; }}
+        100% {{ box-shadow: 0 0 30px rgba(249, 115, 22, 0.6) !important; }}
     }}
     
     [data-testid="stChatMessage"]:has([data-testid="chatAvatarIcon-user"]) .stMarkdown {{
@@ -467,10 +490,36 @@ css = f"""
     [data-testid="stAudioInput"] button {{ background-color: #f97316 !important; color: white !important; border: none !important; }}
     [data-testid="stAudioInput"] button svg {{ fill: white !important; color: white !important; }}
 
-    [data-testid="stChatInput"] {{ position: fixed !important; bottom: 20px !important; left: 21rem !important; right: 2rem !important; z-index: 999 !important; max-width: 900px !important; background: {chat_input_bg} !important; backdrop-filter: blur(15px) !important; border: 2px solid #f97316 !important; border-radius: 25px !important; padding: 5px 10px !important; box-shadow: 0 4px 20px rgba(0,0,0,0.08) !important; }}
+    /* 🔥 CHAT INPUT BOX ANIMATED GLASS & GLOW 🔥 */
+    [data-testid="stChatInput"] {{ 
+        position: fixed !important; 
+        bottom: 20px !important; 
+        left: 21rem !important; 
+        right: 2rem !important; 
+        z-index: 999 !important; 
+        max-width: 900px !important; 
+        
+        background: {chat_input_bg} !important; 
+        backdrop-filter: blur(20px) !important; 
+        -webkit-backdrop-filter: blur(20px) !important;
+        
+        border: 2px solid #f97316 !important; 
+        border-radius: 25px !important; 
+        padding: 5px 10px !important; 
+        animation: inputGlow 3s infinite alternate !important;
+    }}
+    
+    @keyframes inputGlow {{
+        0% {{ box-shadow: 0 0 10px rgba(249, 115, 22, 0.2) !important; border-color: rgba(249, 115, 22, 0.5) !important; }}
+        100% {{ box-shadow: 0 0 30px rgba(249, 115, 22, 0.8), inset 0 0 15px rgba(249, 115, 22, 0.2) !important; border-color: rgba(249, 115, 22, 1) !important; }}
+    }}
+
     [data-testid="stChatInput"] > div {{ background-color: transparent !important; }}
+    [data-testid="stChatInput"] div[data-testid="stVerticalBlock"] {{ background-color: transparent !important; }}
     [data-testid="stChatInput"] textarea {{ background-color: transparent !important; color: {txt} !important; padding-right: 80px !important; }}
-    [data-testid="stChatInput"] button {{ background-color: #f97316 !important; color: white !important; border-radius: 50% !important; }}
+    
+    [data-testid="stChatInput"] button {{ background-color: #f97316 !important; color: white !important; border-radius: 50% !important; transition: all 0.3s !important; }}
+    [data-testid="stChatInput"] button:hover {{ transform: scale(1.1) !important; box-shadow: 0 0 15px rgba(249, 115, 22, 0.8) !important; }}
 
     [data-testid="stBottom"] > div {{ background: transparent !important; }}
     #MainMenu {{visibility: hidden;}} footer {{visibility: hidden;}}
@@ -569,7 +618,6 @@ with st.sidebar:
     st.caption(f"👤 **{st.session_state.username}**")
     
     if st.button("🚪 Logout", use_container_width=True):
-        # লগআউটের সময় URL ক্লিয়ার হবে
         st.query_params.clear()
         st.session_state.logged_in = False
         st.session_state.username = ""
