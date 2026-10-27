@@ -549,81 +549,33 @@ else:
 # ============ CSS ============
 css = """
 <style>
-    .stApp {
-        background: BG_COLOR !important;
-    }
-    [data-testid="stSidebar"] {
-        background: SIDEBAR_BG !important;
-    }
-    .main p, .main span, .main label, .main h1, .main h2, .main h3,
-    .main h4, .main h5, .main h6 {
+    .stApp { background: BG_COLOR !important; }
+    [data-testid="stSidebar"] { background: SIDEBAR_BG !important; }
+    
+    .main p, .main span, .main label, .main h1, .main h2, .main h3 {
         color: TXT_COLOR !important;
     }
-    [data-testid="stSidebar"] p,
-    [data-testid="stSidebar"] span,
-    [data-testid="stSidebar"] label {
+    [data-testid="stSidebar"] p, [data-testid="stSidebar"] span, [data-testid="stSidebar"] label {
         color: TXT_COLOR !important;
     }
+    
     .main .block-container {
         padding-top: 1.5rem;
         max-width: 900px;
         padding-bottom: 120px !important;
     }
+    
     .header {
         background: linear-gradient(135deg, #f59e0b 0%, #ef4444 100%) !important;
         padding: 1.4rem 1.6rem;
         border-radius: 14px;
         margin-bottom: 1.2rem;
     }
-    .header h1 {
-        margin: 0;
-        font-size: 1.8rem;
-        color: #ffffff !important;
-    }
-    .header p {
-        margin: 0.3rem 0 0;
-        opacity: 0.95;
-        font-size: 0.95rem;
-        color: #ffffff !important;
-    }
-    [data-testid="stChatMessage"] {
-        background: transparent !important;
-    }
-    [data-testid="stChatMessage"] p,
-    [data-testid="stChatMessage"] span {
-        color: TXT_COLOR !important;
-    }
-    .stButton > button {
-        background: BUTTON_BG !important;
-        color: BUTTON_TXT !important;
-        border: 1px solid BORDER_COLOR !important;
-        border-radius: 10px !important;
-    }
-    .stButton > button:hover {
-        background: BUTTON_HOVER !important;
-        border-color: #f59e0b !important;
-    }
-    .stButton > button p,
-    .stButton > button div,
-    .stButton > button span {
-        color: BUTTON_TXT !important;
-    }
-    .stButton > button[kind="primary"] {
-        background: linear-gradient(135deg, #f59e0b, #ef4444) !important;
-        border: none !important;
-    }
-    .stButton > button[kind="primary"] p,
-    .stButton > button[kind="primary"] div {
-        color: #ffffff !important;
-    }
-    .stTextInput input, .stChatInput textarea {
-        background: INPUT_BG !important;
-        color: TXT_COLOR !important;
-        border: 1px solid BORDER_COLOR !important;
-    }
-    .stRadio label, .stRadio p, .stRadio span {
-        color: TXT_COLOR !important;
-    }
+    .header h1 { margin: 0; font-size: 1.8rem; color: #ffffff !important; }
+    .header p { margin: 0.3rem 0 0; opacity: 0.95; font-size: 0.95rem; color: #ffffff !important; }
+    
+    [data-testid="stChatMessage"] { background: transparent !important; }
+    [data-testid="stChatMessage"] p, [data-testid="stChatMessage"] span { color: TXT_COLOR !important; }
 
     /* Glassmorphism Chat Input */
     [data-testid="stChatInput"] {
@@ -633,59 +585,39 @@ css = """
         right: 2rem !important;
         z-index: 999 !important;
         max-width: 900px !important;
-        background: rgba(30, 30, 30, 0.4) !important;
-        backdrop-filter: blur(15px) !important;
+        background: rgba(255, 255, 255, 0.05) !important; /* স্বচ্ছ ব্যাকগ্রাউন্ড */
+        backdrop-filter: blur(15px) !important; /* কাঁচের মতো ব্লার */
         -webkit-backdrop-filter: blur(15px) !important;
-        border: 1px solid rgba(255, 255, 255, 0.15) !important;
+        border: 1px solid rgba(255, 255, 255, 0.2) !important; /* হালকা বর্ডার */
         border-radius: 20px !important;
-        box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37) !important;
-        padding: 5px 10px !important;
+        box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5) !important;
+        padding: 5px 15px !important;
     }
     [data-testid="stChatInput"] textarea {
         background: transparent !important;
         color: white !important;
     }
 
-    /* Hide footer & menu */
     footer { visibility: hidden; }
     #MainMenu { visibility: hidden; }
-    hr { border-color: BORDER_COLOR !important; }
 
-    /* Mobile Optimization for Glass Input */
+    /* Mobile Optimization */
     @media (max-width: 768px) {
-        .main .block-container {
-            padding-top: 1rem;
-            padding-left: 0.5rem;
-            padding-right: 0.5rem;
-            padding-bottom: 20px !important;
-        }
+        .main .block-container { padding-top: 1rem; padding-bottom: 20px !important; }
         [data-testid="stChatInput"] {
             position: relative !important; 
-            left: 0 !important;
-            right: 0 !important;
-            bottom: 0 !important;
-            max-width: 100% !important;
-            width: 100% !important;
+            left: 0 !important; right: 0 !important; bottom: 0 !important;
+            max-width: 100% !important; width: 100% !important;
             border-radius: 10px !important;
-            padding: 5px 10px !important;
         }
-        .header h1 { font-size: 1.5rem !important; }
-        .header p { font-size: 0.8rem !important; }
     }
 </style>
 """
-
 css = css.replace("BG_COLOR", bg)
 css = css.replace("TXT_COLOR", txt)
 css = css.replace("SIDEBAR_BG", sidebar_bg)
-css = css.replace("BUTTON_BG", button_bg)
-css = css.replace("BUTTON_TXT", button_txt)
-css = css.replace("BUTTON_HOVER", button_hover)
-css = css.replace("BORDER_COLOR", border_color)
-css = css.replace("INPUT_BG", input_bg)
 
 st.markdown(css, unsafe_allow_html=True)
-
 # ============ SIDEBAR ============
 with st.sidebar:
     st.markdown(f"## 🐝 {NAME}")
@@ -694,7 +626,7 @@ with st.sidebar:
     with col_a:
         st.caption(f"👤 **{st.session_state.username}**")
     with col_b:
-        if st.button("Logout", key="logout_btn"):
+        if st.button("🚪", key="logout_btn"):
             st.session_state.logged_in = False
             st.session_state.username = ""
             st.rerun()
@@ -748,10 +680,6 @@ with st.sidebar:
         index=0 if st.session_state.ai_engine == "Groq" else 1,
         label_visibility="collapsed"
     )
-    
-    if "DeepSeek" in engine_choice:
-        st.session_state.ai_engine = "DeepSeek"
-    else:
         st.session_state.ai_engine = "Groq"
       
 # ============ MAIN ============
