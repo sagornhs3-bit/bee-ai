@@ -1,4 +1,4 @@
-"""Bee - Ultimate AI Assistant (Image Actions + Fixed Generation)"""
+"""Bee - Ultimate AI Assistant (Glassmorphism Glow + Flux Image Gen)"""
 
 import streamlit as st
 import json
@@ -308,7 +308,7 @@ def ask_llm(prompt, chat_history, file_context=""):
     client = get_groq()
     if not client: return "API Key নেই।"
 
-    image_keywords = ["ছবি তৈরি", "ছবি বানাও", "draw", "generate image", "picture of", "paint", "pic", "image", "photo", "আঁকো", "আঁক"]
+    image_keywords = ["ছবি তৈরি", "ছবি বানাও", "draw", "generate image", "picture of", "paint", "pic", "image", "photo", "আঁকো", "আঁক", "banao", "bana", "chobi", "ছবি"]
     
     if any(kw in prompt.lower() for kw in image_keywords):
         with st.spinner("🎨 ছবি তৈরি করা হচ্ছে..."):
@@ -319,10 +319,10 @@ def ask_llm(prompt, chat_history, file_context=""):
             if len(clean_prompt) < 3: 
                 clean_prompt = "beautiful aesthetic scenery, highly detailed"
             
-            # 🔥 Random Seed যুক্ত করা হলো যাতে Pollinations AI বারবার ব্লক না করে
+            # 🔥 flux মডেল এবং Random Seed যুক্ত করা হলো
             seed = random.randint(1, 999999)
             encoded_prompt = urllib.parse.quote(clean_prompt)
-            img_url = f"https://image.pollinations.ai/prompt/{encoded_prompt}?width=1024&height=1024&nologo=true&seed={seed}"
+            img_url = f"https://image.pollinations.ai/prompt/{encoded_prompt}?width=1024&height=1024&nologo=true&seed={seed}&model=flux"
             
             return f"আপনার অনুরোধ অনুযায়ী ছবিটি তৈরি করেছি:\n\n![Generated Image]({img_url})\n\n_ছবিটি ডাউনলোড করতে নিচের বাটনটি ব্যবহার করুন।_"
 
@@ -357,7 +357,7 @@ def ask_llm(prompt, chat_history, file_context=""):
         return f"Error: {e}"
 
 # ============================================================
-# 🎨 PREMIUM CSS
+# 🎨 PREMIUM CSS (Glassmorphism Animated Glow Fix)
 # ============================================================
 if dark:
     bg_base = "#0e1117"
@@ -372,6 +372,7 @@ if dark:
     watermark_opacity = "0.08"
     radio_bg = "#262730"
     radio_border = "#ffffff"
+    glow_color = "rgba(249, 115, 22, 0.3)"
 else:
     bg_base = "#ffffff"
     bg_gradient = "linear-gradient(135deg, #FFFDFB 0%, #FFF0F5 50%, #F0F8FF 100%)"
@@ -385,6 +386,7 @@ else:
     watermark_opacity = "0.08"
     radio_bg = "#ffffff"
     radio_border = "#f97316"
+    glow_color = "rgba(249, 115, 22, 0.2)"
 
 css = f"""
 <style>
@@ -408,19 +410,38 @@ css = f"""
     [data-testid="stChatMessage"] *, [data-testid="stMarkdownContainer"] *,
     [data-testid="stSidebar"] p, [data-testid="stSidebar"] span, [data-testid="stSidebar"] label {{ color: {txt} !important; }}
 
+    /* 💎 Glassmorphism & Animated Glow */
     [data-testid="stChatMessage"] {{
-        background: {glass_bg} !important; backdrop-filter: blur(10px) !important;
-        border: 1px solid {border_col} !important; border-radius: 15px !important;
-        padding: 15px !important; margin-bottom: 15px !important;
-        box-shadow: 0 4px 15px rgba(0,0,0,0.03) !important;
-        display: flex !important; flex-direction: row !important; align-items: flex-start !important;
+        background: {glass_bg} !important; 
+        backdrop-filter: blur(15px) !important;
+        -webkit-backdrop-filter: blur(15px) !important;
+        border: 1px solid {border_col} !important; 
+        border-radius: 16px !important;
+        padding: 15px !important; 
+        margin-bottom: 15px !important;
+        display: flex !important; 
+        flex-direction: row !important; 
+        align-items: flex-start !important;
+        animation: glowAnimation 3s infinite alternate !important;
     }}
 
+    @keyframes glowAnimation {{
+        0% {{ box-shadow: 0 4px 20px rgba(0,0,0,0.05), 0 0 10px {glow_color} !important; }}
+        100% {{ box-shadow: 0 4px 20px rgba(0,0,0,0.1), 0 0 25px {glow_color} !important; }}
+    }}
+
+    /* 🔥 User Message Right Align */
     [data-testid="stChatMessage"]:has([data-testid="chatAvatarIcon-user"]) {{
         flex-direction: row-reverse !important;
-        background: rgba(249, 115, 22, 0.1) !important; 
-        border-color: rgba(249, 115, 22, 0.3) !important;
+        background: rgba(249, 115, 22, 0.15) !important; 
+        border-color: rgba(249, 115, 22, 0.4) !important;
+        animation: glowUserAnimation 3s infinite alternate !important;
     }}
+    @keyframes glowUserAnimation {{
+        0% {{ box-shadow: 0 4px 20px rgba(0,0,0,0.05), 0 0 10px rgba(249, 115, 22, 0.2) !important; }}
+        100% {{ box-shadow: 0 4px 20px rgba(0,0,0,0.1), 0 0 25px rgba(249, 115, 22, 0.6) !important; }}
+    }}
+    
     [data-testid="stChatMessage"]:has([data-testid="chatAvatarIcon-user"]) .stMarkdown {{
         text-align: right !important;
     }}
@@ -513,23 +534,19 @@ if st.session_state.voice_ui:
 # 🖼️ IMAGE RENDERING HELPER (With Action Buttons)
 # ============================================================
 def render_message_with_image(content):
-    # চেক করা হচ্ছে মেসেজে Pollinations AI-এর কোনো লিংক আছে কি না
     img_match = re.search(r'!\[.*?\]\((https://image\.pollinations\.ai/.*?)\)', content)
     
     if img_match:
-        # ছবির আগের টেক্সট
         text_before = content.split(img_match.group(0))[0]
         st.markdown(text_before)
         
         img_url = img_match.group(1)
         
-        # ছবি রেন্ডার
         try:
             st.image(img_url, use_column_width=True)
         except Exception:
             st.error("⚠️ ছবিটি লোড হতে সমস্যা হচ্ছে। সার্ভার ব্যস্ত আছে, দয়া করে আবার চেষ্টা করুন।")
         
-        # 🔥 Action Buttons (Download, Share, Like, Report)
         col1, col2, col3, col4 = st.columns(4)
         with col1:
             st.markdown(f'<a href="{img_url}" target="_blank" download style="text-decoration: none;"><div style="width:100%; border-radius:8px; padding:6px; background:#f97316; color:white; text-align:center; font-size:13px;">📥 Download</div></a>', unsafe_allow_html=True)
@@ -543,7 +560,6 @@ def render_message_with_image(content):
             if st.button("🚩 Report", key=f"report_{hash(img_url)}", use_container_width=True):
                 st.toast("🚨 রিপোর্ট করা হয়েছে।")
         
-        # ছবির পরের টেক্সট
         text_after = content.split(img_match.group(0))[1] if len(content.split(img_match.group(0))) > 1 else ""
         st.markdown(text_after)
     else:
@@ -637,7 +653,6 @@ else:
     for m in cur["messages"]:
         avatar_icon = "👤" if m["role"] == "user" else "https://raw.githubusercontent.com/sagornhs3-bit/bee-ai/main/bumblebee.png"
         with st.chat_message(m["role"], avatar=avatar_icon): 
-            # 🔥 এখানে ইমেজ রেন্ডারিং ফাংশন কল করা হচ্ছে
             render_message_with_image(m["content"])
 
 # ============ INPUT AREA ============
@@ -688,7 +703,6 @@ if user_message:
             history = current_chat["messages"][:-1]
             reply = ask_llm(user_message, history, file_context)
         
-        # 🔥 এখানে ইমেজ রেন্ডারিং ফাংশন কল করা হচ্ছে
         render_message_with_image(reply)
         
     add_msg(st.session_state.chat_id, "bee", reply)
