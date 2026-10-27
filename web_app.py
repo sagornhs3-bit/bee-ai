@@ -1,4 +1,4 @@
-"""Bee - Ultimate AI Assistant (ChatGPT Style UI, Transformer Voice, File)"""
+"""Bee - Ultimate AI Assistant (Voice in Sidebar, Fully Optimized UI)"""
 
 import streamlit as st
 import json
@@ -196,44 +196,41 @@ if dark:
     btn_bg = "#262730"
     btn_txt = "#fafafa"
     border_col = "#3a3d45"
-    mic_col = "#a3a3a3"
-    bottom_bg = "#0e1117"
 else:
     bg = "#ffffff"
     txt = "#1a1a1a"
     sidebar_bg = "#f8f9fa"
-    chat_input_bg = "#f0f2f6" 
+    chat_input_bg = "#ffffff" 
     chat_input_border = "#f97316"
     btn_bg = "#e9ecef"
     btn_txt = "#1a1a1a"
     border_col = "#ced4da"
-    mic_col = "#6c757d"
-    bottom_bg = "#ffffff"
 
 css = """
 <style>
-    /* Force Main, Bottom, and Header Backgrounds */
+    /* Force ALL Backgrounds */
     .stApp, [data-testid="stAppViewContainer"], [data-testid="stHeader"], [data-testid="stBottom"] { 
         background: BG_COLOR !important; 
     }
     [data-testid="stSidebar"] { background: SIDEBAR_BG !important; }
     
+    /* Hide Manage App Button completely */
+    [data-testid="stStatusWidget"] { display: none !important; }
+    footer { visibility: hidden; } #MainMenu { visibility: hidden; }
+
     /* Force Text Colors */
     .main p, .main span, .main label, .main h1, .main h2, .main h3, .main div, 
     [data-testid="stSidebar"] p, [data-testid="stSidebar"] span, [data-testid="stSidebar"] label { 
         color: TXT_COLOR !important; 
     }
 
-    /* Force Input Text Box (Name field) */
+    /* Force Input Box (Name) */
     [data-testid="stTextInput"] input {
-        background: CHAT_INPUT_BG !important;
+        background: BG_COLOR !important;
         color: TXT_COLOR !important;
         border: 1px solid BORDER_COL !important;
         border-radius: 8px !important;
     }
-    
-    /* Top native header icons */
-    [data-testid="stHeader"] svg { fill: TXT_COLOR !important; stroke: TXT_COLOR !important; }
 
     .main .block-container { padding-top: 1.5rem; max-width: 900px; padding-bottom: 150px !important; }
     
@@ -264,7 +261,6 @@ css = """
         100% { box-shadow: 0 0 5px rgba(249, 115, 22, 0.3); border-color: rgba(249, 115, 22, 0.3) !important; }
     }
     
-    /* Make chat input container completely styled */
     [data-testid="stChatInput"] {
         position: fixed !important; bottom: 20px !important; left: 21rem !important; right: 2rem !important;
         z-index: 999 !important; max-width: 900px !important;
@@ -275,7 +271,6 @@ css = """
         padding: 5px 10px !important;
     }
     
-    /* Force textarea to be transparent so the container color shows */
     [data-testid="stChatInput"] textarea { 
         background: transparent !important; 
         color: TXT_COLOR !important;
@@ -290,72 +285,18 @@ css = """
         border: none !important;
     }
 
-    /* 🔥 FORCE MIC BUTTON VISIBILITY AND POSITION */
-    [data-testid="stAudioInput"] {
-        position: fixed !important;
-        bottom: 28px !important; 
-        right: 5.5rem !important; 
-        z-index: 10000 !important; /* Sit above everything */
-        width: 40px !important;
-        height: 40px !important;
-        background: transparent !important;
-        border: none !important;
-        box-shadow: none !important;
-        overflow: visible !important;
+    /* Mobile & Tablet Optimization */
+    @media (max-width: 1024px) {
+        [data-testid="stChatInput"] { left: 2rem !important; right: 2rem !important; }
     }
     
-    /* Strip out ALL Streamlit audio input UI elements except the button */
-    [data-testid="stAudioInput"] > div { 
-        padding: 0 !important; 
-        margin: 0 !important;
-        background: transparent !important; 
-        border: none !important;
-    }
-    [data-testid="stAudioInput"] div[data-testid="stVerticalBlock"],
-    [data-testid="stAudioInput"] div[data-testid="stHorizontalBlock"],
-    [data-testid="stAudioInput"] p,
-    [data-testid="stAudioInput"] span,
-    [data-testid="stAudioInput"] [data-testid="stMarkdownContainer"],
-    [data-testid="stAudioInput"] div[class*="Waveform"],
-    [data-testid="stAudioInput"] div[class*="Timer"] { 
-        display: none !important; 
-    }
-
-    /* Style the Mic Icon button itself */
-    [data-testid="stAudioInput"] button {
-        background: transparent !important;
-        color: MIC_COL !important;
-        padding: 0 !important;
-        border: none !important;
-        box-shadow: none !important;
-        display: flex !important;
-        align-items: center !important;
-        justify-content: center !important;
-        width: 100% !important;
-        height: 100% !important;
-    }
-    
-    [data-testid="stAudioInput"] button svg {
-        fill: MIC_COL !important;
-        color: MIC_COL !important;
-        width: 26px !important;
-        height: 26px !important;
-    }
-    [data-testid="stAudioInput"] button:hover svg { 
-        fill: #f97316 !important; 
-        color: #f97316 !important; 
-    }
-
-    footer { visibility: hidden; } #MainMenu { visibility: hidden; }
-
     @media (max-width: 768px) {
         .main .block-container { padding-bottom: 120px !important; }
-        [data-testid="stChatInput"] { left: 1rem !important; right: 1rem !important; bottom: 10px !important; }
-        [data-testid="stAudioInput"] { bottom: 18px !important; right: 4.5rem !important; }
+        [data-testid="stChatInput"] { left: 1rem !important; right: 1rem !important; bottom: 10px !important; width: calc(100% - 2rem) !important; }
     }
 </style>
 """
-css = css.replace("BG_COLOR", bg).replace("TXT_COLOR", txt).replace("SIDEBAR_BG", sidebar_bg).replace("CHAT_INPUT_BG", chat_input_bg).replace("CHAT_INPUT_BORDER", chat_input_border).replace("BTN_BG", btn_bg).replace("BTN_TXT", btn_txt).replace("BORDER_COL", border_col).replace("MIC_COL", mic_col).replace("BOTTOM_BG", bottom_bg)
+css = css.replace("BG_COLOR", bg).replace("TXT_COLOR", txt).replace("SIDEBAR_BG", sidebar_bg).replace("CHAT_INPUT_BG", chat_input_bg).replace("CHAT_INPUT_BORDER", chat_input_border).replace("BTN_BG", btn_bg).replace("BTN_TXT", btn_txt).replace("BORDER_COL", border_col)
 st.markdown(css, unsafe_allow_html=True)
 
 # ============ SIDEBAR ============
@@ -367,6 +308,12 @@ with st.sidebar:
     if uname: st.caption(f"Hi, **{uname}** 💕")
     if st.button("➕  New Chat", use_container_width=True, type="primary"):
         new_chat(); st.rerun()
+    st.divider()
+    
+    # 🔥 VOICE MODE (Moved to Sidebar)
+    st.markdown("**🎤 Voice Mode**")
+    audio_value = st.audio_input("Record your voice", label_visibility="collapsed")
+    
     st.divider()
     st.markdown("**💬 History**")
     chats = load_chats()["chats"]
@@ -383,10 +330,12 @@ with st.sidebar:
                 if st.session_state.chat_id == c["id"]: st.session_state.chat_id = None
                 st.rerun()
     st.divider()
+    
     st.markdown("**🎨 Theme**")
     theme = st.radio("Theme", ["🌙 Dark", "☀️ Light"], index=0 if dark else 1, horizontal=True, label_visibility="collapsed")
     new_t = "dark" if "Dark" in theme else "light"
     if new_t != st.session_state.theme: st.session_state.theme = new_t; st.rerun()
+    
     st.divider()
     st.markdown("**👤 Your Name**")
     new_name = st.text_input("name_field", value=uname or "", label_visibility="collapsed")
@@ -422,7 +371,6 @@ else:
         with st.chat_message(m["role"], avatar=avatar): st.markdown(m["content"])
 
 # ============ INPUT AREA ============
-audio_value = st.audio_input("Voice Input", label_visibility="collapsed")
 chat_data = st.chat_input("Type your message here...", accept_file=True, file_type=["pdf", "txt", "csv"])
 
 user_message = None
