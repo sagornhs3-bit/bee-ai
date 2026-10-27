@@ -1,4 +1,4 @@
-"""Bee - Ultimate AI Assistant (Supabase + Intro Animation + Login)"""
+"""Bee - Ultimate AI Assistant (Supabase + Location + Multilingual)"""
 
 import streamlit as st
 import json
@@ -7,6 +7,7 @@ import datetime
 import sys
 import time
 import hashlib
+import requests # লোকেশন ডিটেক্ট করার জন্য
 from pathlib import Path
 import streamlit.components.v1 as components
 import PyPDF2
@@ -15,7 +16,6 @@ from supabase import create_client, Client
 BEE_DIR = Path(__file__).parent
 sys.path.insert(0, str(BEE_DIR))
 
-# আপনার মেমোরি মডিউল (যদি থাকে)
 try:
     from memory import (get_user_name, set_user_name, build_memory_context,
                         remember, recall, get_all_facts)
@@ -76,24 +76,14 @@ if not st.session_state.intro_done:
 # ============================================================
 # 🔐 LOGIN & SIGN UP SYSTEM
 # ============================================================
-# লগইন পেজের জন্য কাস্টম CSS (সব ডিভাইসে সুন্দর দেখাবে)
 st.markdown("""
 <style>
-    /* মূল কন্টেইনারকে মাঝখানে আনবে (শুধু লগইন পেজের জন্য) */
     .login-container .block-container { max-width: 450px !important; padding-top: 5vh !important; }
-    /* বাটনের রঙ কমলা করা হলো */
     .login-container .stButton > button {
-        background-color: #f97316 !important;
-        color: white !important;
-        border: none !important;
-        border-radius: 8px !important;
-        font-weight: bold !important;
+        background-color: #f97316 !important; color: white !important;
+        border: none !important; border-radius: 8px !important; font-weight: bold !important;
     }
-    /* ইনপুট বক্সের ডিজাইন */
-    .login-container .stTextInput > div > div > input {
-        border-radius: 8px !important;
-    }
-    /* মোবাইলের জন্য বিশেষ ব্যবস্থা */
+    .login-container .stTextInput > div > div > input { border-radius: 8px !important; }
     @media (max-width: 768px) {
         .login-container .block-container { padding-top: 2vh !important; padding-left: 15px !important; padding-right: 15px !important; }
     }
@@ -120,7 +110,6 @@ if not st.session_state.logged_in:
         if st.button("Login", use_container_width=True, type="primary"):
             if login_user and login_pass:
                 hashed_pw = hash_password(login_pass)
-                # Check in Supabase
                 res = supabase.table("users").select("*").or_(f"username.eq.{login_user},email.eq.{login_user}").execute()
                 
                 if res.data:
@@ -130,14 +119,12 @@ if not st.session_state.logged_in:
                         st.session_state.username = user["username"]
                         st.session_state.is_premium = user["is_premium"]
                         
-                        # Handle Daily Reset
                         today = datetime.date.today().strftime("%Y-%m-%d")
                         if user["last_date"] != today:
                             st.session_state.msg_count = 0
                             supabase.table("users").update({"msg_count": 0, "last_date": today}).eq("username", user["username"]).execute()
                         else:
                             st.session_state.msg_count = user["msg_count"]
-                            
                         st.rerun()
                     else:
                         st.error("❌ Incorrect password.")
@@ -155,7 +142,6 @@ if not st.session_state.logged_in:
         
         if st.button("Sign Up", use_container_width=True, type="primary"):
             if new_name and new_email and new_user and new_pass:
-                # Check if user exists
                 check = supabase.table("users").select("username").or_(f"username.eq.{new_user},email.eq.{new_email}").execute()
                 if check.data:
                     st.error("❌ Username or Email already exists.")
@@ -163,12 +149,8 @@ if not st.session_state.logged_in:
                     hashed_pw = hash_password(new_pass)
                     today = datetime.date.today().strftime("%Y-%m-%d")
                     data = {
-                        "username": new_user,
-                        "email": new_email,
-                        "password": hashed_pw,
-                        "is_premium": False,
-                        "msg_count": 0,
-                        "last_date": today
+                        "username": new_user, "email": new_email, "password": hashed_pw,
+                        "is_premium": False, "msg_count": 0, "last_date": today
                     }
                     try:
                         supabase.table("users").insert(data).execute()
@@ -179,10 +161,10 @@ if not st.session_state.logged_in:
                 st.warning("Please fill all fields.")
     
     st.markdown("</div>", unsafe_allow_html=True)
-    st.stop() # Stop here if not logged in
+    st.stop()
 
 # ============================================================
-# 🔓 MAIN APP (Only for Logged-in Users)
+# 🔓 MAIN APP
 # ============================================================
 def load_cfg():
     try:
@@ -196,22 +178,13 @@ CONFIG = load_cfg()
 NAME = CONFIG.get("assistant_name", "Bee")
 GROQ_KEY = CONFIG.get("groq_api_key", "")
 
-# ============================================================
-# 🔴 Involve Asia Affiliate Links
-# ============================================================
 AFFILIATE_LINKS = {
-    "মোবাইল": "https://your-involve-asia-link.com",
-    "mobile": "https://your-involve-asia-link.com",
-    "phone": "https://your-involve-asia-link.com",
-    "ফোন": "https://your-involve-asia-link.com",
-    "ল্যাপটপ": "https://your-involve-asia-link.com",
-    "laptop": "https://your-involve-asia-link.com",
-    "হেডফোন": "https://your-involve-asia-link.com",
-    "headphone": "https://your-involve-asia-link.com",
-    "earbuds": "https://your-involve-asia-link.com",
-    "ঘড়ি": "https://your-involve-asia-link.com",
-    "watch": "https://your-involve-asia-link.com",
-    "বই": "https://your-involve-asia-link.com",
+    "মোবাইল": "https://your-involve-asia-link.com", "mobile": "https://your-involve-asia-link.com",
+    "phone": "https://your-involve-asia-link.com", "ফোন": "https://your-involve-asia-link.com",
+    "ল্যাপটপ": "https://your-involve-asia-link.com", "laptop": "https://your-involve-asia-link.com",
+    "হেডফোন": "https://your-involve-asia-link.com", "headphone": "https://your-involve-asia-link.com",
+    "earbuds": "https://your-involve-asia-link.com", "ঘড়ি": "https://your-involve-asia-link.com",
+    "watch": "https://your-involve-asia-link.com", "বই": "https://your-involve-asia-link.com",
     "book": "https://your-involve-asia-link.com",
 }
 
@@ -224,7 +197,6 @@ def inject_affiliate_links(user_msg, ai_reply):
             break
     return ai_reply
 
-# ============ PREMIUM SETUP ============
 DAILY_LIMIT = 20 
 BKASH_NUMBER = "01840506838"
 CODE_LIFETIME = "BEE-PRO" 
@@ -243,8 +215,7 @@ else: dark = False
 # ============ STORAGE (Supabase) ============
 def load_chats():
     res = supabase.table("chats").select("*").eq("username", st.session_state.username).order("created_at", desc=True).execute()
-    if res.data:
-        return {"chats": res.data}
+    if res.data: return {"chats": res.data}
     return {"chats": []}
 
 def new_chat():
@@ -252,14 +223,8 @@ def new_chat():
     if data["chats"] and data["chats"][0]["title"] == "New Chat" and len(data["chats"][0]["messages"]) == 0:
         st.session_state.chat_id = data["chats"][0]["id"]
         return
-    
     cid = str(uuid.uuid4())
-    supabase.table("chats").insert({
-        "id": cid, 
-        "username": st.session_state.username, 
-        "title": "New Chat", 
-        "messages": []
-    }).execute()
+    supabase.table("chats").insert({"id": cid, "username": st.session_state.username, "title": "New Chat", "messages": []}).execute()
     st.session_state.chat_id = cid
 
 def get_chat(cid):
@@ -272,11 +237,9 @@ def add_msg(cid, role, content):
     if chat:
         messages = chat["messages"]
         messages.append({"role": role, "content": content})
-        
         title = chat["title"]
         if role == "user" and title == "New Chat":
             title = content[:28] + ("..." if len(content) > 28 else "")
-            
         supabase.table("chats").update({"messages": messages, "title": title}).eq("id", cid).execute()
 
 def del_chat(cid):
@@ -292,15 +255,32 @@ def get_groq():
         except Exception: _groq = None
     return _groq
 
+# ============ LOCATION & TIME DETECTION ============
+@st.cache_data(ttl=3600) # ১ ঘণ্টার জন্য ক্যাশে রাখবে
+def get_user_location():
+    try:
+        res = requests.get("https://ipapi.co/json/", timeout=3).json()
+        city = res.get("city", "Unknown")
+        country = res.get("country_name", "Unknown")
+        return f"{city}, {country}"
+    except:
+        return "Unknown Location"
+
 # ============ HELPERS ============
 def speak_text(text):
     st.toast("🤖 Transformer Bee কথা বলছে...")
     js_text = json.dumps(text)
+    # স্ক্রিপ্ট: যদি টেক্সটে বাংলা অক্ষর থাকে তবে বাংলায় বলবে, নাহলে ইংরেজিতে
     js_code = f"""
     <script>
         var msg = new SpeechSynthesisUtterance({js_text});
-        msg.lang = 'bn-BD'; msg.pitch = 0.1; msg.rate = 0.85; msg.volume = 1.0;
-        window.speechSynthesis.cancel(); window.speechSynthesis.speak(msg);
+        var isBengali = /[\u0980-\u09FF]/.test({js_text});
+        msg.lang = isBengali ? 'bn-BD' : 'en-US'; 
+        msg.pitch = 0.1;    
+        msg.rate = 0.85;    
+        msg.volume = 1.0;
+        window.speechSynthesis.cancel();
+        window.speechSynthesis.speak(msg);
     </script>
     """
     components.html(js_code, height=0)
@@ -341,7 +321,23 @@ def ask_llm(prompt, chat_history, file_context=""):
         with st.spinner("🌐 ইন্টারনেটে খুঁজছি..."):
             web_context = search_web(prompt.lower().replace("search", "").strip())
 
-    sys_prompt = f"""You are {NAME}, a helpful AI assistant.\n{file_context}\n\n## Web Context:\n{web_context}\n\n## Important Rules:\n1. Reply in the EXACT same language the user uses.\n2. NEVER use markdown headers. Use plain text or bullet points."""
+    # লোকেশন এবং তারিখ বের করা
+    location = get_user_location()
+    today_str = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
+
+    sys_prompt = f"""You are {NAME}, a helpful AI assistant.
+{file_context}
+
+## Context Information:
+- Current Date & Time: {today_str}
+- User's Approximate Location: {location}
+- Web Context (if any): {web_context}
+
+## Important Rules:
+1. You MUST reply in the EXACT same language the user uses. If the user speaks in Bengali, you MUST reply in Bengali.
+2. NEVER use markdown headers. Use plain text or bullet points.
+3. If the user asks where they are or what time it is, use the Context Information provided above.
+"""
     client = get_groq()
     if not client: return "API Key নেই।"
     
@@ -353,12 +349,13 @@ def ask_llm(prompt, chat_history, file_context=""):
     messages.append({"role": "user", "content": prompt})
 
     try:
-        r = client.chat.completions.create(model="openai/gpt-oss-120b", messages=messages, temperature=0.3)
+        # মডেল পরিবর্তন করে llama-3.3-70b-versatile করা হয়েছে
+        r = client.chat.completions.create(model="llama-3.3-70b-versatile", messages=messages, temperature=0.4)
         return r.choices[0].message.content.strip()
     except Exception as e:
         return f"Error: {e}"
 
-# ============ THEME SETUP (Main App) ============
+# ============ THEME SETUP ============
 if dark:
     bg = "#0e1117"; txt = "#fafafa"; sidebar_bg = "#0e1117"; chat_input_bg = "#262730" 
     btn_bg = "#262730"; btn_txt = "#fafafa"; border_col = "#3a3d45"
