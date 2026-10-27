@@ -1,11 +1,10 @@
-"""Bee - Ultimate AI Assistant (ChatGPT Style Input, Voice, Search, File)"""
+"""Bee - Ultimate AI Assistant (ChatGPT Style UI, Voice, Search, File)"""
 
 import streamlit as st
 import json
 import uuid
 import datetime
 import sys
-import os
 import time
 from pathlib import Path
 import streamlit.components.v1 as components
@@ -113,6 +112,7 @@ def get_groq():
 
 # ============ HELPERS ============
 def speak_text(text):
+    st.toast("🔊 Bee কথা বলছে...")
     js_text = json.dumps(text)
     js_code = f"""
     <script>
@@ -128,18 +128,22 @@ def transcribe_audio(audio_file):
     client = get_groq()
     if not client or not audio_file: return None
     try:
-        transcription = client.audio.transcriptions.create(file=("audio.wav", audio_file.read()), model="whisper-large-v3-turbo", language="bn", response_format="text")
+        audio_bytes = audio_file.read()
+        transcription = client.audio.transcriptions.create(
+            file=("voice.wav", audio_bytes), 
+            model="whisper-large-v3-turbo", 
+            response_format="text"
+        )
         return transcription.strip()
     except Exception as e:
-        st.error(f"Voice Error: {e}"); return None
+        st.error(f"❌ ভয়েস বুঝতে সমস্যা: {e}"); return None
 
 def search_web(query):
     try:
         from duckduckgo_search import DDGS
-        results = DDGS().text(query, max_results=5)
-        if not results: return "No search results found."
-        formatted = "\n".join([f"[Result {i+1}]: {res['title']}\n{res['body']}\n" for i, res in enumerate(results)])
-        return formatted
+        results = DDGS().text(query, max_results=4)
+        if not results: return "No search results."
+        return "\n".join([f"{res['title']}: {res['body']}" for res in results])
     except Exception as e: return f"Search error: {e}"
 
 def extract_text_from_file(uploaded_file):
@@ -149,35 +153,25 @@ def extract_text_from_file(uploaded_file):
             return "\n".join([page.extract_text() for page in reader.pages])[:4000]
         elif uploaded_file.name.endswith(('.txt', '.csv')):
             return str(uploaded_file.read(), "utf-8")[:4000]
-    except Exception as e: return f"File Error: {e}"
+    except Exception: return ""
     return ""
 
 # ============ AI LOGIC ============
 def ask_llm(prompt, chat_history, file_context=""):
     web_context = ""
-    search_triggers = ["search", "who is", "news", "ke", "ki", "kobe", "koto", "খবর", "কে", "কি", "কবে", "কত", "current", "today"]
-    if any(w in prompt.lower() for w in search_triggers):
-        with st.spinner("🌐 আমি ইন্টারনেটে ডিপ সার্চ করছি..."):
-            clean_query = prompt.lower().replace("search", "").strip()
-            web_context = search_web(clean_query)
+    if any(w in prompt.lower() for w in ["search", "who is", "news", "খবর", "কে", "কি", "current", "today"]):
+        with st.spinner("🌐 ইন্টারনেটে খুঁজছি..."):
+            web_context = search_web(prompt.lower().replace("search", "").strip())
 
-    sys_prompt = f"""You are {NAME} — a highly intelligent AI assistant.
-{file_context}
-## Web Context:
-{web_context}
+    sys_prompt = f"""You are {NAME}, a helpful AI. {file_context} \n Web: {web_context}
+Rules: Reply in the same language as the user. Be detailed. Use Web Context if provided. Never say you can't search."""
 
-## Rules:
-1. Reply in the EXACT same language the user uses.
-2. You HAVE internet access. If Web Context is provided, use it. NEVER say "I don't have web search".
-3. Be helpful, detailed, and polite.
-"""
     client = get_groq()
-    if not client: return "দুঃখিত, Groq API Key সেট করা নেই।"
+    if not client: return "API Key নেই।"
     
-    # Strict History Filtering
     messages = [{"role": "system", "content": sys_prompt}]
     for msg in chat_history:
-        if isinstance(msg, dict) and "content" in msg and msg["content"].strip():
+        if isinstance(msg, dict) and msg.get("content", "").strip():
             role = "assistant" if msg.get("role") in ["bee", "assistant"] else "user"
             messages.append({"role": role, "content": msg["content"]})
     messages.append({"role": "user", "content": prompt})
@@ -186,9 +180,9 @@ def ask_llm(prompt, chat_history, file_context=""):
         r = client.chat.completions.create(model="openai/gpt-oss-120b", messages=messages, temperature=0.3)
         return r.choices[0].message.content.strip()
     except Exception as e:
-        return f"Groq Error: {e}"
+        return f"Error: {e}"
 
-# ============ CSS ============
+# ============ CSS (UI DESIGN) ============
 dark = st.session_state.theme == "dark"
 bg = "#0e1117" if dark else "#ffffff"
 txt = "#fafafa" if dark else "#1a1a1a"
@@ -199,8 +193,7 @@ css = """
     .stApp { background: BG_COLOR !important; }
     [data-testid="stSidebar"] { background: SIDEBAR_BG !important; }
     .main p, .main span, .main label, .main h1, .main h2, .main h3, [data-testid="stSidebar"] p, [data-testid="stSidebar"] span, [data-testid="stSidebar"] label { color: TXT_COLOR !important; }
-    
-    .main .block-container { padding-top: 1.5rem; max-width: 900px; padding-bottom: 150px !important; }
+    .main .block-container { padding-top: 1.5rem; max-width: 900px; padding-bottom: 200px !important; }
     .header { background: linear-gradient(135deg, #f59e0b 0%, #ef4444 100%) !important; padding: 1.4rem 1.6rem; border-radius: 14px; margin-bottom: 1.2rem; display: flex; align-items: center; }
     .header h1 { margin: 0; font-size: 1.8rem; color: #ffffff !important; }
     .header p { margin: 0.3rem 0 0; opacity: 0.95; font-size: 0.95rem; color: #ffffff !important; }
@@ -211,7 +204,7 @@ css = """
     [data-testid="stChatMessage"] { background: transparent !important; }
     [data-testid="stChatMessage"] p, [data-testid="stChatMessage"] span { color: TXT_COLOR !important; }
 
-    /* Glowing ChatGPT Style Chat Input */
+    /* Glowing Orange Chat Input */
     @keyframes glow {
         0% { box-shadow: 0 0 5px rgba(249, 115, 22, 0.3); border-color: rgba(249, 115, 22, 0.3) !important; }
         50% { box-shadow: 0 0 15px rgba(249, 115, 22, 0.8); border-color: rgba(249, 115, 22, 0.8) !important; }
@@ -232,33 +225,44 @@ css = """
 
     /* Orange Send Button */
     [data-testid="stChatInput"] button {
-        background-color: #f97316 !important; /* Orange */
+        background-color: #f97316 !important; 
         color: white !important;
         border-radius: 50% !important;
         border: none !important;
     }
 
-    /* Style the native File Uploader inside Chat Input (Paperclip) */
-    [data-testid="stChatInput"] button[data-testid="baseButton-secondary"] {
-        color: white !important;
-    }
-
-    /* Style the Audio Input to sit neatly above the chat */
+    /* MAGIC: Move the Audio Input inside the Chat Bar, Left of Send Button */
     [data-testid="stAudioInput"] {
-        background: rgba(30, 30, 30, 0.6) !important;
-        backdrop-filter: blur(10px) !important;
-        border: 1px solid rgba(255, 255, 255, 0.1) !important;
-        border-radius: 15px !important;
-        padding: 5px 15px !important;
-        margin-bottom: 10px !important;
+        position: fixed !important;
+        bottom: 28px !important;
+        right: 5.5rem !important;
+        z-index: 1000 !important;
+        width: 40px !important; 
+        height: 40px !important;
+        background: transparent !important;
+        border: none !important;
+        overflow: hidden !important;
     }
+    
+    /* Hide the ugly parts of audio input and keep only the mic */
+    [data-testid="stAudioInput"] > div { padding: 0 !important; margin: 0 !important; }
+    [data-testid="stAudioInput"] p, [data-testid="stAudioInput"] .stMarkdown { display: none !important; }
+    [data-testid="stAudioInput"] button {
+        background: transparent !important;
+        color: #a3a3a3 !important;
+        padding: 0 !important;
+        border: none !important;
+        box-shadow: none !important;
+        font-size: 24px !important;
+    }
+    [data-testid="stAudioInput"] button:hover { color: #f97316 !important; }
 
     footer { visibility: hidden; } #MainMenu { visibility: hidden; }
 
     @media (max-width: 768px) {
         .main .block-container { padding-bottom: 120px !important; }
         [data-testid="stChatInput"] { left: 1rem !important; right: 1rem !important; bottom: 10px !important; }
-        [data-testid="stAudioInput"] { margin-bottom: 5px !important; }
+        [data-testid="stAudioInput"] { bottom: 18px !important; right: 4.5rem !important; }
     }
 </style>
 """
@@ -329,10 +333,10 @@ else:
         with st.chat_message(m["role"], avatar=avatar): st.markdown(m["content"])
 
 # ============ INPUT AREA (ChatGPT Style) ============
-# Voice Input (Sits neatly just above the main bar)
-audio_value = st.audio_input("🎤 Voice Input (মাইকে কথা বলুন)", label_visibility="collapsed")
+# ১. ভয়েস ইনপুট (এটি CSS দিয়ে চ্যাট বক্সের ভেতরে ডানদিকে পজিশন করা হয়েছে)
+audio_value = st.audio_input("Voice Input", label_visibility="collapsed")
 
-# Main Chat Input (Now natively supports files inside the bar with accept_file=True)
+# ২. মেইন চ্যাট ইনপুট (টেক্সট + ফাইল)
 chat_data = st.chat_input("Type your message here...", accept_file=True, file_type=["pdf", "txt", "csv"])
 
 user_message = None
@@ -347,6 +351,8 @@ if chat_data:
 elif audio_value is not None:
     with st.spinner("🎤 আপনার কথা শোনা হচ্ছে..."):
         user_message = transcribe_audio(audio_value)
+    if user_message:
+        st.toast(f"🗣️ আপনি বলেছেন: {user_message}")
 
 # ============ HANDLE INPUT ============
 if user_message:
