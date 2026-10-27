@@ -1,4 +1,4 @@
-"""Bee - Ultimate AI Assistant (Fixed Light Theme + Sidebar Toggle + Watermark)"""
+"""Bee - Ultimate AI Assistant (Dreamy Light Theme + Colorful & Fixed Voice UI)"""
 
 import streamlit as st
 import json
@@ -350,7 +350,7 @@ def ask_llm(prompt, chat_history, file_context=""):
         return f"Error: {e}"
 
 # ============================================================
-# 🎨 PREMIUM CSS (Fixed Light Theme, Watermark & Toggle)
+# 🎨 PREMIUM CSS (Dreamy Pastel Theme + Fixed Voice/Emoji)
 # ============================================================
 if dark:
     bg_base = "#0e1117"
@@ -364,26 +364,26 @@ if dark:
     glass_bg = "rgba(255, 255, 255, 0.05)"
     watermark_opacity = "0.08"
 else:
-    # ☀️ Elegant Light Theme Colors
+    # ☀️ Dreamy Pastel Light Theme (Peach & Blue)
     bg_base = "#ffffff"
-    bg_gradient = "radial-gradient(circle at 50% 0%, #fdfbfb 0%, #f4f6f8 100%)"
-    txt = "#000000" 
-    sidebar_bg = "#f8f9fa"
+    bg_gradient = "linear-gradient(135deg, #FFFDFB 0%, #FFF0F5 50%, #F0F8FF 100%)"
+    txt = "#1a1a1a" 
+    sidebar_bg = "rgba(255, 255, 255, 0.6)" # Glassmorphic Sidebar
     chat_input_bg = "rgba(255, 255, 255, 0.95)" 
-    btn_bg = "#ffffff" 
-    btn_txt = "#000000" 
-    border_col = "rgba(0,0,0,0.15)" 
+    btn_bg = "rgba(255, 255, 255, 0.9)" 
+    btn_txt = "#1a1a1a" 
+    border_col = "rgba(0,0,0,0.1)" 
     glass_bg = "rgba(255, 255, 255, 0.7)" 
-    watermark_opacity = "0.1" # 🔥 ওয়াটারমার্ক এখন পরিষ্কার দেখা যাবে
+    watermark_opacity = "0.08"
 
 css = f"""
 <style>
-    /* 🌟 Premium Background Theme */
+    /* 🌟 Premium Colorful Background */
     .stApp, [data-testid="stAppViewContainer"], [data-testid="stHeader"], [data-testid="stBottom"], [data-testid="stBottom"] > div {{
         background: {bg_gradient} !important;
     }}
 
-    /* 🌟 Watermark (Opacity Fixed) */
+    /* 🌟 Watermark */
     [data-testid="stAppViewContainer"]::before {{
         content: "";
         position: fixed;
@@ -405,12 +405,12 @@ css = f"""
         z-index: 1;
     }}
     
-    /* Sidebar */
+    /* Sidebar (Glass Effect) */
     [data-testid="stSidebar"] {{ 
-        background-color: {sidebar_bg} !important; 
-    }}
-    [data-testid="stSidebar"] [data-testid="stVerticalBlock"] {{
-        background-color: {sidebar_bg} !important; 
+        background: {sidebar_bg} !important; 
+        backdrop-filter: blur(15px) !important;
+        -webkit-backdrop-filter: blur(15px) !important;
+        border-right: 1px solid {border_col} !important;
     }}
     
     /* Text Colors */
@@ -427,7 +427,7 @@ css = f"""
         border-radius: 15px !important;
         padding: 15px !important;
         margin-bottom: 15px !important;
-        box-shadow: 0 4px 15px rgba(0,0,0,0.05) !important;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.03) !important;
         display: flex !important;
         flex-direction: row !important;
         align-items: flex-start !important;
@@ -436,7 +436,7 @@ css = f"""
     /* 🔥 User Message Right Align */
     [data-testid="stChatMessage"]:has([data-testid="chatAvatarIcon-user"]) {{
         flex-direction: row-reverse !important;
-        background: rgba(249, 115, 22, 0.08) !important; 
+        background: rgba(249, 115, 22, 0.1) !important; 
         border-color: rgba(249, 115, 22, 0.3) !important;
     }}
     [data-testid="stChatMessage"]:has([data-testid="chatAvatarIcon-user"]) .stMarkdown {{
@@ -444,7 +444,7 @@ css = f"""
     }}
     
     /* Header */
-    .header {{ background: linear-gradient(135deg, #f59e0b 0%, #ef4444 100%) !important; padding: 1.4rem 1.6rem; border-radius: 14px; margin-bottom: 1.2rem; display: flex; align-items: center; overflow: hidden; }}
+    .header {{ background: linear-gradient(135deg, #f59e0b 0%, #ef4444 100%) !important; padding: 1.4rem 1.6rem; border-radius: 14px; margin-bottom: 1.2rem; display: flex; align-items: center; overflow: hidden; box-shadow: 0 8px 20px rgba(239, 68, 68, 0.2); }}
     .header h1 {{ margin: 0; font-size: 1.8rem; color: #ffffff !important; }}
     .header p {{ margin: 0.3rem 0 0; opacity: 0.95; font-size: 0.95rem; color: #ffffff !important; }}
     
@@ -456,7 +456,7 @@ css = f"""
     }}
     .logo-3d {{ animation: talk 3s ease-in-out infinite; border-radius: 50%; mix-blend-mode: multiply; max-height: 80px; object-fit: contain; }}
     
-    /* Buttons (Sidebar) */
+    /* Buttons (Sidebar Fix for Light Mode) */
     .stButton > button {{
         background-color: {btn_bg} !important;
         color: {btn_txt} !important;
@@ -471,6 +471,23 @@ css = f"""
     }}
     .stButton > button p, .stButton > div {{
         color: {btn_txt} !important;
+    }}
+
+    /* 🔥 Voice Input Fix (Remove Black Box) */
+    [data-testid="stAudioInput"] {{
+        background-color: #ffffff !important;
+        border-radius: 10px !important;
+        border: 1px solid {border_col} !important;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.05) !important;
+        padding: 5px !important;
+    }}
+    [data-testid="stAudioInput"] * {{
+        color: #1a1a1a !important;
+        fill: #1a1a1a !important;
+    }}
+    [data-testid="stAudioInput"] button {{
+        background-color: transparent !important;
+        border: none !important;
     }}
 
     /* Input Box */
@@ -498,7 +515,7 @@ css = f"""
     }}
     .stDeployButton {{display: none !important;}}
     
-    /* 🔥 Sidebar Toggle Arrow (Fixed & Visible) */
+    /* Sidebar Toggle Arrow */
     [data-testid="collapsedControl"] {{
         display: flex !important;
         visibility: visible !important;
@@ -507,7 +524,7 @@ css = f"""
         top: 15px !important;
         left: 15px !important;
         z-index: 99999 !important;
-        background-color: #f97316 !important; /* কমলা রঙ */
+        background-color: #f97316 !important; 
         color: white !important;
         border-radius: 50% !important;
         padding: 8px !important;
@@ -523,10 +540,12 @@ css = f"""
         background-color: {btn_bg} !important;
         color: {btn_txt} !important;
         border: 1px solid {border_col} !important;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.02) !important;
     }}
     [data-testid="stPopoverBody"] {{
-        background-color: {sidebar_bg} !important;
+        background-color: #ffffff !important;
         border: 1px solid {border_col} !important;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.1) !important;
     }}
 </style>
 """
@@ -570,7 +589,7 @@ with st.sidebar:
                 st.session_state.audio_key = st.session_state.get('audio_key', 0) + 1
                 st.rerun()
                 
-    # 😊 Emoji Picker (Moved to Sidebar)
+    # 😊 Emoji Picker
     with st.popover("😊 Emoji", use_container_width=True):
         st.markdown("### Select an Emoji")
         emoji_list = ["😀", "😃", "😄", "😁", "😆", "😅", "😂", "🤣", "😊", "😇", "🙂", "🙃", "😉", "😌", "😍", "🥰", "😘", "😗", "😙", "😚", "😋", "😛", "😝", "😜", "🤪", "🤨", "🧐", "🤓", "😎", "🤩", "🥳", "😏", "😒", "😞", "😔", "😟", "😕", "🙁", "☹️", "😣", "😖", "😫", "😩", "🥺", "😢", "😭", "😤", "😠", "😡", "🤬", "🤯", "😳", "🥵", "🥶", "😱", "😨", "😰", "😥", "😓", "🤗", "🤔", "🤭", "🤫", "🤥", "😶", "😐", "😑", "😬", "🙄", "😯", "😦", "😧", "😮", "😲", "🥱", "😴", "🤤", "😪", "😵", "🤐", "🥴", "🤢", "🤮", "🤧", "😷", "🤒", "🤕", "🤑", "🤠", "😈", "👿", "👹", "👺", "🤡", "💩", "👻", "💀", "☠️", "👽", "👾", "🤖", "🎃", "😺", "😸", "😹", "😻", "😼", "😽", "🙀", "😿", "😾", "👍", "👎", "👊", "✊", "🤛", "🤜", "🤞", "✌️", "🤟", "🤘", "👌", "👈", "👉", "👆", "👇", "☝️", "✋", "🤚", "🖐", "🖖", "👋", "🤙", "💪", "🦾", "🙏", "✍️", "🤝", "💅", "🤳", "💍", "💄", "💋", "👄", "👅", "👂", "🦻", "👃", "👣", "👁", "👀", "🫀", "🧠", "🫁", "🦷", "🦴", "👤", "👥", "🗣", "👶", "🧒", "👦", "👧", "🧑", "👱", "👨", "🧔", "👩", "🧓", "👴", "👵"]
@@ -666,7 +685,7 @@ else:
         user_message = chat_data.text
         if st.session_state.emoji_append:
             user_message = st.session_state.emoji_append + " " + (user_message or "")
-            st.session_state.emoji_append = "" # Reset after sending
+            st.session_state.emoji_append = "" 
             
         if chat_data.files:
             uploaded_file = chat_data.files[0]
@@ -700,7 +719,6 @@ if user_message:
             reply = ask_llm(user_message, history, file_context)
         st.markdown(reply)
     
-    # 🔥 AI speaks the reply
     speak_text(reply)
         
     add_msg(st.session_state.chat_id, "bee", reply)
