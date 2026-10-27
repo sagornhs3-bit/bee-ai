@@ -1,4 +1,4 @@
-"""Bee - Ultimate AI Assistant (Voice in Sidebar, Bug Fixed)"""
+"""Bee - Ultimate AI Assistant (Perfect Light Theme, Voice Mode)"""
 
 import streamlit as st
 import json
@@ -37,7 +37,6 @@ if "logged_in" not in st.session_state: st.session_state.logged_in = True
 if "username" not in st.session_state: st.session_state.username = "Guest"
 if "theme" not in st.session_state: st.session_state.theme = "dark"
 if "chat_id" not in st.session_state: st.session_state.chat_id = None
-# অডিও লুপ বন্ধ করার জন্য নতুন ভেরিয়েবল
 if "last_audio_hash" not in st.session_state: st.session_state.last_audio_hash = None
 
 # ============ INTRO ANIMATION ============
@@ -202,7 +201,7 @@ else:
     bg = "#ffffff"
     txt = "#1a1a1a"
     sidebar_bg = "#f8f9fa"
-    chat_input_bg = "#ffffff" 
+    chat_input_bg = "#ffffff"  # Force white chat box
     chat_input_border = "#f97316"
     btn_bg = "#e9ecef"
     btn_txt = "#1a1a1a"
@@ -210,19 +209,32 @@ else:
 
 css = """
 <style>
-    .stApp, [data-testid="stAppViewContainer"], [data-testid="stHeader"], [data-testid="stBottom"] { background: BG_COLOR !important; }
-    [data-testid="stSidebar"] { background: SIDEBAR_BG !important; }
+    /* 🔥 FORCE LIGHT/DARK BACKGROUNDS EVERYWHERE */
+    .stApp, [data-testid="stAppViewContainer"], [data-testid="stHeader"], [data-testid="stBottom"], .main, .block-container, [data-testid="stVerticalBlock"] { 
+        background-color: BG_COLOR !important; 
+    }
+    [data-testid="stSidebar"] { background-color: SIDEBAR_BG !important; }
     
-    /* Hide Manage App Button */
+    /* Hide "Manage app" and native menus */
     [data-testid="stStatusWidget"] { display: none !important; }
     footer { visibility: hidden; } #MainMenu { visibility: hidden; }
 
+    /* Force Text Colors */
     .main p, .main span, .main label, .main h1, .main h2, .main h3, .main div, 
-    [data-testid="stSidebar"] p, [data-testid="stSidebar"] span, [data-testid="stSidebar"] label { color: TXT_COLOR !important; }
+    [data-testid="stSidebar"] p, [data-testid="stSidebar"] span, [data-testid="stSidebar"] label { 
+        color: TXT_COLOR !important; 
+    }
 
+    /* Top Header Icons (Share, Star, etc.) */
+    [data-testid="stHeader"] svg { fill: TXT_COLOR !important; stroke: TXT_COLOR !important; }
+    [data-testid="stHeader"] button { color: TXT_COLOR !important; }
+
+    /* Name Input Box */
     [data-testid="stTextInput"] input {
-        background: BG_COLOR !important; color: TXT_COLOR !important;
-        border: 1px solid BORDER_COL !important; border-radius: 8px !important;
+        background-color: BG_COLOR !important;
+        color: TXT_COLOR !important;
+        border: 1px solid BORDER_COL !important;
+        border-radius: 8px !important;
     }
 
     .main .block-container { padding-top: 1.5rem; max-width: 900px; padding-bottom: 150px !important; }
@@ -233,34 +245,56 @@ css = """
     @keyframes float { 0% { transform: translateY(0px); filter: drop-shadow(0px 10px 15px rgba(0,0,0,0.8)); } 50% { transform: translateY(-8px); filter: drop-shadow(0px 20px 25px rgba(0,0,0,1)); } 100% { transform: translateY(0px); filter: drop-shadow(0px 10px 15px rgba(0,0,0,0.8)); } }
     .logo-3d { animation: float 4s ease-in-out infinite; border-radius: 50%; mix-blend-mode: screen; max-height: 80px; object-fit: contain; }
 
+    /* Chat Messages */
     [data-testid="stChatMessage"] { background: transparent !important; }
     [data-testid="stChatMessage"] p, [data-testid="stChatMessage"] span { color: TXT_COLOR !important; }
 
+    /* Sidebar Buttons */
     .stButton > button {
-        background: BTN_BG !important; color: BTN_TXT !important; border: 1px solid BORDER_COL !important;
+        background-color: BTN_BG !important; color: BTN_TXT !important; border: 1px solid BORDER_COL !important;
     }
     .stButton > button p, .stButton > button div { color: BTN_TXT !important; }
 
-    @keyframes glow {
-        0% { box-shadow: 0 0 5px rgba(249, 115, 22, 0.3); border-color: rgba(249, 115, 22, 0.3) !important; }
-        50% { box-shadow: 0 0 15px rgba(249, 115, 22, 0.8); border-color: rgba(249, 115, 22, 0.8) !important; }
-        100% { box-shadow: 0 0 5px rgba(249, 115, 22, 0.3); border-color: rgba(249, 115, 22, 0.3) !important; }
-    }
-    
+    /* 🔥 FORCE CHAT INPUT BOX */
     [data-testid="stChatInput"] {
         position: fixed !important; bottom: 20px !important; left: 21rem !important; right: 2rem !important;
         z-index: 999 !important; max-width: 900px !important;
-        background: CHAT_INPUT_BG !important; border: 2px solid CHAT_INPUT_BORDER !important; 
-        border-radius: 25px !important; animation: glow 3s infinite !important; padding: 5px 10px !important;
+        background-color: CHAT_INPUT_BG !important; 
+        border: 2px solid CHAT_INPUT_BORDER !important; 
+        border-radius: 25px !important;
+        padding: 5px 10px !important;
     }
     
-    [data-testid="stChatInput"] textarea { 
-        background: transparent !important; color: TXT_COLOR !important; padding-right: 80px !important; 
+    /* Make inner parts of chat box transparent */
+    [data-testid="stChatInput"] > div, [data-testid="stChatInput"] div[data-testid="stVerticalBlock"] {
+        background-color: transparent !important;
     }
 
-    [data-testid="stChatInput"] button {
-        background-color: #f97316 !important; color: white !important; border-radius: 50% !important; border: none !important;
+    /* Chat Input Text Area */
+    [data-testid="stChatInput"] textarea { 
+        background-color: transparent !important; 
+        color: TXT_COLOR !important;
+        padding-right: 80px !important; 
     }
+    [data-testid="stChatInput"] textarea::placeholder {
+        color: TXT_COLOR !important; opacity: 0.6;
+    }
+
+    /* Orange Send Button */
+    [data-testid="stChatInput"] button {
+        background-color: #f97316 !important; color: white !important;
+        border-radius: 50% !important; border: none !important;
+    }
+
+    /* 🔥 FORCE AUDIO INPUT (Voice Mode) */
+    [data-testid="stAudioInput"] {
+        background-color: CHAT_INPUT_BG !important;
+        border: 1px solid BORDER_COL !important;
+        border-radius: 10px !important;
+        padding: 5px !important;
+    }
+    [data-testid="stAudioInput"] > div { background-color: transparent !important; }
+    [data-testid="stAudioInput"] button { color: TXT_COLOR !important; }
 
     /* Mobile Optimization */
     @media (max-width: 1024px) {
@@ -359,12 +393,10 @@ if chat_data:
         file_context = extract_text_from_file(uploaded_file)
         st.toast(f"📎 File '{uploaded_file.name}' attached!")
         
-# 🔥 FIX: Prevent Infinite Loop for Audio Input
 elif audio_value is not None:
     audio_bytes = audio_value.getvalue()
     audio_hash = hash(audio_bytes)
     
-    # অডিওটি যদি আগে প্রসেস না হয়ে থাকে, তবেই প্রসেস করবে
     if st.session_state.last_audio_hash != audio_hash:
         st.session_state.last_audio_hash = audio_hash
         with st.spinner("🎤 আপনার কথা শোনা হচ্ছে..."):
