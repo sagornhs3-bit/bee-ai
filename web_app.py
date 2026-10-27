@@ -1,4 +1,4 @@
-"""Bee - Ultimate AI Assistant (Supabase + Location + Multilingual)"""
+"""Bee - Ultimate AI Assistant (Supabase + Cookies + Location + Multilingual)"""
 
 import streamlit as st
 import json
@@ -7,11 +7,12 @@ import datetime
 import sys
 import time
 import hashlib
-import requests # লোকেশন ডিটেক্ট করার জন্য
+import requests
 from pathlib import Path
 import streamlit.components.v1 as components
 import PyPDF2
 from supabase import create_client, Client
+import extra_streamlit_components as stx
 
 BEE_DIR = Path(__file__).parent
 sys.path.insert(0, str(BEE_DIR))
@@ -27,7 +28,7 @@ CONFIG_FILE = BEE_DIR / "config.json"
 st.set_page_config(page_title="Bee AI", page_icon="https://raw.githubusercontent.com/saghnhs3-bit/bee-ai/main/bumblebee.png", layout="wide")
 
 # ============================================================
-# ☁️ SUPABASE CONFIGURATION
+# ☁️ SUPABASE CONFIGURATION & COOKIE MANAGER
 # ============================================================
 SUPABASE_URL = "https://cbhqkxrldihvohplusyw.supabase.co"
 SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNiaHFreHJsZGlodm9ocGx1c3l3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTMxMDM3OTUsImV4cCI6MjEwODY3OTc5NX0.Z_F2stGOybDL0liwsiYQAzldWist1sPTy7RTZSz38iE"
@@ -37,6 +38,7 @@ def init_supabase():
     return create_client(SUPABASE_URL, SUPABASE_KEY)
 
 supabase = init_supabase()
+cookie_manager = stx.CookieManager()
 
 def hash_password(password):
     return hashlib.sha256(password.encode()).hexdigest()
@@ -74,29 +76,55 @@ if not st.session_state.intro_done:
     st.rerun()
 
 # ============================================================
-# 🔐 LOGIN & SIGN UP SYSTEM
+# 🔐 AUTO-LOGIN VIA COOKIE & INITIALIZATION
 # ============================================================
-st.markdown("""
-<style>
-    .login-container .block-container { max-width: 450px !important; padding-top: 5vh !important; }
-    .login-container .stButton > button {
-        background-color: #f97316 !important; color: white !important;
-        border: none !important; border-radius: 8px !important; font-weight: bold !important;
-    }
-    .login-container .stTextInput > div > div > input { border-radius: 8px !important; }
-    @media (max-width: 768px) {
-        .login-container .block-container { padding-top: 2vh !important; padding-left: 15px !important; padding-right: 15px !important; }
-    }
-</style>
-""", unsafe_allow_html=True)
-
 if "logged_in" not in st.session_state: st.session_state.logged_in = False
 if "username" not in st.session_state: st.session_state.username = ""
 if "is_premium" not in st.session_state: st.session_state.is_premium = False
 if "msg_count" not in st.session_state: st.session_state.msg_count = 0
 if "chat_id" not in st.session_state: st.session_state.chat_id = None
 
+# 🔥 কুকি চেক করে অটো লগইন
 if not st.session_state.logged_in:
+    saved_user = cookie_manager.get(cookie="bee_user")
+    if saved_user:
+        try:
+            res = supabase.table("users").select("*").eq("username", saved_user).execute()
+            if res.data:
+                user = res.data[0]
+                st.session_state.logged_in = True
+                st.session_state.username = user["username"]
+                st.session_state.is_premium = user["is_premium"]
+                st.session_state.chat_id = None # লগইনের পর নতুন চ্যাট শুরু হবে
+                
+                today = datetime.date.today().strftime("%Y-%m-%d")
+                if user["last_date"] != today:
+                    st.session_state.msg_count = 0
+                    supabase.table("users").update({"msg_count": 0, "last_date": today}).eq("username", user["username"]).execute()
+                else:
+                    st.session_state.msg_count = user["msg_count"]
+                st.rerun()
+        except Exception:
+            pass
+
+# ============================================================
+# 🔐 LOGIN & SIGN UP SYSTEM
+# ============================================================
+if not st.session_state.logged_in:
+    st.markdown("""
+    <style>
+        .login-container .block-container { max-width: 450px !important; padding-top: 5vh !important; }
+        .login-container .stButton > button {
+            background-color: #f97316 !important; color: white !important;
+            border: none !important; border-radius: 8px !important; font-weight: bold !important;
+        }
+        .login-container .stTextInput > div > div > input { border-radius: 8px !important; }
+        @media (max-width: 768px) {
+            .login-container .block-container { padding-top: 2vh !important; padding-left: 15px !important; padding-right: 15px !important; }
+        }
+    </style>
+    """, unsafe_allow_html=True)
+
     st.markdown("<div class='login-container'>", unsafe_allow_html=True)
     st.markdown("<h2 style='text-align: center;'>🐝 Welcome to Bee AI</h2>", unsafe_allow_html=True)
     st.markdown("<p style='text-align: center; font-size: 14px; color: gray;'>Your Personal AI Assistant</p>", unsafe_allow_html=True)
@@ -118,6 +146,11 @@ if not st.session_state.logged_in:
                         st.session_state.logged_in = True
                         st.session_state.username = user["username"]
                         st.session_state.is_premium = user["is_premium"]
+                        st.session_state.chat_id = None # নতুন চ্যাট ফোর্স করা হলো
+                        
+                        # কুকি সেভ করা হলো ৩০ দিনের জন্য
+                        expires = datetime.datetime.now() + datetime.timedelta(days=30)
+                        cookie_manager.set("bee_user", user["username"], expires_at=expires)
                         
                         today = datetime.date.today().strftime("%Y-%m-%d")
                         if user["last_date"] != today:
@@ -220,9 +253,11 @@ def load_chats():
 
 def new_chat():
     data = load_chats()
+    # যদি সবচেয়ে নতুন চ্যাটটি ফাঁকা থাকে, তবে সেটাই ব্যবহার করবে
     if data["chats"] and data["chats"][0]["title"] == "New Chat" and len(data["chats"][0]["messages"]) == 0:
         st.session_state.chat_id = data["chats"][0]["id"]
         return
+    # নাহলে নতুন চ্যাট তৈরি করবে
     cid = str(uuid.uuid4())
     supabase.table("chats").insert({"id": cid, "username": st.session_state.username, "title": "New Chat", "messages": []}).execute()
     st.session_state.chat_id = cid
@@ -347,7 +382,7 @@ def ask_llm(prompt, chat_history, file_context=""):
     messages.append({"role": "user", "content": prompt})
 
     try:
-        # মডেল আপডেট করা হয়েছে (Groq এর স্ট্যাবল মডেল)
+        # Groq-এর স্ট্যাবল মডেল
         r = client.chat.completions.create(model="llama3-70b-8192", messages=messages, temperature=0.4)
         return r.choices[0].message.content.strip()
     except Exception as e:
@@ -401,6 +436,8 @@ with st.sidebar:
     st.caption(f"👤 **{st.session_state.username}**")
     
     if st.button("🚪 Logout", use_container_width=True):
+        # লগআউটের সময় কুকি ডিলিট করা হবে
+        cookie_manager.delete("bee_user")
         st.session_state.logged_in = False
         st.session_state.username = ""
         st.rerun()
