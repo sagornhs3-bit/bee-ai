@@ -191,9 +191,8 @@ if dark:
     bg = "#0e1117"
     txt = "#fafafa"
     sidebar_bg = "#0e1117"
-    chat_input_bg = "rgba(30, 30, 30, 0.8)"
-    chat_input_border = "rgba(249, 115, 22, 0.5)"
-    header_bg = "#0e1117"
+    chat_input_bg = "#262730" # Dark chat box
+    chat_input_border = "#f97316"
     btn_bg = "#262730"
     btn_txt = "#fafafa"
     border_col = "#3a3d45"
@@ -202,9 +201,8 @@ else:
     bg = "#ffffff"
     txt = "#1a1a1a"
     sidebar_bg = "#f8f9fa"
-    chat_input_bg = "rgba(255, 255, 255, 0.95)"
-    chat_input_border = "rgba(249, 115, 22, 0.8)"
-    header_bg = "#ffffff"
+    chat_input_bg = "#f0f2f6" # Light chat box
+    chat_input_border = "#f97316"
     btn_bg = "#e9ecef"
     btn_txt = "#1a1a1a"
     border_col = "#ced4da"
@@ -212,14 +210,23 @@ else:
 
 css = """
 <style>
-    /* Force ALL backgrounds */
-    .stApp, [data-testid="stAppViewContainer"], [data-testid="stHeader"] { background: BG_COLOR !important; }
+    /* Force Main and Bottom Backgrounds */
+    .stApp, [data-testid="stAppViewContainer"], [data-testid="stHeader"], [data-testid="stBottom"] { 
+        background: BG_COLOR !important; 
+    }
     [data-testid="stSidebar"] { background: SIDEBAR_BG !important; }
     
-    /* Force text colors */
+    /* Force text colors everywhere */
     .main p, .main span, .main label, .main h1, .main h2, .main h3, .main div, 
     [data-testid="stSidebar"] p, [data-testid="stSidebar"] span, [data-testid="stSidebar"] label { 
         color: TXT_COLOR !important; 
+    }
+
+    /* Force Input Text Box (Name field) to be white/light */
+    .stTextInput input {
+        background: BG_COLOR !important;
+        color: TXT_COLOR !important;
+        border: 1px solid BORDER_COL !important;
     }
     
     /* Top native header icons */
@@ -254,21 +261,22 @@ css = """
         100% { box-shadow: 0 0 5px rgba(249, 115, 22, 0.3); border-color: rgba(249, 115, 22, 0.3) !important; }
     }
     
+    /* Make chat input container completely styled */
     [data-testid="stChatInput"] {
         position: fixed !important; bottom: 20px !important; left: 21rem !important; right: 2rem !important;
         z-index: 999 !important; max-width: 900px !important;
         background: CHAT_INPUT_BG !important; 
-        backdrop-filter: blur(15px) !important;
-        border: 1px solid CHAT_INPUT_BORDER !important; 
+        border: 2px solid CHAT_INPUT_BORDER !important; 
         border-radius: 25px !important;
         animation: glow 3s infinite !important;
         padding: 5px 10px !important;
     }
     
+    /* Force textarea to be transparent so the container color shows */
     [data-testid="stChatInput"] textarea { 
         background: transparent !important; 
         color: TXT_COLOR !important;
-        padding-right: 90px !important; 
+        padding-right: 80px !important; 
     }
 
     /* Orange Send Button */
@@ -279,45 +287,62 @@ css = """
         border: none !important;
     }
 
-    /* 🔥 MIC BUTTON (Floating Inside Chat Bar) */
+    /* 🔥 FORCE MIC BUTTON VISIBILITY AND POSITION */
     [data-testid="stAudioInput"] {
         position: fixed !important;
-        bottom: 26px !important; 
+        bottom: 28px !important; 
         right: 5.5rem !important; 
         z-index: 1000 !important;
         width: 40px !important;
         height: 40px !important;
         background: transparent !important;
         border: none !important;
+        box-shadow: none !important;
     }
     
-    /* Hide the complex elements of stAudioInput, keep only the button */
-    [data-testid="stAudioInput"] > div { padding: 0 !important; background: transparent !important; }
-    [data-testid="stAudioInput"] > div > div:not(:first-child) { display: none !important; }
-    [data-testid="stAudioInput"] p { display: none !important; }
+    /* Strip out Streamlit's default audio input UI elements */
+    [data-testid="stAudioInput"] > div { 
+        padding: 0 !important; 
+        margin: 0 !important;
+        background: transparent !important; 
+        border: none !important;
+    }
+    [data-testid="stAudioInput"] div[data-testid="stVerticalBlock"],
+    [data-testid="stAudioInput"] div[data-testid="stHorizontalBlock"],
+    [data-testid="stAudioInput"] p,
+    [data-testid="stAudioInput"] span,
+    [data-testid="stAudioInput"] [data-testid="stMarkdownContainer"] { 
+        display: none !important; 
+    }
 
-    /* Style the Mic Icon */
+    /* Style the Mic Icon itself */
     [data-testid="stAudioInput"] button {
         background: transparent !important;
         color: MIC_COL !important;
         padding: 0 !important;
         border: none !important;
         box-shadow: none !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
     }
     [data-testid="stAudioInput"] button svg {
         fill: MIC_COL !important;
         color: MIC_COL !important;
-        width: 24px !important;
-        height: 24px !important;
+        width: 26px !important;
+        height: 26px !important;
     }
-    [data-testid="stAudioInput"] button:hover svg { fill: #f97316 !important; color: #f97316 !important; }
+    [data-testid="stAudioInput"] button:hover svg { 
+        fill: #f97316 !important; 
+        color: #f97316 !important; 
+    }
 
     footer { visibility: hidden; } #MainMenu { visibility: hidden; }
 
     @media (max-width: 768px) {
         .main .block-container { padding-bottom: 120px !important; }
         [data-testid="stChatInput"] { left: 1rem !important; right: 1rem !important; bottom: 10px !important; }
-        [data-testid="stAudioInput"] { bottom: 16px !important; right: 4.5rem !important; }
+        [data-testid="stAudioInput"] { bottom: 18px !important; right: 4.5rem !important; }
     }
 </style>
 """
