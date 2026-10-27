@@ -1,4 +1,4 @@
-"""Bee - Ultimate AI Assistant (Glass UI + Sidebar Emoji + Full Width Fix)"""
+"""Bee - Ultimate AI Assistant (Perfect Light Theme Fix)"""
 
 import streamlit as st
 import json
@@ -350,7 +350,7 @@ def ask_llm(prompt, chat_history, file_context=""):
         return f"Error: {e}"
 
 # ============================================================
-# 🎨 PREMIUM CSS (Background Theme + Glass UI + Sidebar Fix)
+# 🎨 PREMIUM CSS (Fixed Light Theme + Elegant Colors)
 # ============================================================
 if dark:
     bg_base = "#0e1117"
@@ -362,21 +362,24 @@ if dark:
     btn_txt = "#fafafa"
     border_col = "rgba(255,255,255,0.1)"
     glass_bg = "rgba(255, 255, 255, 0.05)"
+    watermark_opacity = "0.06"
 else:
+    # ☀️ Elegant Light Theme Colors
     bg_base = "#ffffff"
-    bg_gradient = "radial-gradient(circle at 50% 0%, #fdfbfb 0%, #ebedee 100%)"
-    txt = "#1a1a1a"
+    bg_gradient = "radial-gradient(circle at 50% 0%, #fdfbfb 0%, #f4f6f8 100%)"
+    txt = "#000000" # Full black text as requested
     sidebar_bg = "#f8f9fa"
-    chat_input_bg = "rgba(255, 255, 255, 0.8)" 
-    btn_bg = "#e9ecef"
-    btn_txt = "#1a1a1a"
-    border_col = "rgba(0,0,0,0.1)"
-    glass_bg = "rgba(0, 0, 0, 0.03)"
+    chat_input_bg = "rgba(255, 255, 255, 0.95)" 
+    btn_bg = "#ffffff" # White buttons
+    btn_txt = "#000000" # Black text on buttons
+    border_col = "rgba(0,0,0,0.15)" # Clear visible borders
+    glass_bg = "rgba(255, 255, 255, 0.7)" # White glass
+    watermark_opacity = "0.04"
 
 css = f"""
 <style>
     /* 🌟 Premium Background Theme */
-    .stApp {{
+    .stApp, [data-testid="stAppViewContainer"], [data-testid="stHeader"], [data-testid="stBottom"], [data-testid="stBottom"] > div {{
         background: {bg_gradient} !important;
     }}
 
@@ -390,7 +393,7 @@ css = f"""
         background-image: url('https://raw.githubusercontent.com/sagornhs3-bit/bee-ai/main/bumblebee.png');
         background-size: contain;
         background-repeat: no-repeat;
-        opacity: 0.06; /* Increased for visibility */
+        opacity: {watermark_opacity};
         z-index: 0;
         pointer-events: none;
     }}
@@ -403,7 +406,12 @@ css = f"""
     }}
     
     /* Sidebar */
-    [data-testid="stSidebar"] {{ background-color: {sidebar_bg} !important; }}
+    [data-testid="stSidebar"] {{ 
+        background-color: {sidebar_bg} !important; 
+    }}
+    [data-testid="stSidebar"] [data-testid="stVerticalBlock"] {{
+        background-color: {sidebar_bg} !important; 
+    }}
     
     /* Text Colors */
     .main p, .main span, .main label, .main h1, .main h2, .main h3, .main h4, .main h5, .main h6, .main li, .main td, .main th,
@@ -419,7 +427,7 @@ css = f"""
         border-radius: 15px !important;
         padding: 15px !important;
         margin-bottom: 15px !important;
-        box-shadow: 0 4px 15px rgba(0,0,0,0.1) !important;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.05) !important;
         display: flex !important;
         flex-direction: row !important;
         align-items: flex-start !important;
@@ -428,7 +436,7 @@ css = f"""
     /* 🔥 User Message Right Align (Messenger Style) */
     [data-testid="stChatMessage"]:has([data-testid="chatAvatarIcon-user"]) {{
         flex-direction: row-reverse !important;
-        background: rgba(249, 115, 22, 0.1) !important;
+        background: rgba(249, 115, 22, 0.08) !important; /* Light orange glass */
         border-color: rgba(249, 115, 22, 0.3) !important;
     }}
     [data-testid="stChatMessage"]:has([data-testid="chatAvatarIcon-user"]) .stMarkdown {{
@@ -446,20 +454,46 @@ css = f"""
         50% {{ transform: translateY(-8px) scale(1.05); filter: drop-shadow(0 0 25px rgba(249, 115, 22, 0.8)); }}
         100% {{ transform: translateY(0px) scale(1); filter: drop-shadow(0 0 10px rgba(249, 115, 22, 0.3)); }}
     }}
-    .logo-3d {{ animation: talk 3s ease-in-out infinite; border-radius: 50%; mix-blend-mode: screen; max-height: 80px; object-fit: contain; }}
+    .logo-3d {{ animation: talk 3s ease-in-out infinite; border-radius: 50%; mix-blend-mode: multiply; max-height: 80px; object-fit: contain; }}
     
+    /* Buttons (Sidebar) */
+    .stButton > button {{
+        background-color: {btn_bg} !important;
+        color: {btn_txt} !important;
+        border: 1px solid {border_col} !important;
+        border-radius: 10px !important;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.02) !important;
+        transition: all 0.2s !important;
+    }}
+    .stButton > button:hover {{
+        border-color: #f97316 !important;
+        color: #f97316 !important;
+    }}
+    .stButton > button p, .stButton > div {{
+        color: {btn_txt} !important;
+    }}
+
     /* Input Box */
     [data-testid="stChatInput"] {{
         position: fixed !important; bottom: 20px !important; left: 21rem !important; right: 2rem !important;
         z-index: 999 !important; max-width: 900px !important;
         background: {chat_input_bg} !important; backdrop-filter: blur(15px) !important;
         border: 2px solid #f97316 !important; border-radius: 25px !important; padding: 5px 10px !important;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.08) !important;
     }}
     [data-testid="stChatInput"] > div {{ background-color: transparent !important; }}
     [data-testid="stChatInput"] textarea {{ background-color: transparent !important; color: {txt} !important; padding-right: 80px !important; }}
     [data-testid="stChatInput"] button {{ background-color: #f97316 !important; color: white !important; border-radius: 50% !important; }}
 
-    /* 🔥 Header & Sidebar Toggle Fix (Keep Toggle, Hide Menu) */
+    /* Hide default borders and backgrounds in Bottom area */
+    [data-testid="stBottom"] > div {{
+        background: transparent !important;
+    }}
+    [data-testid="stBottom"] > div > div {{
+        background: transparent !important;
+    }}
+
+    /* 🔥 Header & Sidebar Toggle Fix */
     #MainMenu {{visibility: hidden;}}
     footer {{visibility: hidden;}}
     [data-testid="stHeader"] {{
@@ -468,7 +502,7 @@ css = f"""
     }}
     .stDeployButton {{display: none !important;}}
     
-    /* Ensure Sidebar Toggle Arrow is visible */
+    /* Sidebar Toggle Arrow */
     [data-testid="collapsedControl"] {{
         display: block !important;
         color: #f97316 !important;
@@ -476,6 +510,18 @@ css = f"""
         border-radius: 50% !important;
         margin-top: 10px !important;
         margin-left: 10px !important;
+        border: 1px solid {border_col} !important;
+    }}
+    
+    /* Emoji Popover Fix */
+    [data-testid="stPopover"] > button {{
+        background-color: {btn_bg} !important;
+        color: {btn_txt} !important;
+        border: 1px solid {border_col} !important;
+    }}
+    [data-testid="stPopoverBody"] {{
+        background-color: {sidebar_bg} !important;
+        border: 1px solid {border_col} !important;
     }}
 </style>
 """
