@@ -3,6 +3,7 @@
 from openai import OpenAI
 from duckduckgo_search import DDGS
 import streamlit as st
+import streamlit.components.v1 as components
 import json
 import uuid
 import datetime
@@ -270,7 +271,21 @@ def search_web(query):
         return formatted
     except Exception as e:
         return f"Search failed: {e}"
-      
+ def speak_text(text):
+    """Convert text to speech using the browser's built-in TTS"""
+    js_text = json.dumps(text)
+    js_code = f"""
+    <script>
+        var msg = new SpeechSynthesisUtterance({js_text});
+        msg.lang = 'bn-BD'; // বাংলা ভয়েস
+        msg.rate = 1.0;     // কথা বলার গতি
+        window.speechSynthesis.cancel(); // আগের কথা বন্ধ করে নতুনটা বলবে
+        window.speechSynthesis.speak(msg);
+    </script>
+    """
+    components.html(js_code, height=0)
+
+     
 def ask_llm(prompt):
     # ওয়েব সার্চ লজিক
     web_context = ""
@@ -534,40 +549,26 @@ else:
 # ============ CSS ============
 css = """
 <style>
-    /* Force ALL backgrounds */
-    .stApp, .main, [data-testid="stAppViewContainer"], [data-testid="stHeader"] {
+    .stApp {
         background: BG_COLOR !important;
-    }
-    .main .block-container {
-        background: BG_COLOR !important;
-        padding-top: 1.5rem;
-        max-width: 900px;
-        padding-bottom: 120px !important;
     }
     [data-testid="stSidebar"] {
         background: SIDEBAR_BG !important;
     }
-    [data-testid="stSidebar"] > div {
-        background: SIDEBAR_BG !important;
-    }
-
-    /* Force ALL text colors */
-    .main p, .main span, .main label, .main div,
-    .main h1, .main h2, .main h3, .main h4, .main h5, .main h6,
-    .main li, .main a {
+    .main p, .main span, .main label, .main h1, .main h2, .main h3,
+    .main h4, .main h5, .main h6 {
         color: TXT_COLOR !important;
     }
     [data-testid="stSidebar"] p,
     [data-testid="stSidebar"] span,
-    [data-testid="stSidebar"] label,
-    [data-testid="stSidebar"] div,
-    [data-testid="stSidebar"] h1,
-    [data-testid="stSidebar"] h2,
-    [data-testid="stSidebar"] h3 {
+    [data-testid="stSidebar"] label {
         color: TXT_COLOR !important;
     }
-
-    /* Header banner */
+    .main .block-container {
+        padding-top: 1.5rem;
+        max-width: 900px;
+        padding-bottom: 120px !important;
+    }
     .header {
         background: linear-gradient(135deg, #f59e0b 0%, #ef4444 100%) !important;
         padding: 1.4rem 1.6rem;
@@ -585,18 +586,13 @@ css = """
         font-size: 0.95rem;
         color: #ffffff !important;
     }
-
-    /* Chat messages - transparent bg */
     [data-testid="stChatMessage"] {
         background: transparent !important;
     }
     [data-testid="stChatMessage"] p,
-    [data-testid="stChatMessage"] span,
-    [data-testid="stChatMessage"] div {
+    [data-testid="stChatMessage"] span {
         color: TXT_COLOR !important;
     }
-
-    /* Buttons */
     .stButton > button {
         background: BUTTON_BG !important;
         color: BUTTON_TXT !important;
@@ -617,27 +613,19 @@ css = """
         border: none !important;
     }
     .stButton > button[kind="primary"] p,
-    .stButton > button[kind="primary"] div,
-    .stButton > button[kind="primary"] span {
+    .stButton > button[kind="primary"] div {
         color: #ffffff !important;
     }
-
-    /* Input fields */
     .stTextInput input, .stChatInput textarea {
         background: INPUT_BG !important;
         color: TXT_COLOR !important;
         border: 1px solid BORDER_COLOR !important;
     }
-    .stTextInput input::placeholder, .stChatInput textarea::placeholder {
-        color: PLACEHOLDER_COLOR !important;
-    }
-
-    /* Radio buttons */
-    .stRadio label, .stRadio p, .stRadio span, .stRadio div {
+    .stRadio label, .stRadio p, .stRadio span {
         color: TXT_COLOR !important;
     }
 
-    /* Fixed chat input */
+    /* Glassmorphism Chat Input */
     [data-testid="stChatInput"] {
         position: fixed !important;
         bottom: 20px !important;
@@ -645,18 +633,25 @@ css = """
         right: 2rem !important;
         z-index: 999 !important;
         max-width: 900px !important;
+        background: rgba(30, 30, 30, 0.4) !important;
+        backdrop-filter: blur(15px) !important;
+        -webkit-backdrop-filter: blur(15px) !important;
+        border: 1px solid rgba(255, 255, 255, 0.15) !important;
+        border-radius: 20px !important;
+        box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37) !important;
+        padding: 5px 10px !important;
     }
-    [data-testid="stChatInput"] > div {
-        background: INPUT_BG !important;
-        border: 1px solid BORDER_COLOR !important;
+    [data-testid="stChatInput"] textarea {
+        background: transparent !important;
+        color: white !important;
     }
 
     /* Hide footer & menu */
     footer { visibility: hidden; }
     #MainMenu { visibility: hidden; }
     hr { border-color: BORDER_COLOR !important; }
-    
-    /* Mobile Optimization (Reset for mobile keyboard) */
+
+    /* Mobile Optimization for Glass Input */
     @media (max-width: 768px) {
         .main .block-container {
             padding-top: 1rem;
@@ -665,21 +660,18 @@ css = """
             padding-bottom: 20px !important;
         }
         [data-testid="stChatInput"] {
-            /* মোবাইলে ডেস্কটপের ফিক্সড পজিশন বাতিল করে ডিফল্ট করা হলো */
             position: relative !important; 
             left: 0 !important;
             right: 0 !important;
             bottom: 0 !important;
             max-width: 100% !important;
             width: 100% !important;
-            background-color: #0e1117 !important; 
-            padding: 10px 10px !important;
-            z-index: 999 !important;
+            border-radius: 10px !important;
+            padding: 5px 10px !important;
         }
         .header h1 { font-size: 1.5rem !important; }
         .header p { font-size: 0.8rem !important; }
     }
-    
 </style>
 """
 
@@ -691,9 +683,9 @@ css = css.replace("BUTTON_TXT", button_txt)
 css = css.replace("BUTTON_HOVER", button_hover)
 css = css.replace("BORDER_COLOR", border_color)
 css = css.replace("INPUT_BG", input_bg)
-css = css.replace("PLACEHOLDER_COLOR", placeholder_color)
 
 st.markdown(css, unsafe_allow_html=True)
+
 # ============ SIDEBAR ============
 with st.sidebar:
     st.markdown(f"## 🐝 {NAME}")
