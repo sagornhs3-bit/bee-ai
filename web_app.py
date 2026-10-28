@@ -1,10 +1,10 @@
-"""Bee - Ultimate AI Assistant (Fixed Bangladesh Time + Glass Glow + Mobile Optimized)"""
+"""Bee - Ultimate AI Assistant (Streaming + Image Gen + Export + Personas)"""
 
 import streamlit as st
 import json
 import uuid
 import datetime
-from zoneinfo import ZoneInfo # 🔥 বাংলাদেশের সময় ঠিক করার জন্য
+from zoneinfo import ZoneInfo
 import sys
 import time
 import hashlib
@@ -12,6 +12,7 @@ import requests
 import urllib.parse
 import random
 import re
+import io
 from pathlib import Path
 import streamlit.components.v1 as components
 import PyPDF2
@@ -80,6 +81,8 @@ if "msg_count" not in st.session_state: st.session_state.msg_count = 0
 if "chat_id" not in st.session_state: st.session_state.chat_id = None
 if "emoji_append" not in st.session_state: st.session_state.emoji_append = ""
 if "voice_ui" not in st.session_state: st.session_state.voice_ui = False
+if "persona" not in st.session_state: st.session_state.persona = "Default Bee"
+if "last_prompt" not in st.session_state: st.session_state.last_prompt = ""
 
 if "user" in st.query_params and not st.session_state.logged_in:
     saved_user = st.query_params["user"]
@@ -139,7 +142,6 @@ if not st.session_state.logged_in:
                         st.session_state.username = user["username"]
                         st.session_state.is_premium = user["is_premium"]
                         st.session_state.chat_id = None 
-                        
                         st.query_params["user"] = user["username"]
                         
                         today = datetime.date.today().strftime("%Y-%m-%d")
@@ -198,11 +200,8 @@ CONFIG = load_cfg()
 NAME = CONFIG.get("assistant_name", "Bee")
 GROQ_KEY = CONFIG.get("groq_api_key", "")
 
-# 🚀 ডেইলি লিমিট ১০০ করা হলো
 DAILY_LIMIT = 100 
 BKASH_NUMBER = "01840506838"
-
-# 🔐 আনলক কোডসমূহ
 CODE_LIFETIME = "BEE-PRO"
 CODE_MONTHLY = "BEE-MONTH" 
 
@@ -216,6 +215,15 @@ if "theme_choice" not in st.session_state: st.session_state.theme_choice = "⚙�
 if st.session_state.theme_choice == "⚙️ System": dark = (sys_theme == "dark")
 elif st.session_state.theme_choice == "🌙 Dark": dark = True
 else: dark = False
+
+# ============ PERSONAS ============
+PERSONAS = {
+    "Default Bee": "You are Bee, a helpful and friendly AI assistant.",
+    "Coder Bee": "You are an expert software engineer. Provide clean, optimized code with clear explanations.",
+    "Storyteller": "You are a creative writer. Write engaging and imaginative stories.",
+    "Teacher": "You are a patient teacher. Explain concepts simply with real-life examples.",
+    "Motivator": "You are an energetic life coach. Motivate the user and give practical advice."
+}
 
 # ============ STORAGE (Supabase) ============
 def load_chats():
@@ -304,50 +312,55 @@ def extract_text_from_file(uploaded_file):
     except Exception: return ""
     return ""
 
-# ============ AI LOGIC ============
-def ask_llm(prompt, chat_history, file_context=""):
+# ============ AI LOGIC (STREAMING) ============
+def ask_llm_stream(prompt, chat_history, file_context=""):
     client = get_groq()
-    if not client: return "API Key নেই।"
+    if not client: 
+        yield "API Key নেই।"
+        return
 
     image_keywords = ["ছবি তৈরি", "ছবি বানাও", "draw", "generate image", "picture of", "paint", "pic", "image", "photo", "আঁকো", "আঁক", "banao", "bana", "chobi", "ছবি"]
     
     if any(kw in prompt.lower() for kw in image_keywords):
-        with st.spinner("🎨 ছবি তৈরি করা হচ্ছে..."):
+        yield "🎨 **Bee is drawing your image...**\n\n"
+        
+        # Enhance prompt for better image generation (ChatGPT style)
+        enhance_msg = [{"role": "user", "content": f"Convert this request into a highly detailed English image generation prompt. Output ONLY the prompt, no other text: {prompt}"}]
+        try:
+            enhanced_res = client.chat.completions.create(model="llama-3.3-70b-versatile", messages=enhance_msg, temperature=0.7)
+            clean_prompt = enhanced_res.choices[0].message.content.strip()
+        except Exception:
             clean_prompt = prompt
-            for kw in image_keywords:
-                clean_prompt = clean_prompt.replace(kw, "")
-            clean_prompt = clean_prompt.strip()
-            if len(clean_prompt) < 3: 
-                clean_prompt = "beautiful aesthetic scenery, highly detailed"
-            
-            seed = random.randint(1, 999999)
-            encoded_prompt = urllib.parse.quote(clean_prompt)
-            img_url = f"https://image.pollinations.ai/prompt/{encoded_prompt}?width=1024&height=1024&nologo=true&seed={seed}&model=flux"
-            
-            return f"আপনার অনুরোধ অনুযায়ী ছবিটি তৈরি করেছি:\n\n![Generated Image]({img_url})\n\n_ছবিটি ডাউনলোড করতে নিচের বাটনটি ব্যবহার করুন।_"
+        
+        seed = random.randint(1, 999999)
+        encoded_prompt = urllib.parse.quote(clean_prompt)
+        img_url = f"https://image.pollinations.ai/prompt/{encoded_prompt}?width=1024&height=1024&nologo=true&seed={seed}&model=flux"
+        
+        yield f"![Generated Image]({img_url})\n\n"
+        yield f"_[📥 Download Image]({img_url})_"
+        return
 
     web_context = ""
     if any(w in prompt.lower() for w in ["search", "who is", "news", "খবর", "current", "today", "weather", "time"]):
         with st.spinner("🌐 ইন্টারনেটে খুঁজছি..."):
             web_context = search_web(prompt)
 
-    # 🔥 বাংলাদেশের সঠিক লোকাল টাইম বের করা
     dhaka_time = datetime.datetime.now(ZoneInfo("Asia/Dhaka"))
     current_time_str = dhaka_time.strftime("%I:%M %p, %d %B %Y")
+    
+    persona_instruction = PERSONAS.get(st.session_state.persona, PERSONAS["Default Bee"])
 
-    sys_prompt = f"""You are {NAME}, a helpful AI assistant.
+    sys_prompt = f"""{persona_instruction}
 {file_context}
 
 ## Context Information:
 - Current Date & Time in Bangladesh: {current_time_str}
-
-## Web Context:
-{web_context}
+- Web Context: {web_context}
 
 ## Rules:
 1. Reply in the EXACT same language the user uses.
 2. NEVER use markdown headers. Use bullet points.
-3. If the user asks about the time or date, ALWAYS use the provided Bangladesh Time above. Do not use UTC or IST.
+3. Keep responses helpful and engaging.
 """
     
     messages = [{"role": "system", "content": sys_prompt}]
@@ -358,13 +371,20 @@ def ask_llm(prompt, chat_history, file_context=""):
     messages.append({"role": "user", "content": prompt})
 
     try:
-        r = client.chat.completions.create(model="openai/gpt-oss-120b", messages=messages, temperature=0.5)
-        return r.choices[0].message.content.strip()
+        stream = client.chat.completions.create(
+            model="llama-3.3-70b-versatile", 
+            messages=messages, 
+            temperature=0.5,
+            stream=True
+        )
+        for chunk in stream:
+            if chunk.choices[0].delta.content:
+                yield chunk.choices[0].delta.content
     except Exception as e:
-        return f"Error: {e}"
+        yield f"Error: {e}"
 
 # ============================================================
-# 🎨 PREMIUM CSS (Mobile & Desktop Perfected)
+# 🎨 PREMIUM CSS
 # ============================================================
 if dark:
     bg_base = "#0e1117"
@@ -393,33 +413,20 @@ else:
 
 css = f"""
 <style>
-    /* 🌟 Animated Moving Gradient Background */
     .stApp {{
         background: linear-gradient(135deg, {bg_base} 0%, #1a1124 50%, #241211 100%) !important;
         background-size: 200% 200% !important;
         animation: gradientBG 15s ease infinite !important;
         background-attachment: fixed !important;
     }}
-    
-    @media (prefers-color-scheme: light) {{
-        .stApp {{
-            background: linear-gradient(135deg, #fdfbfb 0%, #ebedee 50%, #f4f6f8 100%) !important;
-            background-size: 200% 200% !important;
-            animation: gradientBG 15s ease infinite !important;
-        }}
-    }}
-
     @keyframes gradientBG {{
         0% {{ background-position: 0% 50%; }}
         50% {{ background-position: 100% 50%; }}
         100% {{ background-position: 0% 50%; }}
     }}
-
     [data-testid="stAppViewContainer"], [data-testid="stHeader"], [data-testid="stVerticalBlock"], .main, .block-container {{
         background: transparent !important;
     }}
-
-    /* 🌟 Watermark */
     [data-testid="stAppViewContainer"]::before {{
         content: ""; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
         width: 600px; height: 600px;
@@ -427,131 +434,76 @@ css = f"""
         background-size: contain; background-repeat: no-repeat;
         opacity: {watermark_opacity}; z-index: 0; pointer-events: none;
     }}
-
-    /* পেজের নিচে এবং উপরে স্পেসিং ঠিক করা */
     .main .block-container {{ padding-top: 1.5rem; max-width: 900px; padding-bottom: 120px !important; z-index: 1; }}
-    
     [data-testid="stSidebar"] {{ background: {sidebar_bg} !important; backdrop-filter: blur(15px) !important; border-right: 1px solid {border_col} !important; }}
-    
     .main p, .main span, .main label, .main h1, .main h2, .main h3, .main h4, .main h5, .main h6, .main li, .main td, .main th,
     [data-testid="stChatMessage"] *, [data-testid="stMarkdownContainer"] *,
     [data-testid="stSidebar"] p, [data-testid="stSidebar"] span, [data-testid="stSidebar"] label {{ color: {txt} !important; }}
-
-    /* 💎 Glassmorphism Chat Bubbles */
     [data-testid="stChatMessage"] {{
-        background: {glass_bg} !important; 
-        backdrop-filter: blur(20px) !important;
-        -webkit-backdrop-filter: blur(20px) !important;
-        border: 1px solid {border_col} !important; 
-        border-radius: 20px !important;
-        padding: 20px !important; 
-        margin-bottom: 20px !important;
-        display: flex !important; 
-        flex-direction: row !important; 
-        align-items: flex-start !important;
-        z-index: 1;
-        box-shadow: 0 4px 20px rgba(0,0,0,0.1) !important;
+        background: {glass_bg} !important; backdrop-filter: blur(20px) !important; -webkit-backdrop-filter: blur(20px) !important;
+        border: 1px solid {border_col} !important; border-radius: 20px !important; padding: 20px !important; 
+        margin-bottom: 20px !important; display: flex !important; flex-direction: row !important; align-items: flex-start !important;
+        z-index: 1; box-shadow: 0 4px 20px rgba(0,0,0,0.1) !important;
     }}
-
-    [data-testid="stChatMessage"]:not(:has([data-testid="chatAvatarIcon-user"])) {{
-        animation: aiGlow 3s infinite alternate !important;
-    }}
+    [data-testid="stChatMessage"]:not(:has([data-testid="chatAvatarIcon-user"])) {{ animation: aiGlow 3s infinite alternate !important; }}
     @keyframes aiGlow {{
         0% {{ box-shadow: 0 0 5px rgba(249, 115, 22, 0.1) !important; border-color: rgba(255,255,255,0.1) !important; }}
         100% {{ box-shadow: 0 0 20px rgba(249, 115, 22, 0.4) !important; border-color: rgba(249, 115, 22, 0.5) !important; }}
     }}
-
     [data-testid="stChatMessage"]:has([data-testid="chatAvatarIcon-user"]) {{
-        flex-direction: row-reverse !important;
-        background: rgba(249, 115, 22, 0.15) !important; 
-        border: 1px solid rgba(249, 115, 22, 0.3) !important;
-        animation: userGlow 3s infinite alternate !important;
+        flex-direction: row-reverse !important; background: rgba(249, 115, 22, 0.15) !important; 
+        border: 1px solid rgba(249, 115, 22, 0.3) !important; animation: userGlow 3s infinite alternate !important;
     }}
     @keyframes userGlow {{
         0% {{ box-shadow: 0 0 5px rgba(249, 115, 22, 0.2) !important; }}
         100% {{ box-shadow: 0 0 20px rgba(249, 115, 22, 0.6) !important; }}
     }}
-    
-    [data-testid="stChatMessage"]:has([data-testid="chatAvatarIcon-user"]) .stMarkdown {{
-        text-align: right !important;
-    }}
-    
+    [data-testid="stChatMessage"]:has([data-testid="chatAvatarIcon-user"]) .stMarkdown {{ text-align: right !important; }}
     .header {{ background: linear-gradient(135deg, #f59e0b 0%, #ef4444 100%) !important; padding: 1.4rem 1.6rem; border-radius: 14px; margin-bottom: 1.2rem; display: flex; align-items: center; overflow: hidden; box-shadow: 0 8px 20px rgba(239, 68, 68, 0.2); }}
     .header h1 {{ margin: 0; font-size: 1.8rem; color: #ffffff !important; }}
     .header p {{ margin: 0.3rem 0 0; opacity: 0.95; font-size: 0.95rem; color: #ffffff !important; }}
-    
     @keyframes talk {{
         0% {{ transform: translateY(0px) scale(1); filter: drop-shadow(0 0 10px rgba(249, 115, 22, 0.3)); }}
         50% {{ transform: translateY(-8px) scale(1.05); filter: drop-shadow(0 0 25px rgba(249, 115, 22, 0.8)); }}
         100% {{ transform: translateY(0px) scale(1); filter: drop-shadow(0 0 10px rgba(249, 115, 22, 0.3)); }}
     }}
     .logo-3d {{ animation: talk 3s ease-in-out infinite; border-radius: 50%; mix-blend-mode: multiply; max-height: 80px; object-fit: contain; }}
-    
     .stButton > button {{ background-color: {btn_bg} !important; color: {btn_txt} !important; border: 1px solid {border_col} !important; border-radius: 10px !important; box-shadow: 0 2px 5px rgba(0,0,0,0.02) !important; transition: all 0.2s !important; }}
     .stButton > button:hover {{ border-color: #f97316 !important; color: #f97316 !important; }}
     .stButton > button p, .stButton > div {{ color: {btn_txt} !important; }}
-
     [data-testid="stRadio"] div[role="radiogroup"] > label > div:first-child {{ background-color: {radio_bg} !important; border: 2px solid {radio_border} !important; }}
     [data-testid="stRadio"] div[role="radiogroup"] > label > div:first-child > div {{ background-color: #f97316 !important; transform: scale(1.2) !important; }}
-
     [data-testid="stAudioInput"] {{ background-color: #ffffff !important; border-radius: 12px !important; border: 2px solid #f97316 !important; box-shadow: 0 4px 15px rgba(249, 115, 22, 0.15) !important; padding: 10px !important; }}
     [data-testid="stAudioInput"] * {{ color: #1a1a1a !important; fill: #f97316 !important; }}
     [data-testid="stAudioInput"] button {{ background-color: #f97316 !important; color: white !important; border: none !important; }}
     [data-testid="stAudioInput"] button svg {{ fill: white !important; color: white !important; }}
-
-    /* 🔥 Chat Input Box (Fixed PC & Mobile Issue) */
-    /* Streamlit-এর ন্যাচারাল পজিশনিং ব্যবহার করা হয়েছে, তাই আর কেটে যাবে না */
-    [data-testid="stBottom"] {{
-        background: transparent !important;
-        padding-bottom: 15px !important;
-    }}
-    
+    [data-testid="stBottom"] {{ background: transparent !important; padding-bottom: 15px !important; }}
     [data-testid="stChatInput"] {{ 
-        background: {chat_input_bg} !important; 
-        backdrop-filter: blur(20px) !important; 
-        -webkit-backdrop-filter: blur(20px) !important;
-        border: 2px solid #f97316 !important; 
-        border-radius: 30px !important; 
-        padding: 2px 10px !important; 
-        box-shadow: 0 0 15px rgba(249, 115, 22, 0.4) !important;
-        animation: inputGlow 3s infinite alternate !important;
+        background: {chat_input_bg} !important; backdrop-filter: blur(20px) !important; -webkit-backdrop-filter: blur(20px) !important;
+        border: 2px solid #f97316 !important; border-radius: 30px !important; padding: 2px 10px !important; 
+        box-shadow: 0 0 15px rgba(249, 115, 22, 0.4) !important; animation: inputGlow 3s infinite alternate !important;
     }}
-    
     @keyframes inputGlow {{
         0% {{ box-shadow: 0 0 10px rgba(249, 115, 22, 0.2) !important; border-color: rgba(249, 115, 22, 0.5) !important; }}
         100% {{ box-shadow: 0 0 25px rgba(249, 115, 22, 0.7) !important; border-color: rgba(249, 115, 22, 1) !important; }}
     }}
-
     [data-testid="stChatInput"] > div, [data-testid="stChatInput"] div[data-testid="stVerticalBlock"], [data-testid="stChatInput"] div[data-testid="stHorizontalBlock"] {{ background-color: transparent !important; border: none !important; box-shadow: none !important; }}
     [data-testid="stChatInput"] textarea {{ background-color: transparent !important; color: {txt} !important; padding-right: 80px !important; border: none !important; box-shadow: none !important; }}
     [data-testid="stChatInput"] button {{ background-color: #f97316 !important; color: white !important; border-radius: 50% !important; transition: all 0.3s !important; border: none !important; }}
     [data-testid="stChatInput"] button:hover {{ transform: scale(1.1) !important; box-shadow: 0 0 15px rgba(249, 115, 22, 0.8) !important; }}
-
-    /* 📱 Mobile Optimization (ChatGPT-এর মতো) */
     @media (max-width: 768px) {{
-        .main .block-container {{
-            padding-left: 10px !important;
-            padding-right: 10px !important;
-            padding-bottom: 120px !important;
-        }}
+        .main .block-container {{ padding-left: 10px !important; padding-right: 10px !important; padding-bottom: 120px !important; }}
         .header h1 {{ font-size: 1.4rem !important; }}
         .header p {{ font-size: 0.8rem !important; }}
-        [data-testid="stChatInput"] {{
-            border-radius: 25px !important;
-            margin-bottom: 10px !important;
-        }}
+        [data-testid="stChatInput"] {{ border-radius: 25px !important; margin-bottom: 10px !important; }}
     }}
-
     #MainMenu {{visibility: hidden;}} footer {{visibility: hidden;}}
     [data-testid="stHeader"] {{ background: transparent !important; z-index: 999; }}
     .stDeployButton {{display: none !important;}}
-    
     [data-testid="collapsedControl"] {{ display: flex !important; visibility: visible !important; opacity: 1 !important; position: fixed !important; top: 15px !important; left: 15px !important; z-index: 99999 !important; background-color: #f97316 !important; color: white !important; border-radius: 50% !important; padding: 8px !important; box-shadow: 0 4px 10px rgba(0,0,0,0.2) !important; }}
     [data-testid="collapsedControl"] svg {{ fill: white !important; color: white !important; }}
-    
     [data-testid="stPopover"] > button {{ background-color: {btn_bg} !important; color: {btn_txt} !important; border: 1px solid {border_col} !important; box-shadow: 0 2px 5px rgba(0,0,0,0.02) !important; }}
     [data-testid="stPopoverBody"] {{ background-color: #ffffff !important; border: 1px solid {border_col} !important; box-shadow: 0 10px 30px rgba(0,0,0,0.1) !important; }}
-
     .voice-card {{ background: {glass_bg}; backdrop-filter: blur(25px); border-radius: 30px; padding: 50px 20px; text-align: center; box-shadow: 0 15px 50px rgba(0,0,0,0.1); border: 2px solid rgba(249, 115, 22, 0.3); margin-top: 5vh; display: flex; flex-direction: column; align-items: center; justify-content: center; }}
 </style>
 """
@@ -562,7 +514,7 @@ st.markdown(css, unsafe_allow_html=True)
 # ============================================================
 if st.session_state.voice_ui:
     if not st.session_state.is_premium:
-        st.error("🔒 ভয়েস ফিচারটি শুধুমাত্র প্রিমিয়াম ইউজারদের জন্য। অনুগ্রহ করে প্রিমিয়ামে আপগ্রেড করুন।")
+        st.error("🔒 ভয়েস ফিচারটি শুধুমাত্র প্রিমিয়াম ইউজারদের জন্য।")
         if st.button("🔙 Back to Chat", use_container_width=True):
             st.session_state.voice_ui = False
             st.rerun()
@@ -589,11 +541,7 @@ if st.session_state.voice_ui:
                         if user_msg:
                             if st.session_state.chat_id is None: new_chat()
                             add_msg(st.session_state.chat_id, "user", user_msg)
-                            current_chat = get_chat(st.session_state.chat_id)
-                            history = current_chat["messages"][:-1]
-                            reply = ask_llm(user_msg, history)
-                            add_msg(st.session_state.chat_id, "bee", reply)
-                            speak_text(reply)
+                            st.session_state.last_prompt = user_msg
                             st.session_state.voice_ui = False
                             st.rerun()
                 else:
@@ -605,21 +553,18 @@ if st.session_state.voice_ui:
     st.stop()
 
 # ============================================================
-# 🖼️ IMAGE RENDERING HELPER
+# 🖼️ IMAGE RENDERING HELPER (For non-streamed history messages)
 # ============================================================
 def render_message_with_image(content):
     img_match = re.search(r'!\[.*?\]\((https://image\.pollinations\.ai/.*?)\)', content)
-    
     if img_match:
         text_before = content.split(img_match.group(0))[0]
         st.markdown(text_before)
-        
         img_url = img_match.group(1)
-        
         try:
             st.image(img_url, use_column_width=True)
         except Exception:
-            st.error("⚠️ ছবিটি লোড হতে সমস্যা হচ্ছে। সার্ভার ব্যস্ত আছে, দয়া করে আবার চেষ্টা করুন।")
+            st.error("⚠️ ছবিটি লোড হতে সমস্যা হচ্ছে।")
         
         col1, col2, col3, col4 = st.columns(4)
         with col1:
@@ -629,11 +574,10 @@ def render_message_with_image(content):
                 st.toast("✅ লিংক কপি হয়েছে!")
         with col3:
             if st.button("👍 Like", key=f"like_{hash(img_url)}", use_container_width=True):
-                st.toast("❤️ ফিডব্যাকের জন্য ধন্যবাদ!")
+                st.toast("❤️ ধন্যবাদ!")
         with col4:
             if st.button("🚩 Report", key=f"report_{hash(img_url)}", use_container_width=True):
                 st.toast("🚨 রিপোর্ট করা হয়েছে।")
-        
         text_after = content.split(img_match.group(0))[1] if len(content.split(img_match.group(0))) > 1 else ""
         st.markdown(text_after)
     else:
@@ -654,6 +598,14 @@ with st.sidebar:
     if st.button("➕  New Chat", use_container_width=True, type="primary"):
         new_chat(); st.rerun()
     st.divider()
+
+    # 🎭 Persona Selection
+    st.markdown("**🎭 AI Persona**")
+    selected_persona = st.selectbox("Choose AI behavior", list(PERSONAS.keys()), label_visibility="collapsed")
+    if selected_persona != st.session_state.persona:
+        st.session_state.persona = selected_persona
+        st.rerun()
+    st.divider()
     
     if st.session_state.is_premium:
         st.success("🌟 PRO User (Unlimited Chat & Voice)")
@@ -661,7 +613,6 @@ with st.sidebar:
         st.info(f"💬 আজকের ফ্রি মেসেজ বাকি: {DAILY_LIMIT - st.session_state.msg_count}/{DAILY_LIMIT}")
     st.divider()
     
-    # 🎤 Voice Feature (Only for Premium)
     if st.session_state.is_premium:
         if st.button("🎤 Start Voice Chat", use_container_width=True):
             st.session_state.voice_ui = True
@@ -699,6 +650,19 @@ with st.sidebar:
                 st.rerun()
     st.divider()
     
+    # 📥 Export Chat
+    if st.session_state.chat_id:
+        cur_chat = get_chat(st.session_state.chat_id)
+        if cur_chat and cur_chat["messages"]:
+            chat_text = "\n".join([f"{'You' if m['role']=='user' else 'Bee'}: {m['content']}" for m in cur_chat["messages"]])
+            st.download_button(
+                label="📥 Export Chat (.txt)",
+                data=chat_text,
+                file_name=f"Bee_Chat_{st.session_state.chat_id[:8]}.txt",
+                mime="text/plain",
+                use_container_width=True
+            )
+    
     st.markdown("**🎨 Theme**")
     theme_options = ["⚙️ System", "🌙 Dark", "☀️ Light"]
     current_idx = theme_options.index(st.session_state.theme_choice) if st.session_state.theme_choice in theme_options else 0
@@ -724,20 +688,30 @@ cur = get_chat(st.session_state.chat_id)
 if cur is None: 
     new_chat(); st.rerun()
 
+# Display Chat History
 if not cur["messages"]:
     with st.chat_message("assistant", avatar="https://raw.githubusercontent.com/sagornhs3-bit/bee-ai/main/bumblebee.png"):
-        st.markdown(f"Hi **{st.session_state.username}**! I'm {NAME} — your personal AI. How can I help you today? 😊")
+        st.markdown(f"Hi **{st.session_state.username}**! I'm {NAME}. How can I help you today? 😊")
 else:
-    for m in cur["messages"]:
+    for i, m in enumerate(cur["messages"]):
         avatar_icon = "👤" if m["role"] == "user" else "https://raw.githubusercontent.com/sagornhs3-bit/bee-ai/main/bumblebee.png"
         with st.chat_message(m["role"], avatar=avatar_icon): 
             render_message_with_image(m["content"])
+            
+            # Regenerate Button for the last AI message
+            if m["role"] in ["bee", "assistant"] and i == len(cur["messages"]) - 1:
+                if st.button("🔄 Regenerate Response", key="regen_btn", help="Get a different answer"):
+                    # Remove the last AI message from DB
+                    msgs = cur["messages"]
+                    msgs.pop() # remove AI msg
+                    supabase.table("chats").update({"messages": msgs}).eq("id", st.session_state.chat_id).execute()
+                    st.rerun()
 
 # ============ INPUT AREA & PAYWALL ============
 user_message = None
 file_context = ""
 
-# 🚀 ফ্রি ইউজারদের ডেইলি লিমিট (১০০ মেসেজ) চেক
+# 🚀 Daily Limit Check
 if (not st.session_state.is_premium) and (st.session_state.msg_count >= DAILY_LIMIT):
     st.warning("⚠️ আপনার আজকের ১০০টি ফ্রি মেসেজের লিমিট শেষ! আগামীকাল আবার রিসেট হবে অথবা প্রিমিয়ামে আপগ্রেড করুন।")
     with st.container(border=True):
@@ -748,7 +722,7 @@ if (not st.session_state.is_premium) and (st.session_state.msg_count >= DAILY_LI
         
         col1, col2 = st.columns(2)
         with col1: 
-            unlock_input = st.text_input("Unlock Code (পেমেন্টের পর কোড দিন)", type="password")
+            unlock_input = st.text_input("Unlock Code", type="password")
         with col2:
             st.write("") 
             st.write("") 
@@ -772,23 +746,26 @@ else:
             file_context = extract_text_from_file(uploaded_file)
             st.toast(f"📎 File '{uploaded_file.name}' attached!")
 
-# ============ HANDLE TEXT INPUT ============
+# ============ HANDLE TEXT INPUT (STREAMING) ============
 if user_message:
     if not st.session_state.is_premium:
         st.session_state.msg_count += 1
         supabase.table("users").update({"msg_count": st.session_state.msg_count}).eq("username", st.session_state.username).execute()
         
     add_msg(st.session_state.chat_id, "user", user_message)
+    st.session_state.last_prompt = user_message
+    
     with st.chat_message("user", avatar="👤"): 
         st.markdown(user_message)
 
     with st.chat_message("assistant", avatar="https://raw.githubusercontent.com/sagornhs3-bit/bee-ai/main/bumblebee.png"):
-        with st.spinner("Bee is thinking..."):
-            current_chat = get_chat(st.session_state.chat_id)
-            history = current_chat["messages"][:-1]
-            reply = ask_llm(user_message, history, file_context)
+        # Stream the response
+        current_chat = get_chat(st.session_state.chat_id)
+        history = current_chat["messages"][:-1]
         
-        render_message_with_image(reply)
+        # Use st.write_stream for typing effect
+        full_response = st.write_stream(ask_llm_stream(user_message, history, file_context))
         
-    add_msg(st.session_state.chat_id, "bee", reply)
+    # Save the full combined response to DB
+    add_msg(st.session_state.chat_id, "bee", full_response)
     st.rerun()
