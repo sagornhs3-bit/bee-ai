@@ -1,4 +1,4 @@
-"""Bee - Ultimate AI Assistant (Streaming + Image Gen + Export + Personas)"""
+"""Bee - Ultimate AI Assistant (Fixed Model + Streaming + Image Gen)"""
 
 import streamlit as st
 import json
@@ -335,14 +335,15 @@ def ask_llm_stream(prompt, chat_history, file_context=""):
         ]
         
         try:
-            enhanced_res = client.chat.completions.create(model="llama-3.3-70b-versatile", messages=enhance_msg, temperature=0.7)
+            # ✅ নতুন মডেল আপডেট করা হয়েছে
+            enhanced_res = client.chat.completions.create(model="openai/gpt-oss-120b", messages=enhance_msg, temperature=0.7)
             clean_prompt = enhanced_res.choices[0].message.content.strip()
         except Exception:
             clean_prompt = prompt
         
         seed = random.randint(1, 999999)
         encoded_prompt = urllib.parse.quote(clean_prompt)
-        # 🔥 URL-এ enhance=true যুক্ত করা হয়েছে যাতে Pollinations নিজে থেকেও প্রম্পট বুস্ট করে
+        # 🔥 URL-এ enhance=true যুক্ত করা হয়েছে
         img_url = f"https://image.pollinations.ai/prompt/{encoded_prompt}?width=1024&height=1024&nologo=true&seed={seed}&model=flux&enhance=true"
         
         yield f"![Generated Image]({img_url})\n\n"
@@ -380,8 +381,9 @@ def ask_llm_stream(prompt, chat_history, file_context=""):
     messages.append({"role": "user", "content": prompt})
 
     try:
+        # ✅ নতুন মডেল আপডেট করা হয়েছে
         stream = client.chat.completions.create(
-            model="llama-3.3-70b-versatile", 
+            model="openai/gpt-oss-120b", 
             messages=messages, 
             temperature=0.5,
             stream=True
