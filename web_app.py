@@ -1,9 +1,10 @@
-"""Bee - Ultimate AI Assistant (Fixed Model + Streaming + Image Gen)"""
+"""Bee - Ultimate AI Assistant (Fixed Model + Streaming + Image Gen + Payment System)"""
 
 import streamlit as st
 import json
 import uuid
 import datetime
+from datetime import timedelta
 from zoneinfo import ZoneInfo
 import sys
 import time
@@ -82,7 +83,23 @@ if "chat_id" not in st.session_state: st.session_state.chat_id = None
 if "emoji_append" not in st.session_state: st.session_state.emoji_append = ""
 if "voice_ui" not in st.session_state: st.session_state.voice_ui = False
 if "persona" not in st.session_state: st.session_state.persona = "Default Bee"
-if "last_prompt" not in st.session_state: st.session_state.last_prompt = ""
+
+def check_premium_status(user):
+    """ইউজারের প্রিমিয়াম মেয়াদ চেক করার ফাংশন"""
+    today = datetime.date.today()
+    if user.get("is_premium"):
+        if user.get("premium_expiry"):
+            expiry_date = datetime.datetime.strptime(user["premium_expiry"], "%Y-%m-%d").date()
+            if today > expiry_date:
+                # মেয়াদ শেষ, তাই প্রিমিয়াম বন্ধ
+                supabase.table("users").update({"is_premium": False}).eq("username", user["username"]).execute()
+                return False
+            else:
+                return True
+        else:
+            # premium_expiry নেই মানে লাইফটাইম ইউজার
+            return True
+    return False
 
 if "user" in st.query_params and not st.session_state.logged_in:
     saved_user = st.query_params["user"]
@@ -93,7 +110,7 @@ if "user" in st.query_params and not st.session_state.logged_in:
                 user = res.data[0]
                 st.session_state.logged_in = True
                 st.session_state.username = user["username"]
-                st.session_state.is_premium = user["is_premium"]
+                st.session_state.is_premium = check_premium_status(user)
                 st.session_state.chat_id = None 
                 
                 today = datetime.date.today().strftime("%Y-%m-%d")
@@ -140,7 +157,7 @@ if not st.session_state.logged_in:
                     if user["password"] == hashed_pw:
                         st.session_state.logged_in = True
                         st.session_state.username = user["username"]
-                        st.session_state.is_premium = user["is_premium"]
+                        st.session_state.is_premium = check_premium_status(user)
                         st.session_state.chat_id = None 
                         st.query_params["user"] = user["username"]
                         
@@ -202,8 +219,7 @@ GROQ_KEY = CONFIG.get("groq_api_key", "")
 
 DAILY_LIMIT = 100 
 BKASH_NUMBER = "01840506838"
-CODE_LIFETIME = "BEE-PRO"
-CODE_MONTHLY = "BEE-MONTH" 
+ADMIN_PASSWORD = "AdminBee123" # 🔐 এখানে আপনার গোপন পাসওয়ার্ড দিন
 
 # ============ SYSTEM AUTO THEME ============
 sys_theme = "dark"
@@ -324,7 +340,6 @@ def ask_llm_stream(prompt, chat_history, file_context=""):
     if any(kw in prompt.lower() for kw in image_keywords):
         yield "🎨 **Bee is drawing your image...**\n\n"
         
-        # 🔥 ইমেজ প্রম্পট এনহ্যান্সমেন্ট (ChatGPT-এর মতো ডিটেইল তৈরি করা)
         enhance_sys = """You are an expert AI image prompt engineer. Take the user's idea and create a highly detailed, descriptive English prompt suitable for the Flux image generation model. 
         Always explicitly specify the art style (e.g., cartoon, 3D render, anime, photorealistic), lighting, colors, and character details. 
         Output ONLY the final English prompt. Do not add quotes or extra text."""
@@ -335,7 +350,6 @@ def ask_llm_stream(prompt, chat_history, file_context=""):
         ]
         
         try:
-            # ✅ নতুন মডেল আপডেট করা হয়েছে
             enhanced_res = client.chat.completions.create(model="openai/gpt-oss-120b", messages=enhance_msg, temperature=0.7)
             clean_prompt = enhanced_res.choices[0].message.content.strip()
         except Exception:
@@ -343,7 +357,6 @@ def ask_llm_stream(prompt, chat_history, file_context=""):
         
         seed = random.randint(1, 999999)
         encoded_prompt = urllib.parse.quote(clean_prompt)
-        # 🔥 URL-এ enhance=true যুক্ত করা হয়েছে
         img_url = f"https://image.pollinations.ai/prompt/{encoded_prompt}?width=1024&height=1024&nologo=true&seed={seed}&model=flux&enhance=true"
         
         yield f"![Generated Image]({img_url})\n\n"
@@ -381,7 +394,6 @@ def ask_llm_stream(prompt, chat_history, file_context=""):
     messages.append({"role": "user", "content": prompt})
 
     try:
-        # ✅ নতুন মডেল আপডেট করা হয়েছে
         stream = client.chat.completions.create(
             model="openai/gpt-oss-120b", 
             messages=messages, 
@@ -552,7 +564,6 @@ if st.session_state.voice_ui:
                         if user_msg:
                             if st.session_state.chat_id is None: new_chat()
                             add_msg(st.session_state.chat_id, "user", user_msg)
-                            st.session_state.last_prompt = user_msg
                             st.session_state.voice_ui = False
                             st.rerun()
                 else:
@@ -679,6 +690,35 @@ with st.sidebar:
     if selected_theme != st.session_state.theme_choice:
         st.session_state.theme_choice = selected_theme; st.rerun()
 
+    # 🔐 ADMIN PANEL (সাইডবারের একদম নিচে)
+    st.divider()
+    with st.expander("🔐 Admin Access"):
+        admin_pass = st.text_input("Enter Admin Password", type="password", key="admin_pass")
+        if admin_pass == ADMIN_PASSWORD:
+            st.success("✅ Admin Mode Enabled")
+            
+            reqs = supabase.table("payment_requests").select("*").eq("status", "pending").execute()
+            if reqs.data:
+                st.markdown("### Pending Payments")
+                for r in reqs.data:
+                    st.info(f"User: **{r['username']}** | TrxID: `{r['trx_id']}` | Plan: {r['plan']}")
+                    
+                    if st.button(f"Approve {r['username']}", key=f"app_{r['id']}"):
+                        if "Monthly" in r['plan']:
+                            expiry = (datetime.date.today() + datetime.timedelta(days=30)).strftime("%Y-%m-%d")
+                            supabase.table("users").update({"is_premium": True, "premium_expiry": expiry}).eq("username", r['username']).execute()
+                        else:
+                            supabase.table("users").update({"is_premium": True, "premium_expiry": None}).eq("username", r['username']).execute()
+                        
+                        supabase.table("payment_requests").update({"status": "approved"}).eq("id", r['id']).execute()
+                        st.success(f"Approved {r['username']}!")
+                        time.sleep(1)
+                        st.rerun()
+            else:
+                st.caption("No pending requests found.")
+        elif admin_pass != "":
+            st.error("❌ ভুল পাসওয়ার্ড!")
+
 # ============ MAIN CHAT AREA ============
 st.markdown(f"""
 <div class="header">
@@ -720,26 +760,44 @@ file_context = ""
 
 if (not st.session_state.is_premium) and (st.session_state.msg_count >= DAILY_LIMIT):
     st.warning("⚠️ আপনার আজকের ১০০টি ফ্রি মেসেজের লিমিট শেষ! আগামীকাল আবার রিসেট হবে অথবা প্রিমিয়ামে আপগ্রেড করুন।")
+    
     with st.container(border=True):
         st.markdown("### 💎 Bee AI Premium Plans")
-        st.markdown(f"**🌟 Monthly Plan (Unlimited Chat + Voice):** মাত্র **$4**")
-        st.markdown(f"**♾️ Lifetime Plan (Unlimited Chat + Voice):** মাত্র **1200 TK / $10**")
-        st.markdown(f"📱 **bKash (Lifetime):** `{BKASH_NUMBER}`")
+        
+        plan = st.radio("Select a Plan:", [
+            "Monthly Premium (500 TK / $4) - 30 Days", 
+            "Lifetime Premium (1200 TK / $10) - Forever"
+        ])
+        
+        st.markdown(f"📱 **bKash Personal (Send Money):** `{BKASH_NUMBER}`")
+        st.markdown("**How to Upgrade?**")
+        st.markdown("""
+        1. উপরের বিকাশ নাম্বারে সিলেক্ট করা প্ল্যানের টাকা Send Money করুন.
+        2. নিচে আপনার **bKash TrxID** (যেমন: 9F5A2B1C) দিন এবং সাবমিট করুন.
+        3. আমাদের টিম ১-২ ঘন্টার মধ্যে ভেরিফাই করে আপনার অ্যাকাউন্ট চালু করে দিবে.
+        """)
         
         col1, col2 = st.columns(2)
         with col1: 
-            unlock_input = st.text_input("Unlock Code", type="password")
+            trx_id = st.text_input("Enter bKash TrxID")
         with col2:
             st.write("") 
             st.write("") 
-            if st.button("🔓 Unlock Premium", use_container_width=True, type="primary"):
-                if unlock_input == CODE_LIFETIME or unlock_input == CODE_MONTHLY:
-                    supabase.table("users").update({"is_premium": True}).eq("username", st.session_state.username).execute()
-                    st.session_state.is_premium = True
-                    st.success("🎉 অভিনন্দন! আপনি এখন Premium ইউজার।")
-                    time.sleep(1); st.rerun()
-                elif unlock_input != "":
-                    st.error("❌ ভুল আনলক কোড!")
+            if st.button("✅ Submit Payment Request", use_container_width=True, type="primary"):
+                if trx_id.strip() != "":
+                    try:
+                        supabase.table("payment_requests").insert({
+                            "username": st.session_state.username,
+                            "trx_id": trx_id,
+                            "plan": plan,
+                            "status": "pending"
+                        }).execute()
+                        st.success("✅ আপনার রিকোয়েস্ট জমা হয়েছে! ভেরিফাই করে প্রিমিয়াম চালু করা হবে.")
+                        st.balloons()
+                    except Exception as e:
+                        st.error(f"Error: {e}")
+                else:
+                    st.warning("অনুগ্রহ করে TrxID দিন।")
 else:
     chat_data = st.chat_input("Type your message here...", accept_file=True, file_type=["pdf", "txt", "csv"])
     if chat_data:
@@ -759,7 +817,6 @@ if user_message:
         supabase.table("users").update({"msg_count": st.session_state.msg_count}).eq("username", st.session_state.username).execute()
         
     add_msg(st.session_state.chat_id, "user", user_message)
-    st.session_state.last_prompt = user_message
     
     with st.chat_message("user", avatar="👤"): 
         st.markdown(user_message)
