@@ -364,13 +364,13 @@ def ask_llm(prompt, chat_history, file_context=""):
         return f"Error: {e}"
 
 # ============================================================
-# 🎨 PREMIUM CSS (Mobile Optimized)
+# 🎨 PREMIUM CSS (Mobile & Desktop Perfected)
 # ============================================================
 if dark:
     bg_base = "#0e1117"
     txt = "#fafafa"
     sidebar_bg = "rgba(14, 17, 23, 0.7)"
-    chat_input_bg = "rgba(30, 30, 40, 0.4)" 
+    chat_input_bg = "rgba(30, 30, 40, 0.7)" 
     btn_bg = "#262730"
     btn_txt = "#fafafa"
     border_col = "rgba(255,255,255,0.1)"
@@ -382,7 +382,7 @@ else:
     bg_base = "#ffffff"
     txt = "#1a1a1a" 
     sidebar_bg = "rgba(255, 255, 255, 0.7)"
-    chat_input_bg = "rgba(255, 255, 255, 0.4)" 
+    chat_input_bg = "rgba(255, 255, 255, 0.8)" 
     btn_bg = "rgba(255, 255, 255, 0.9)" 
     btn_txt = "#1a1a1a" 
     border_col = "rgba(0,0,0,0.1)" 
@@ -428,7 +428,8 @@ css = f"""
         opacity: {watermark_opacity}; z-index: 0; pointer-events: none;
     }}
 
-    .main .block-container {{ padding-top: 1.5rem; max-width: 900px; padding-bottom: 150px !important; z-index: 1; }}
+    /* পেজের নিচে এবং উপরে স্পেসিং ঠিক করা */
+    .main .block-container {{ padding-top: 1.5rem; max-width: 900px; padding-bottom: 120px !important; z-index: 1; }}
     
     [data-testid="stSidebar"] {{ background: {sidebar_bg} !important; backdrop-filter: blur(15px) !important; border-right: 1px solid {border_col} !important; }}
     
@@ -498,11 +499,20 @@ css = f"""
     [data-testid="stAudioInput"] button {{ background-color: #f97316 !important; color: white !important; border: none !important; }}
     [data-testid="stAudioInput"] button svg {{ fill: white !important; color: white !important; }}
 
-    /* 🔥 FIXED CHAT INPUT BOX (Desktop Default) */
+    /* 🔥 Chat Input Box (Fixed PC & Mobile Issue) */
+    /* Streamlit-এর ন্যাচারাল পজিশনিং ব্যবহার করা হয়েছে, তাই আর কেটে যাবে না */
+    [data-testid="stBottom"] {{
+        background: transparent !important;
+        padding-bottom: 15px !important;
+    }}
+    
     [data-testid="stChatInput"] {{ 
-        position: fixed !important; bottom: 20px !important; left: 21rem !important; right: 2rem !important; z-index: 999 !important; max-width: 900px !important; 
-        background: {chat_input_bg} !important; backdrop-filter: blur(20px) !important; -webkit-backdrop-filter: blur(20px) !important;
-        border: 2px solid #f97316 !important; border-radius: 30px !important; padding: 2px 10px !important; 
+        background: {chat_input_bg} !important; 
+        backdrop-filter: blur(20px) !important; 
+        -webkit-backdrop-filter: blur(20px) !important;
+        border: 2px solid #f97316 !important; 
+        border-radius: 30px !important; 
+        padding: 2px 10px !important; 
         box-shadow: 0 0 15px rgba(249, 115, 22, 0.4) !important;
         animation: inputGlow 3s infinite alternate !important;
     }}
@@ -517,15 +527,8 @@ css = f"""
     [data-testid="stChatInput"] button {{ background-color: #f97316 !important; color: white !important; border-radius: 50% !important; transition: all 0.3s !important; border: none !important; }}
     [data-testid="stChatInput"] button:hover {{ transform: scale(1.1) !important; box-shadow: 0 0 15px rgba(249, 115, 22, 0.8) !important; }}
 
-    /* 📱 Mobile Optimization for Chat Input & Layout */
+    /* 📱 Mobile Optimization (ChatGPT-এর মতো) */
     @media (max-width: 768px) {{
-        [data-testid="stChatInput"] {{
-            left: 10px !important; 
-            right: 10px !important; 
-            bottom: 10px !important;
-            max-width: 100% !important;
-            border-radius: 20px !important;
-        }}
         .main .block-container {{
             padding-left: 10px !important;
             padding-right: 10px !important;
@@ -533,9 +536,12 @@ css = f"""
         }}
         .header h1 {{ font-size: 1.4rem !important; }}
         .header p {{ font-size: 0.8rem !important; }}
+        [data-testid="stChatInput"] {{
+            border-radius: 25px !important;
+            margin-bottom: 10px !important;
+        }}
     }}
 
-    [data-testid="stBottom"] > div {{ background: transparent !important; }}
     #MainMenu {{visibility: hidden;}} footer {{visibility: hidden;}}
     [data-testid="stHeader"] {{ background: transparent !important; z-index: 999; }}
     .stDeployButton {{display: none !important;}}
@@ -744,8 +750,8 @@ if (not st.session_state.is_premium) and (st.session_state.msg_count >= DAILY_LI
         with col1: 
             unlock_input = st.text_input("Unlock Code (পেমেন্টের পর কোড দিন)", type="password")
         with col2:
-            st.write("") # Spacing
-            st.write("") # Spacing
+            st.write("") 
+            st.write("") 
             if st.button("🔓 Unlock Premium", use_container_width=True, type="primary"):
                 if unlock_input == CODE_LIFETIME or unlock_input == CODE_MONTHLY:
                     supabase.table("users").update({"is_premium": True}).eq("username", st.session_state.username).execute()
