@@ -1,4 +1,4 @@
-"""Bee - Ultimate AI Assistant (Fixed Bangladesh Time + Glass Glow)"""
+"""Bee - Ultimate AI Assistant (Fixed Bangladesh Time + Glass Glow + Mobile Optimized)"""
 
 import streamlit as st
 import json
@@ -198,9 +198,13 @@ CONFIG = load_cfg()
 NAME = CONFIG.get("assistant_name", "Bee")
 GROQ_KEY = CONFIG.get("groq_api_key", "")
 
-DAILY_LIMIT = 20 
+# 🚀 ডেইলি লিমিট ১০০ করা হলো
+DAILY_LIMIT = 100 
 BKASH_NUMBER = "01840506838"
-CODE_LIFETIME = "BEE-PRO" 
+
+# 🔐 আনলক কোডসমূহ
+CODE_LIFETIME = "BEE-PRO"
+CODE_MONTHLY = "BEE-MONTH" 
 
 # ============ SYSTEM AUTO THEME ============
 sys_theme = "dark"
@@ -360,7 +364,7 @@ def ask_llm(prompt, chat_history, file_context=""):
         return f"Error: {e}"
 
 # ============================================================
-# 🎨 PREMIUM CSS (Fixed Stains + True Glass + Animated BG)
+# 🎨 PREMIUM CSS (Mobile Optimized)
 # ============================================================
 if dark:
     bg_base = "#0e1117"
@@ -494,7 +498,7 @@ css = f"""
     [data-testid="stAudioInput"] button {{ background-color: #f97316 !important; color: white !important; border: none !important; }}
     [data-testid="stAudioInput"] button svg {{ fill: white !important; color: white !important; }}
 
-    /* 🔥 FIXED CHAT INPUT BOX */
+    /* 🔥 FIXED CHAT INPUT BOX (Desktop Default) */
     [data-testid="stChatInput"] {{ 
         position: fixed !important; bottom: 20px !important; left: 21rem !important; right: 2rem !important; z-index: 999 !important; max-width: 900px !important; 
         background: {chat_input_bg} !important; backdrop-filter: blur(20px) !important; -webkit-backdrop-filter: blur(20px) !important;
@@ -513,6 +517,24 @@ css = f"""
     [data-testid="stChatInput"] button {{ background-color: #f97316 !important; color: white !important; border-radius: 50% !important; transition: all 0.3s !important; border: none !important; }}
     [data-testid="stChatInput"] button:hover {{ transform: scale(1.1) !important; box-shadow: 0 0 15px rgba(249, 115, 22, 0.8) !important; }}
 
+    /* 📱 Mobile Optimization for Chat Input & Layout */
+    @media (max-width: 768px) {{
+        [data-testid="stChatInput"] {{
+            left: 10px !important; 
+            right: 10px !important; 
+            bottom: 10px !important;
+            max-width: 100% !important;
+            border-radius: 20px !important;
+        }}
+        .main .block-container {{
+            padding-left: 10px !important;
+            padding-right: 10px !important;
+            padding-bottom: 120px !important;
+        }}
+        .header h1 {{ font-size: 1.4rem !important; }}
+        .header p {{ font-size: 0.8rem !important; }}
+    }}
+
     [data-testid="stBottom"] > div {{ background: transparent !important; }}
     #MainMenu {{visibility: hidden;}} footer {{visibility: hidden;}}
     [data-testid="stHeader"] {{ background: transparent !important; z-index: 999; }}
@@ -530,9 +552,16 @@ css = f"""
 st.markdown(css, unsafe_allow_html=True)
 
 # ============================================================
-# 🎤 VOICE UI
+# 🎤 VOICE UI (Premium Locked)
 # ============================================================
 if st.session_state.voice_ui:
+    if not st.session_state.is_premium:
+        st.error("🔒 ভয়েস ফিচারটি শুধুমাত্র প্রিমিয়াম ইউজারদের জন্য। অনুগ্রহ করে প্রিমিয়ামে আপগ্রেড করুন।")
+        if st.button("🔙 Back to Chat", use_container_width=True):
+            st.session_state.voice_ui = False
+            st.rerun()
+        st.stop()
+
     st.markdown(f"""
     <div class="voice-card">
         <img class="logo-3d" src="https://raw.githubusercontent.com/sagornhs3-bit/bee-ai/main/bumblebee.png" width="150">
@@ -621,14 +650,18 @@ with st.sidebar:
     st.divider()
     
     if st.session_state.is_premium:
-        st.success("🌟 PRO User (Unlimited Lifetime)")
+        st.success("🌟 PRO User (Unlimited Chat & Voice)")
     else:
         st.info(f"💬 আজকের ফ্রি মেসেজ বাকি: {DAILY_LIMIT - st.session_state.msg_count}/{DAILY_LIMIT}")
     st.divider()
     
-    if st.button("🎤 Start Voice Chat", use_container_width=True):
-        st.session_state.voice_ui = True
-        st.rerun()
+    # 🎤 Voice Feature (Only for Premium)
+    if st.session_state.is_premium:
+        if st.button("🎤 Start Voice Chat", use_container_width=True):
+            st.session_state.voice_ui = True
+            st.rerun()
+    else:
+        st.button("🔒 Voice Chat (Premium)", disabled=True, use_container_width=True, help="Upgrade to premium to unlock voice features.")
                 
     with st.popover("😊 Emoji", use_container_width=True):
         st.markdown("### Select an Emoji")
@@ -694,26 +727,33 @@ else:
         with st.chat_message(m["role"], avatar=avatar_icon): 
             render_message_with_image(m["content"])
 
-# ============ INPUT AREA ============
+# ============ INPUT AREA & PAYWALL ============
 user_message = None
 file_context = ""
 
+# 🚀 ফ্রি ইউজারদের ডেইলি লিমিট (১০০ মেসেজ) চেক
 if (not st.session_state.is_premium) and (st.session_state.msg_count >= DAILY_LIMIT):
-    st.warning("⚠️ আপনার আজকের ফ্রি মেসেজ লিমিট শেষ!")
+    st.warning("⚠️ আপনার আজকের ১০০টি ফ্রি মেসেজের লিমিট শেষ! আগামীকাল আবার রিসেট হবে অথবা প্রিমিয়ামে আপগ্রেড করুন।")
     with st.container(border=True):
-        st.markdown("### 💎 Lifetime Pro — Unlimited Access")
-        st.markdown(f"**পেমেন্ট:** মাত্র **৫০০ টাকা (≈ $4.99)** | 📱 **bKash:** `{BKASH_NUMBER}`")
+        st.markdown("### 💎 Bee AI Premium Plans")
+        st.markdown(f"**🌟 Monthly Plan (Unlimited Chat + Voice):** মাত্র **$4**")
+        st.markdown(f"**♾️ Lifetime Plan (Unlimited Chat + Voice):** মাত্র **1200 TK / $10**")
+        st.markdown(f"📱 **bKash (Lifetime):** `{BKASH_NUMBER}`")
+        
         col1, col2 = st.columns(2)
-        with col1: user_trx = st.text_input("TrxID (যেমন: 9F5A2B1C)")
-        with col2: unlock_input = st.text_input("Unlock Code", type="password")
-        if st.button("🔓 Unlock Lifetime Pro", use_container_width=True, type="primary"):
-            if unlock_input == CODE_LIFETIME:
-                supabase.table("users").update({"is_premium": True}).eq("username", st.session_state.username).execute()
-                st.session_state.is_premium = True
-                st.success("🎉 অভিনন্দন! আপনি এখন Lifetime Pro ইউজার।")
-                time.sleep(1); st.rerun()
-            elif unlock_input != "":
-                st.error("❌ ভুল আনলক কোড!")
+        with col1: 
+            unlock_input = st.text_input("Unlock Code (পেমেন্টের পর কোড দিন)", type="password")
+        with col2:
+            st.write("") # Spacing
+            st.write("") # Spacing
+            if st.button("🔓 Unlock Premium", use_container_width=True, type="primary"):
+                if unlock_input == CODE_LIFETIME or unlock_input == CODE_MONTHLY:
+                    supabase.table("users").update({"is_premium": True}).eq("username", st.session_state.username).execute()
+                    st.session_state.is_premium = True
+                    st.success("🎉 অভিনন্দন! আপনি এখন Premium ইউজার।")
+                    time.sleep(1); st.rerun()
+                elif unlock_input != "":
+                    st.error("❌ ভুল আনলক কোড!")
 else:
     chat_data = st.chat_input("Type your message here...", accept_file=True, file_type=["pdf", "txt", "csv"])
     if chat_data:
