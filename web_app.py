@@ -562,7 +562,7 @@ if st.session_state.voice_ui:
     st.stop()
 
 # ============================================================
-# 🖼️ IMAGE RENDERING HELPER (For non-streamed history messages)
+# 🖼️ IMAGE RENDERING HELPER
 # ============================================================
 def render_message_with_image(content):
     img_match = re.search(r'!\[.*?\]\((https://image\.pollinations\.ai/.*?)\)', content)
@@ -608,7 +608,6 @@ with st.sidebar:
         new_chat(); st.rerun()
     st.divider()
 
-    # 🎭 Persona Selection
     st.markdown("**🎭 AI Persona**")
     selected_persona = st.selectbox("Choose AI behavior", list(PERSONAS.keys()), label_visibility="collapsed")
     if selected_persona != st.session_state.persona:
@@ -659,7 +658,6 @@ with st.sidebar:
                 st.rerun()
     st.divider()
     
-    # 📥 Export Chat
     if st.session_state.chat_id:
         cur_chat = get_chat(st.session_state.chat_id)
         if cur_chat and cur_chat["messages"]:
@@ -707,12 +705,10 @@ else:
         with st.chat_message(m["role"], avatar=avatar_icon): 
             render_message_with_image(m["content"])
             
-            # Regenerate Button for the last AI message
             if m["role"] in ["bee", "assistant"] and i == len(cur["messages"]) - 1:
                 if st.button("🔄 Regenerate Response", key="regen_btn", help="Get a different answer"):
-                    # Remove the last AI message from DB
                     msgs = cur["messages"]
-                    msgs.pop() # remove AI msg
+                    msgs.pop() 
                     supabase.table("chats").update({"messages": msgs}).eq("id", st.session_state.chat_id).execute()
                     st.rerun()
 
@@ -720,7 +716,6 @@ else:
 user_message = None
 file_context = ""
 
-# 🚀 Daily Limit Check
 if (not st.session_state.is_premium) and (st.session_state.msg_count >= DAILY_LIMIT):
     st.warning("⚠️ আপনার আজকের ১০০টি ফ্রি মেসেজের লিমিট শেষ! আগামীকাল আবার রিসেট হবে অথবা প্রিমিয়ামে আপগ্রেড করুন।")
     with st.container(border=True):
@@ -768,13 +763,9 @@ if user_message:
         st.markdown(user_message)
 
     with st.chat_message("assistant", avatar="https://raw.githubusercontent.com/sagornhs3-bit/bee-ai/main/bumblebee.png"):
-        # Stream the response
         current_chat = get_chat(st.session_state.chat_id)
         history = current_chat["messages"][:-1]
-        
-        # Use st.write_stream for typing effect
         full_response = st.write_stream(ask_llm_stream(user_message, history, file_context))
         
-    # Save the full combined response to DB
     add_msg(st.session_state.chat_id, "bee", full_response)
     st.rerun()
