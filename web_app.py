@@ -312,7 +312,7 @@ def extract_text_from_file(uploaded_file):
     except Exception: return ""
     return ""
 
-# ============ AI LOGIC (STREAMING) ============
+# ============ AI LOGIC (STREAMING + IMAGE GEN FIXED) ============
 def ask_llm_stream(prompt, chat_history, file_context=""):
     client = get_groq()
     if not client: 
@@ -324,8 +324,16 @@ def ask_llm_stream(prompt, chat_history, file_context=""):
     if any(kw in prompt.lower() for kw in image_keywords):
         yield "🎨 **Bee is drawing your image...**\n\n"
         
-        # Enhance prompt for better image generation (ChatGPT style)
-        enhance_msg = [{"role": "user", "content": f"Convert this request into a highly detailed English image generation prompt. Output ONLY the prompt, no other text: {prompt}"}]
+        # 🔥 ইমেজ প্রম্পট এনহ্যান্সমেন্ট (ChatGPT-এর মতো ডিটেইল তৈরি করা)
+        enhance_sys = """You are an expert AI image prompt engineer. Take the user's idea and create a highly detailed, descriptive English prompt suitable for the Flux image generation model. 
+        Always explicitly specify the art style (e.g., cartoon, 3D render, anime, photorealistic), lighting, colors, and character details. 
+        Output ONLY the final English prompt. Do not add quotes or extra text."""
+        
+        enhance_msg = [
+            {"role": "system", "content": enhance_sys},
+            {"role": "user", "content": prompt}
+        ]
+        
         try:
             enhanced_res = client.chat.completions.create(model="llama-3.3-70b-versatile", messages=enhance_msg, temperature=0.7)
             clean_prompt = enhanced_res.choices[0].message.content.strip()
@@ -334,7 +342,8 @@ def ask_llm_stream(prompt, chat_history, file_context=""):
         
         seed = random.randint(1, 999999)
         encoded_prompt = urllib.parse.quote(clean_prompt)
-        img_url = f"https://image.pollinations.ai/prompt/{encoded_prompt}?width=1024&height=1024&nologo=true&seed={seed}&model=flux"
+        # 🔥 URL-এ enhance=true যুক্ত করা হয়েছে যাতে Pollinations নিজে থেকেও প্রম্পট বুস্ট করে
+        img_url = f"https://image.pollinations.ai/prompt/{encoded_prompt}?width=1024&height=1024&nologo=true&seed={seed}&model=flux&enhance=true"
         
         yield f"![Generated Image]({img_url})\n\n"
         yield f"_[📥 Download Image]({img_url})_"
