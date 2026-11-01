@@ -1,4 +1,4 @@
-"""Bee - Ultimate AI Assistant (Perfect Light/Peach Mode + Watermark + Auto-Coder)"""
+"""Bee - Ultimate AI Assistant (Light Mode Black Spots Fixed)"""
 
 import streamlit as st
 import json
@@ -402,7 +402,7 @@ def ask_llm_stream(prompt, chat_history, file_context=""):
         yield f"Error: {e}"
 
 # ============================================================
-# 🎨 PREMIUM CSS (Light Mode with Peach/Cream Background & Watermark)
+# 🎨 PREMIUM CSS (Light Mode Black Spots Fixed)
 # ============================================================
 if dark:
     bg_base = "#0e1117"
@@ -416,23 +416,20 @@ if dark:
     watermark_opacity = "0.08"
     radio_bg = "#262730"
     radio_border = "#ffffff"
-    # Dark Mode Gradient
     gradient = "linear-gradient(135deg, #0e1117 0%, #1a1124 50%, #241211 100%)"
 else:
-    # 🌟 নতুন লাইট মোড কালার (Cream/Peach Gradient)
+    # 🌟 লাইট মোডের জন্য উজ্জ্বল কালার
     bg_base = "#fffcf2" 
     txt = "#2c2c2c"      
     sidebar_bg = "rgba(255, 250, 240, 0.8)"
-    chat_input_bg = "rgba(255, 255, 255, 0.9)" 
-    btn_bg = "rgba(255, 255, 255, 0.9)" 
+    chat_input_bg = "#ffffff" # সাদা ইনপুট বক্স
+    btn_bg = "#ffffff"        # সাদা বাটন
     btn_txt = "#1a1a1a" 
     border_col = "rgba(0,0,0,0.1)" 
     glass_bg = "rgba(255, 255, 255, 0.6)" 
-    # ওয়াটারমার্ক লাইট মোডে একটু বেশি ভিজিবল করা হলো
     watermark_opacity = "0.15" 
     radio_bg = "#ffffff"
     radio_border = "#f97316"
-    # Light Mode Gradient (Soft Peach & Cream)
     gradient = "linear-gradient(135deg, #fffcf2 0%, #f5efe6 50%, #fdf4dc 100%)"
 
 css = f"""
@@ -451,7 +448,8 @@ css = f"""
         100% {{ background-position: 0% 50%; }}
     }}
 
-    [data-testid="stHeader"], [data-testid="stVerticalBlock"], .main, .block-container, [data-testid="stBottomBlockContainer"] {{
+    /* 🔥 বটম বার এবং হেডার ট্রান্সপারেন্ট করা */
+    [data-testid="stHeader"], [data-testid="stVerticalBlock"], .main, .block-container {{
         background: transparent !important;
     }}
     
@@ -502,6 +500,7 @@ css = f"""
     }}
     .logo-3d {{ animation: talk 3s ease-in-out infinite; border-radius: 50%; mix-blend-mode: multiply; max-height: 80px; object-fit: contain; }}
     
+    /* ১. বাটন কালো দাগ ফিক্স */
     .stButton > button {{ 
         background-color: {btn_bg} !important; 
         color: {btn_txt} !important; 
@@ -513,6 +512,20 @@ css = f"""
     .stButton > button:hover {{ border-color: #f97316 !important; color: #f97316 !important; }}
     .stButton > button p, .stButton > button div {{ color: {btn_txt} !important; font-weight: 500 !important; }}
     
+    /* ৩. ড্রপডাউন (AI Persona) কালো দাগ ফিক্স */
+    div[data-baseweb="select"] > div {{
+        background-color: {bg_base} !important;
+        color: {txt} !important;
+        border: 1px solid {border_col} !important;
+    }}
+    div[data-baseweb="popover"] ul {{
+        background-color: {bg_base} !important;
+        color: {txt} !important;
+    }}
+    div[data-baseweb="popover"] li {{
+        color: {txt} !important;
+    }}
+
     [data-testid="stRadio"] div[role="radiogroup"] > label > div:first-child {{ background-color: {radio_bg} !important; border: 2px solid {radio_border} !important; }}
     [data-testid="stRadio"] div[role="radiogroup"] > label > div:first-child > div {{ background-color: #f97316 !important; transform: scale(1.2) !important; }}
     
@@ -521,8 +534,8 @@ css = f"""
     [data-testid="stAudioInput"] button {{ background-color: #f97316 !important; color: white !important; border: none !important; }}
     [data-testid="stAudioInput"] button svg {{ fill: white !important; color: white !important; }}
 
-    /* 🔥 FIXED CHAT INPUT & MESSENGER BOTTOM FIX */
-    [data-testid="stBottom"] {{ 
+    /* ৪ এবং ৫. চ্যাট ইনপুট এবং বটম বার কালো দাগ ফিক্স */
+    [data-testid="stBottom"], [data-testid="stBottomBlockContainer"], [data-testid="stBottom"] > div {{ 
         background: {bg_base} !important; 
         padding-bottom: 15px !important; 
     }}
@@ -536,6 +549,8 @@ css = f"""
         0% {{ box-shadow: 0 0 10px rgba(249, 115, 22, 0.2) !important; border-color: rgba(249, 115, 22, 0.5) !important; }}
         100% {{ box-shadow: 0 0 25px rgba(249, 115, 22, 0.7) !important; border-color: rgba(249, 115, 22, 1) !important; }}
     }}
+    
+    /* চ্যাট ইনপুটের ভেতরের কালো ব্যাকগ্রাউন্ড দূর করা */
     [data-testid="stChatInput"] > div, [data-testid="stChatInput"] div[data-testid="stVerticalBlock"], [data-testid="stChatInput"] div[data-testid="stHorizontalBlock"] {{ background-color: transparent !important; border: none !important; box-shadow: none !important; }}
     [data-testid="stChatInput"] textarea {{ background-color: transparent !important; color: {txt} !important; padding-right: 80px !important; border: none !important; box-shadow: none !important; }}
     [data-testid="stChatInput"] button {{ background-color: #f97316 !important; color: white !important; border-radius: 50% !important; transition: all 0.3s !important; border: none !important; }}
@@ -613,7 +628,7 @@ if st.session_state.voice_ui:
     st.stop()
 
 # ============================================================
-# 🖼️ & 💻 CUSTOM MESSAGE RENDERER (Image + Code Preview)
+# 🖼️ & 💻 CUSTOM MESSAGE RENDERER
 # ============================================================
 def render_custom_message(content):
     img_match = re.search(r'!\[.*?\]\((https://image\.pollinations\.ai/.*?)\)', content)
