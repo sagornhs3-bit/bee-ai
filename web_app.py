@@ -1,4 +1,4 @@
-"""Bee - Ultimate AI Assistant (Mobile Fixed + Streaming + Payment)"""
+"""Bee - Ultimate AI Assistant (Mobile Fixed + Dark Mode Text Fix)"""
 
 import streamlit as st
 import json
@@ -85,7 +85,6 @@ if "voice_ui" not in st.session_state: st.session_state.voice_ui = False
 if "persona" not in st.session_state: st.session_state.persona = "Default Bee"
 
 def check_premium_status(user):
-    """ইউজারের প্রিমিয়াম মেয়াদ চেক করার ফাংশন"""
     today = datetime.date.today()
     if user.get("is_premium"):
         if user.get("premium_expiry"):
@@ -326,7 +325,7 @@ def extract_text_from_file(uploaded_file):
     except Exception: return ""
     return ""
 
-# ============ AI LOGIC (STREAMING + IMAGE GEN FIXED) ============
+# ============ AI LOGIC ============
 def ask_llm_stream(prompt, chat_history, file_context=""):
     client = get_groq()
     if not client: 
@@ -338,9 +337,7 @@ def ask_llm_stream(prompt, chat_history, file_context=""):
     if any(kw in prompt.lower() for kw in image_keywords):
         yield "🎨 **Bee is drawing your image...**\n\n"
         
-        enhance_sys = """You are an expert AI image prompt engineer. Take the user's idea and create a highly detailed, descriptive English prompt suitable for the Flux image generation model. 
-        Always explicitly specify the art style (e.g., cartoon, 3D render, anime, photorealistic), lighting, colors, and character details. 
-        Output ONLY the final English prompt. Do not add quotes or extra text."""
+        enhance_sys = """You are an expert AI image prompt engineer. Take the user's idea and create a highly detailed, descriptive English prompt suitable for the Flux image generation model. Output ONLY the final English prompt."""
         
         enhance_msg = [
             {"role": "system", "content": enhance_sys},
@@ -405,35 +402,47 @@ def ask_llm_stream(prompt, chat_history, file_context=""):
         yield f"Error: {e}"
 
 # ============================================================
-# 🎨 PREMIUM CSS (Mobile Optimized)
+# 🎨 PREMIUM CSS (FORCE DARK MODE TEXT & BG FIX)
 # ============================================================
 if dark:
-    bg_base = "#0e1117"
-    txt = "#fafafa"
-    sidebar_bg = "rgba(14, 17, 23, 0.7)"
-    chat_input_bg = "rgba(30, 30, 40, 0.7)" 
+    bg_base = "#0e1117" # Force Dark Background
+    txt = "#fafafa"     # Force White Text
+    sidebar_bg = "rgba(14, 17, 23, 0.8)"
+    chat_input_bg = "rgba(30, 30, 40, 0.9)" 
     btn_bg = "#262730"
     btn_txt = "#fafafa"
-    border_col = "rgba(255,255,255,0.1)"
-    glass_bg = "rgba(30, 30, 40, 0.4)"
+    border_col = "rgba(255,255,255,0.15)"
+    glass_bg = "rgba(30, 30, 40, 0.6)"
     watermark_opacity = "0.08"
     radio_bg = "#262730"
     radio_border = "#ffffff"
 else:
     bg_base = "#ffffff"
     txt = "#1a1a1a" 
-    sidebar_bg = "rgba(255, 255, 255, 0.7)"
-    chat_input_bg = "rgba(255, 255, 255, 0.8)" 
+    sidebar_bg = "rgba(255, 255, 255, 0.8)"
+    chat_input_bg = "rgba(255, 255, 255, 0.9)" 
     btn_bg = "rgba(255, 255, 255, 0.9)" 
     btn_txt = "#1a1a1a" 
     border_col = "rgba(0,0,0,0.1)" 
-    glass_bg = "rgba(255, 255, 255, 0.5)" 
+    glass_bg = "rgba(255, 255, 255, 0.6)" 
     watermark_opacity = "0.08"
     radio_bg = "#ffffff"
     radio_border = "#f97316"
 
 css = f"""
 <style>
+    /* 🔥 FORCE APP BACKGROUND & TEXT COLOR (Messenger Fix) */
+    html, body, [data-testid="stAppViewContainer"], .stApp {{
+        background-color: {bg_base} !important;
+        color: {txt} !important;
+    }}
+    
+    /* 🔥 FORCE TEXT COLOR FOR ALL ELEMENTS */
+    p, span, div, h1, h2, h3, h4, h5, h6, label, li, td, th, [data-testid="stMarkdownContainer"] * {{
+        color: {txt} !important;
+    }}
+
+    /* Animated Background overlay */
     .stApp {{
         background: linear-gradient(135deg, {bg_base} 0%, #1a1124 50%, #241211 100%) !important;
         background-size: 200% 200% !important;
@@ -445,9 +454,11 @@ css = f"""
         50% {{ background-position: 100% 50%; }}
         100% {{ background-position: 0% 50%; }}
     }}
-    [data-testid="stAppViewContainer"], [data-testid="stHeader"], [data-testid="stVerticalBlock"], .main, .block-container {{
+    
+    [data-testid="stHeader"], [data-testid="stVerticalBlock"], .main, .block-container, [data-testid="stBottom"], [data-testid="stBottomBlockContainer"] {{
         background: transparent !important;
     }}
+    
     [data-testid="stAppViewContainer"]::before {{
         content: ""; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
         width: 600px; height: 600px;
@@ -455,22 +466,19 @@ css = f"""
         background-size: contain; background-repeat: no-repeat;
         opacity: {watermark_opacity}; z-index: 0; pointer-events: none;
     }}
+    
     .main .block-container {{ padding-top: 1.5rem; max-width: 900px; padding-bottom: 120px !important; z-index: 1; }}
+    
     [data-testid="stSidebar"] {{ background: {sidebar_bg} !important; backdrop-filter: blur(15px) !important; border-right: 1px solid {border_col} !important; }}
-    .main p, .main span, .main label, .main h1, .main h2, .main h3, .main h4, .main h5, .main h6, .main li, .main td, .main th,
-    [data-testid="stChatMessage"] *, [data-testid="stMarkdownContainer"] *,
-    [data-testid="stSidebar"] p, [data-testid="stSidebar"] span, [data-testid="stSidebar"] label {{ color: {txt} !important; }}
+    [data-testid="stSidebar"] * {{ color: {txt} !important; }}
+    
     [data-testid="stChatMessage"] {{
         background: {glass_bg} !important; backdrop-filter: blur(20px) !important; -webkit-backdrop-filter: blur(20px) !important;
         border: 1px solid {border_col} !important; border-radius: 20px !important; padding: 20px !important; 
         margin-bottom: 20px !important; display: flex !important; flex-direction: row !important; align-items: flex-start !important;
         z-index: 1; box-shadow: 0 4px 20px rgba(0,0,0,0.1) !important;
     }}
-    [data-testid="stChatMessage"]:not(:has([data-testid="chatAvatarIcon-user"])) {{ animation: aiGlow 3s infinite alternate !important; }}
-    @keyframes aiGlow {{
-        0% {{ box-shadow: 0 0 5px rgba(249, 115, 22, 0.1) !important; border-color: rgba(255,255,255,0.1) !important; }}
-        100% {{ box-shadow: 0 0 20px rgba(249, 115, 22, 0.4) !important; border-color: rgba(249, 115, 22, 0.5) !important; }}
-    }}
+    
     [data-testid="stChatMessage"]:has([data-testid="chatAvatarIcon-user"]) {{
         flex-direction: row-reverse !important; background: rgba(249, 115, 22, 0.15) !important; 
         border: 1px solid rgba(249, 115, 22, 0.3) !important; animation: userGlow 3s infinite alternate !important;
@@ -480,9 +488,11 @@ css = f"""
         100% {{ box-shadow: 0 0 20px rgba(249, 115, 22, 0.6) !important; }}
     }}
     [data-testid="stChatMessage"]:has([data-testid="chatAvatarIcon-user"]) .stMarkdown {{ text-align: right !important; }}
+    
     .header {{ background: linear-gradient(135deg, #f59e0b 0%, #ef4444 100%) !important; padding: 1.4rem 1.6rem; border-radius: 14px; margin-bottom: 1.2rem; display: flex; align-items: center; overflow: hidden; box-shadow: 0 8px 20px rgba(239, 68, 68, 0.2); }}
     .header h1 {{ margin: 0; font-size: 1.8rem; color: #ffffff !important; }}
     .header p {{ margin: 0.3rem 0 0; opacity: 0.95; font-size: 0.95rem; color: #ffffff !important; }}
+    
     @keyframes talk {{
         0% {{ transform: translateY(0px) scale(1); filter: drop-shadow(0 0 10px rgba(249, 115, 22, 0.3)); }}
         50% {{ transform: translateY(-8px) scale(1.05); filter: drop-shadow(0 0 25px rgba(249, 115, 22, 0.8)); }}
@@ -499,24 +509,20 @@ css = f"""
         transition: all 0.2s !important; 
     }}
     .stButton > button:hover {{ border-color: #f97316 !important; color: #f97316 !important; }}
-    
-    /* বাটনের ভেতরের লেখা যাতে সাদার ওপর সাদা না হয়ে যায় */
-    .stButton > button p, .stButton > button div {{ 
-        color: {btn_txt} !important; 
-        font-weight: 500 !important;
-    }}
+    .stButton > button p, .stButton > button div {{ color: {btn_txt} !important; font-weight: 500 !important; }}
     
     [data-testid="stRadio"] div[role="radiogroup"] > label > div:first-child {{ background-color: {radio_bg} !important; border: 2px solid {radio_border} !important; }}
     [data-testid="stRadio"] div[role="radiogroup"] > label > div:first-child > div {{ background-color: #f97316 !important; transform: scale(1.2) !important; }}
+    
     [data-testid="stAudioInput"] {{ background-color: #ffffff !important; border-radius: 12px !important; border: 2px solid #f97316 !important; box-shadow: 0 4px 15px rgba(249, 115, 22, 0.15) !important; padding: 10px !important; }}
     [data-testid="stAudioInput"] * {{ color: #1a1a1a !important; fill: #f97316 !important; }}
     [data-testid="stAudioInput"] button {{ background-color: #f97316 !important; color: white !important; border: none !important; }}
     [data-testid="stAudioInput"] button svg {{ fill: white !important; color: white !important; }}
 
-    /* 🔥 FIXED CHAT INPUT & BOTTOM BAR */
-    [data-testid="stBottom"], [data-testid="stBottom"] > div {{ 
+    /* 🔥 FIXED CHAT INPUT & MESSENGER BOTTOM FIX */
+    [data-testid="stBottom"] {{ 
         background: transparent !important; 
-        padding-bottom: 10px !important; 
+        padding-bottom: 15px !important; 
     }}
     
     [data-testid="stChatInput"] {{ 
@@ -538,13 +544,20 @@ css = f"""
         .main .block-container {{ 
             padding-left: 10px !important; 
             padding-right: 10px !important; 
-            padding-bottom: 150px !important; /* চ্যাট বক্স যাতে নিচে চাপা না পড়ে */
+            padding-bottom: 100px !important; 
         }}
         .header h1 {{ font-size: 1.4rem !important; }}
         .header p {{ font-size: 0.8rem !important; }}
+        
+        /* Force dark background on bottom block container for Messenger */
+        [data-testid="stBottomBlockContainer"] {{
+            background-color: {bg_base} !important;
+            padding-bottom: 10px !important;
+        }}
+        
         [data-testid="stChatInput"] {{ 
             border-radius: 25px !important; 
-            margin-bottom: 40px !important; /* Messenger-এর নিচের বার এড়াতে */
+            margin-bottom: 50px !important; /* Push up to avoid Messenger nav bar */
         }}
     }}
 
