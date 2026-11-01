@@ -1,4 +1,4 @@
-"""Bee - Ultimate AI Assistant (Light Mode Black Spots Fixed)"""
+"""Bee - Ultimate AI Assistant (Light Mode All Black Spots Fixed)"""
 
 import streamlit as st
 import json
@@ -402,7 +402,7 @@ def ask_llm_stream(prompt, chat_history, file_context=""):
         yield f"Error: {e}"
 
 # ============================================================
-# 🎨 PREMIUM CSS (Light Mode Black Spots Fixed)
+# 🎨 PREMIUM CSS
 # ============================================================
 if dark:
     bg_base = "#0e1117"
@@ -418,12 +418,11 @@ if dark:
     radio_border = "#ffffff"
     gradient = "linear-gradient(135deg, #0e1117 0%, #1a1124 50%, #241211 100%)"
 else:
-    # 🌟 লাইট মোডের জন্য উজ্জ্বল কালার
     bg_base = "#fffcf2" 
     txt = "#2c2c2c"      
     sidebar_bg = "rgba(255, 250, 240, 0.8)"
-    chat_input_bg = "#ffffff" # সাদা ইনপুট বক্স
-    btn_bg = "#ffffff"        # সাদা বাটন
+    chat_input_bg = "#ffffff" 
+    btn_bg = "#ffffff" 
     btn_txt = "#1a1a1a" 
     border_col = "rgba(0,0,0,0.1)" 
     glass_bg = "rgba(255, 255, 255, 0.6)" 
@@ -434,26 +433,22 @@ else:
 
 css = f"""
 <style>
-    /* 🌟 Animated Moving Gradient Background */
     .stApp {{
         background: {gradient} !important;
         background-size: 200% 200% !important;
         animation: gradientBG 15s ease infinite !important;
         background-attachment: fixed !important;
     }}
-    
     @keyframes gradientBG {{
         0% {{ background-position: 0% 50%; }}
         50% {{ background-position: 100% 50%; }}
         100% {{ background-position: 0% 50%; }}
     }}
 
-    /* 🔥 বটম বার এবং হেডার ট্রান্সপারেন্ট করা */
     [data-testid="stHeader"], [data-testid="stVerticalBlock"], .main, .block-container {{
         background: transparent !important;
     }}
     
-    /* 🌟 Watermark (Bumblebee Logo) */
     [data-testid="stAppViewContainer"]::before {{
         content: ""; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
         width: 600px; height: 600px;
@@ -466,12 +461,10 @@ css = f"""
     
     [data-testid="stSidebar"] {{ background: {sidebar_bg} !important; backdrop-filter: blur(15px) !important; border-right: 1px solid {border_col} !important; }}
     
-    /* Apply Text Color properly for themes */
     .main p, .main span, .main label, .main h1, .main h2, .main h3, .main h4, .main h5, .main h6, .main li, .main td, .main th,
     [data-testid="stChatMessage"] *, [data-testid="stMarkdownContainer"] *,
     [data-testid="stSidebar"] p, [data-testid="stSidebar"] span, [data-testid="stSidebar"] label {{ color: {txt} !important; }}
     
-    /* 💎 Glassmorphism Chat Bubbles */
     [data-testid="stChatMessage"] {{
         background: {glass_bg} !important; backdrop-filter: blur(20px) !important; -webkit-backdrop-filter: blur(20px) !important;
         border: 1px solid {border_col} !important; border-radius: 20px !important; padding: 20px !important; 
@@ -500,7 +493,7 @@ css = f"""
     }}
     .logo-3d {{ animation: talk 3s ease-in-out infinite; border-radius: 50%; mix-blend-mode: multiply; max-height: 80px; object-fit: contain; }}
     
-    /* ১. বাটন কালো দাগ ফিক্স */
+    /* ১. সাধারণ বাটন */
     .stButton > button {{ 
         background-color: {btn_bg} !important; 
         color: {btn_txt} !important; 
@@ -512,19 +505,14 @@ css = f"""
     .stButton > button:hover {{ border-color: #f97316 !important; color: #f97316 !important; }}
     .stButton > button p, .stButton > button div {{ color: {btn_txt} !important; font-weight: 500 !important; }}
     
-    /* ৩. ড্রপডাউন (AI Persona) কালো দাগ ফিক্স */
+    /* ২. ড্রপডাউন (AI Persona) */
     div[data-baseweb="select"] > div {{
         background-color: {bg_base} !important;
         color: {txt} !important;
         border: 1px solid {border_col} !important;
     }}
-    div[data-baseweb="popover"] ul {{
-        background-color: {bg_base} !important;
-        color: {txt} !important;
-    }}
-    div[data-baseweb="popover"] li {{
-        color: {txt} !important;
-    }}
+    div[data-baseweb="popover"] ul {{ background-color: {bg_base} !important; color: {txt} !important; }}
+    div[data-baseweb="popover"] li {{ color: {txt} !important; }}
 
     [data-testid="stRadio"] div[role="radiogroup"] > label > div:first-child {{ background-color: {radio_bg} !important; border: 2px solid {radio_border} !important; }}
     [data-testid="stRadio"] div[role="radiogroup"] > label > div:first-child > div {{ background-color: #f97316 !important; transform: scale(1.2) !important; }}
@@ -534,14 +522,28 @@ css = f"""
     [data-testid="stAudioInput"] button {{ background-color: #f97316 !important; color: white !important; border: none !important; }}
     [data-testid="stAudioInput"] button svg {{ fill: white !important; color: white !important; }}
 
-    /* ৪ এবং ৫. চ্যাট ইনপুট এবং বটম বার কালো দাগ ফিক্স */
+    /* ৩. ইমোজি বাটন (Popover) */
+    div[data-testid="stPopover"] > button,
+    div[data-testid="stPopover"] > div > button {{
+        background-color: {btn_bg} !important;
+        color: {btn_txt} !important;
+        border: 1px solid {border_col} !important;
+    }}
+    div[data-testid="stPopover"] > button p,
+    div[data-testid="stPopover"] > button div {{
+        color: {btn_txt} !important;
+    }}
+    [data-testid="stPopoverBody"] {{ background-color: {bg_base} !important; border: 1px solid {border_col} !important; box-shadow: 0 10px 30px rgba(0,0,0,0.1) !important; }}
+
+    /* ৪. চ্যাট ইনপুট ও বটম বার */
     [data-testid="stBottom"], [data-testid="stBottomBlockContainer"], [data-testid="stBottom"] > div {{ 
         background: {bg_base} !important; 
         padding-bottom: 15px !important; 
     }}
     
     [data-testid="stChatInput"] {{ 
-        background: {chat_input_bg} !important; backdrop-filter: blur(20px) !important; -webkit-backdrop-filter: blur(20px) !important;
+        background-color: {chat_input_bg} !important;
+        backdrop-filter: blur(20px) !important; -webkit-backdrop-filter: blur(20px) !important;
         border: 2px solid #f97316 !important; border-radius: 30px !important; padding: 2px 10px !important; 
         box-shadow: 0 0 15px rgba(249, 115, 22, 0.4) !important; animation: inputGlow 3s infinite alternate !important;
     }}
@@ -550,9 +552,26 @@ css = f"""
         100% {{ box-shadow: 0 0 25px rgba(249, 115, 22, 0.7) !important; border-color: rgba(249, 115, 22, 1) !important; }}
     }}
     
-    /* চ্যাট ইনপুটের ভেতরের কালো ব্যাকগ্রাউন্ড দূর করা */
-    [data-testid="stChatInput"] > div, [data-testid="stChatInput"] div[data-testid="stVerticalBlock"], [data-testid="stChatInput"] div[data-testid="stHorizontalBlock"] {{ background-color: transparent !important; border: none !important; box-shadow: none !important; }}
-    [data-testid="stChatInput"] textarea {{ background-color: transparent !important; color: {txt} !important; padding-right: 80px !important; border: none !important; box-shadow: none !important; }}
+    /* ভেতরের সমস্ত কালো ব্যাকগ্রাউন্ড রিমুভ */
+    [data-testid="stChatInput"] *,
+    [data-testid="stChatInput"] div,
+    [data-testid="stChatInput"] [data-baseweb="base-input"],
+    [data-testid="stChatInput"] [data-baseweb="textarea"],
+    [data-testid="stChatInput"] textarea {{
+        background-color: transparent !important;
+        border: none !important;
+        box-shadow: none !important;
+    }}
+    
+    /* ইনপুট বক্সের ভেতরের লেখা */
+    [data-testid="stChatInput"] textarea {{
+        color: {txt} !important;
+        -webkit-text-fill-color: {txt} !important;
+    }}
+    [data-testid="stChatInput"] textarea::placeholder {{
+        color: #888 !important; 
+    }}
+    
     [data-testid="stChatInput"] button {{ background-color: #f97316 !important; color: white !important; border-radius: 50% !important; transition: all 0.3s !important; border: none !important; }}
     [data-testid="stChatInput"] button:hover {{ transform: scale(1.1) !important; box-shadow: 0 0 15px rgba(249, 115, 22, 0.8) !important; }}
 
@@ -561,16 +580,8 @@ css = f"""
         .main .block-container {{ padding-left: 10px !important; padding-right: 10px !important; padding-bottom: 100px !important; }}
         .header h1 {{ font-size: 1.4rem !important; }}
         .header p {{ font-size: 0.8rem !important; }}
-        
-        [data-testid="stBottomBlockContainer"] {{
-            background-color: {bg_base} !important;
-            padding-bottom: 10px !important;
-        }}
-        
-        [data-testid="stChatInput"] {{ 
-            border-radius: 25px !important; 
-            margin-bottom: 50px !important; 
-        }}
+        [data-testid="stBottomBlockContainer"] {{ background-color: {bg_base} !important; padding-bottom: 10px !important; }}
+        [data-testid="stChatInput"] {{ border-radius: 25px !important; margin-bottom: 50px !important; }}
     }}
 
     #MainMenu {{visibility: hidden;}} footer {{visibility: hidden;}}
@@ -578,8 +589,6 @@ css = f"""
     .stDeployButton {{display: none !important;}}
     [data-testid="collapsedControl"] {{ display: flex !important; visibility: visible !important; opacity: 1 !important; position: fixed !important; top: 15px !important; left: 15px !important; z-index: 99999 !important; background-color: #f97316 !important; color: white !important; border-radius: 50% !important; padding: 8px !important; box-shadow: 0 4px 10px rgba(0,0,0,0.2) !important; }}
     [data-testid="collapsedControl"] svg {{ fill: white !important; color: white !important; }}
-    [data-testid="stPopover"] > button {{ background-color: {btn_bg} !important; color: {btn_txt} !important; border: 1px solid {border_col} !important; box-shadow: 0 2px 5px rgba(0,0,0,0.02) !important; }}
-    [data-testid="stPopoverBody"] {{ background-color: {bg_base} !important; border: 1px solid {border_col} !important; box-shadow: 0 10px 30px rgba(0,0,0,0.1) !important; }}
     .voice-card {{ background: {glass_bg}; backdrop-filter: blur(25px); border-radius: 30px; padding: 50px 20px; text-align: center; box-shadow: 0 15px 50px rgba(0,0,0,0.1); border: 2px solid rgba(249, 115, 22, 0.3); margin-top: 5vh; display: flex; flex-direction: column; align-items: center; justify-content: center; }}
 </style>
 """
