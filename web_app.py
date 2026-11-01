@@ -1,4 +1,4 @@
-"""Bee - Ultimate AI Assistant (Fixed Model + Streaming + Image Gen + Payment System)"""
+"""Bee - Ultimate AI Assistant (Mobile Fixed + Streaming + Payment)"""
 
 import streamlit as st
 import json
@@ -91,13 +91,11 @@ def check_premium_status(user):
         if user.get("premium_expiry"):
             expiry_date = datetime.datetime.strptime(user["premium_expiry"], "%Y-%m-%d").date()
             if today > expiry_date:
-                # মেয়াদ শেষ, তাই প্রিমিয়াম বন্ধ
                 supabase.table("users").update({"is_premium": False}).eq("username", user["username"]).execute()
                 return False
             else:
                 return True
         else:
-            # premium_expiry নেই মানে লাইফটাইম ইউজার
             return True
     return False
 
@@ -219,7 +217,7 @@ GROQ_KEY = CONFIG.get("groq_api_key", "")
 
 DAILY_LIMIT = 100 
 BKASH_NUMBER = "01840506838"
-ADMIN_PASSWORD = "AdminBee123" # 🔐 এখানে আপনার গোপন পাসওয়ার্ড দিন
+ADMIN_PASSWORD = "AdminBee123" 
 
 # ============ SYSTEM AUTO THEME ============
 sys_theme = "dark"
@@ -407,7 +405,7 @@ def ask_llm_stream(prompt, chat_history, file_context=""):
         yield f"Error: {e}"
 
 # ============================================================
-# 🎨 PREMIUM CSS
+# 🎨 PREMIUM CSS (Mobile Optimized)
 # ============================================================
 if dark:
     bg_base = "#0e1117"
@@ -491,16 +489,36 @@ css = f"""
         100% {{ transform: translateY(0px) scale(1); filter: drop-shadow(0 0 10px rgba(249, 115, 22, 0.3)); }}
     }}
     .logo-3d {{ animation: talk 3s ease-in-out infinite; border-radius: 50%; mix-blend-mode: multiply; max-height: 80px; object-fit: contain; }}
-    .stButton > button {{ background-color: {btn_bg} !important; color: {btn_txt} !important; border: 1px solid {border_col} !important; border-radius: 10px !important; box-shadow: 0 2px 5px rgba(0,0,0,0.02) !important; transition: all 0.2s !important; }}
+    
+    .stButton > button {{ 
+        background-color: {btn_bg} !important; 
+        color: {btn_txt} !important; 
+        border: 1px solid {border_col} !important; 
+        border-radius: 10px !important; 
+        box-shadow: 0 2px 5px rgba(0,0,0,0.02) !important; 
+        transition: all 0.2s !important; 
+    }}
     .stButton > button:hover {{ border-color: #f97316 !important; color: #f97316 !important; }}
-    .stButton > button p, .stButton > div {{ color: {btn_txt} !important; }}
+    
+    /* বাটনের ভেতরের লেখা যাতে সাদার ওপর সাদা না হয়ে যায় */
+    .stButton > button p, .stButton > button div {{ 
+        color: {btn_txt} !important; 
+        font-weight: 500 !important;
+    }}
+    
     [data-testid="stRadio"] div[role="radiogroup"] > label > div:first-child {{ background-color: {radio_bg} !important; border: 2px solid {radio_border} !important; }}
     [data-testid="stRadio"] div[role="radiogroup"] > label > div:first-child > div {{ background-color: #f97316 !important; transform: scale(1.2) !important; }}
     [data-testid="stAudioInput"] {{ background-color: #ffffff !important; border-radius: 12px !important; border: 2px solid #f97316 !important; box-shadow: 0 4px 15px rgba(249, 115, 22, 0.15) !important; padding: 10px !important; }}
     [data-testid="stAudioInput"] * {{ color: #1a1a1a !important; fill: #f97316 !important; }}
     [data-testid="stAudioInput"] button {{ background-color: #f97316 !important; color: white !important; border: none !important; }}
     [data-testid="stAudioInput"] button svg {{ fill: white !important; color: white !important; }}
-    [data-testid="stBottom"] {{ background: transparent !important; padding-bottom: 15px !important; }}
+
+    /* 🔥 FIXED CHAT INPUT & BOTTOM BAR */
+    [data-testid="stBottom"], [data-testid="stBottom"] > div {{ 
+        background: transparent !important; 
+        padding-bottom: 10px !important; 
+    }}
+    
     [data-testid="stChatInput"] {{ 
         background: {chat_input_bg} !important; backdrop-filter: blur(20px) !important; -webkit-backdrop-filter: blur(20px) !important;
         border: 2px solid #f97316 !important; border-radius: 30px !important; padding: 2px 10px !important; 
@@ -514,12 +532,22 @@ css = f"""
     [data-testid="stChatInput"] textarea {{ background-color: transparent !important; color: {txt} !important; padding-right: 80px !important; border: none !important; box-shadow: none !important; }}
     [data-testid="stChatInput"] button {{ background-color: #f97316 !important; color: white !important; border-radius: 50% !important; transition: all 0.3s !important; border: none !important; }}
     [data-testid="stChatInput"] button:hover {{ transform: scale(1.1) !important; box-shadow: 0 0 15px rgba(249, 115, 22, 0.8) !important; }}
+
+    /* 📱 Mobile Optimization (Messenger / FB Browser Fix) */
     @media (max-width: 768px) {{
-        .main .block-container {{ padding-left: 10px !important; padding-right: 10px !important; padding-bottom: 120px !important; }}
+        .main .block-container {{ 
+            padding-left: 10px !important; 
+            padding-right: 10px !important; 
+            padding-bottom: 150px !important; /* চ্যাট বক্স যাতে নিচে চাপা না পড়ে */
+        }}
         .header h1 {{ font-size: 1.4rem !important; }}
         .header p {{ font-size: 0.8rem !important; }}
-        [data-testid="stChatInput"] {{ border-radius: 25px !important; margin-bottom: 10px !important; }}
+        [data-testid="stChatInput"] {{ 
+            border-radius: 25px !important; 
+            margin-bottom: 40px !important; /* Messenger-এর নিচের বার এড়াতে */
+        }}
     }}
+
     #MainMenu {{visibility: hidden;}} footer {{visibility: hidden;}}
     [data-testid="stHeader"] {{ background: transparent !important; z-index: 999; }}
     .stDeployButton {{display: none !important;}}
@@ -690,7 +718,7 @@ with st.sidebar:
     if selected_theme != st.session_state.theme_choice:
         st.session_state.theme_choice = selected_theme; st.rerun()
 
-    # 🔐 ADMIN PANEL (সাইডবারের একদম নিচে)
+    # 🔐 ADMIN PANEL
     st.divider()
     with st.expander("🔐 Admin Access"):
         admin_pass = st.text_input("Enter Admin Password", type="password", key="admin_pass")
