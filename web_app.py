@@ -1,4 +1,4 @@
-"""Bee - Ultimate AI Assistant (Auto-Coder + Preview + Fixed Warnings)"""
+"""Bee - Ultimate AI Assistant (Perfect Light/Peach Mode + Watermark + Auto-Coder)"""
 
 import streamlit as st
 import json
@@ -325,7 +325,7 @@ def extract_text_from_file(uploaded_file):
     except Exception: return ""
     return ""
 
-# ============ AI LOGIC (STREAMING + IMAGE GEN + CODE) ============
+# ============ AI LOGIC ============
 def ask_llm_stream(prompt, chat_history, file_context=""):
     client = get_groq()
     if not client: 
@@ -402,7 +402,7 @@ def ask_llm_stream(prompt, chat_history, file_context=""):
         yield f"Error: {e}"
 
 # ============================================================
-# 🎨 PREMIUM CSS (Dark Mode & Mobile Fix)
+# 🎨 PREMIUM CSS (Light Mode with Peach/Cream Background & Watermark)
 # ============================================================
 if dark:
     bg_base = "#0e1117"
@@ -416,42 +416,46 @@ if dark:
     watermark_opacity = "0.08"
     radio_bg = "#262730"
     radio_border = "#ffffff"
+    # Dark Mode Gradient
+    gradient = "linear-gradient(135deg, #0e1117 0%, #1a1124 50%, #241211 100%)"
 else:
-    bg_base = "#ffffff"
-    txt = "#1a1a1a" 
-    sidebar_bg = "rgba(255, 255, 255, 0.8)"
+    # 🌟 নতুন লাইট মোড কালার (Cream/Peach Gradient)
+    bg_base = "#fffcf2" 
+    txt = "#2c2c2c"      
+    sidebar_bg = "rgba(255, 250, 240, 0.8)"
     chat_input_bg = "rgba(255, 255, 255, 0.9)" 
     btn_bg = "rgba(255, 255, 255, 0.9)" 
     btn_txt = "#1a1a1a" 
     border_col = "rgba(0,0,0,0.1)" 
     glass_bg = "rgba(255, 255, 255, 0.6)" 
-    watermark_opacity = "0.08"
+    # ওয়াটারমার্ক লাইট মোডে একটু বেশি ভিজিবল করা হলো
+    watermark_opacity = "0.15" 
     radio_bg = "#ffffff"
     radio_border = "#f97316"
+    # Light Mode Gradient (Soft Peach & Cream)
+    gradient = "linear-gradient(135deg, #fffcf2 0%, #f5efe6 50%, #fdf4dc 100%)"
 
 css = f"""
 <style>
-    html, body, [data-testid="stAppViewContainer"], .stApp {{
-        background-color: {bg_base} !important;
-        color: {txt} !important;
-    }}
-    p, span, div, h1, h2, h3, h4, h5, h6, label, li, td, th, [data-testid="stMarkdownContainer"] * {{
-        color: {txt} !important;
-    }}
+    /* 🌟 Animated Moving Gradient Background */
     .stApp {{
-        background: linear-gradient(135deg, {bg_base} 0%, #1a1124 50%, #241211 100%) !important;
+        background: {gradient} !important;
         background-size: 200% 200% !important;
         animation: gradientBG 15s ease infinite !important;
         background-attachment: fixed !important;
     }}
+    
     @keyframes gradientBG {{
         0% {{ background-position: 0% 50%; }}
         50% {{ background-position: 100% 50%; }}
         100% {{ background-position: 0% 50%; }}
     }}
-    [data-testid="stHeader"], [data-testid="stVerticalBlock"], .main, .block-container, [data-testid="stBottom"], [data-testid="stBottomBlockContainer"] {{
+
+    [data-testid="stHeader"], [data-testid="stVerticalBlock"], .main, .block-container, [data-testid="stBottomBlockContainer"] {{
         background: transparent !important;
     }}
+    
+    /* 🌟 Watermark (Bumblebee Logo) */
     [data-testid="stAppViewContainer"]::before {{
         content: ""; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
         width: 600px; height: 600px;
@@ -459,16 +463,22 @@ css = f"""
         background-size: contain; background-repeat: no-repeat;
         opacity: {watermark_opacity}; z-index: 0; pointer-events: none;
     }}
+    
     .main .block-container {{ padding-top: 1.5rem; max-width: 900px; padding-bottom: 120px !important; z-index: 1; }}
     
     [data-testid="stSidebar"] {{ background: {sidebar_bg} !important; backdrop-filter: blur(15px) !important; border-right: 1px solid {border_col} !important; }}
-    [data-testid="stSidebar"] * {{ color: {txt} !important; }}
     
+    /* Apply Text Color properly for themes */
+    .main p, .main span, .main label, .main h1, .main h2, .main h3, .main h4, .main h5, .main h6, .main li, .main td, .main th,
+    [data-testid="stChatMessage"] *, [data-testid="stMarkdownContainer"] *,
+    [data-testid="stSidebar"] p, [data-testid="stSidebar"] span, [data-testid="stSidebar"] label {{ color: {txt} !important; }}
+    
+    /* 💎 Glassmorphism Chat Bubbles */
     [data-testid="stChatMessage"] {{
         background: {glass_bg} !important; backdrop-filter: blur(20px) !important; -webkit-backdrop-filter: blur(20px) !important;
         border: 1px solid {border_col} !important; border-radius: 20px !important; padding: 20px !important; 
         margin-bottom: 20px !important; display: flex !important; flex-direction: row !important; align-items: flex-start !important;
-        z-index: 1; box-shadow: 0 4px 20px rgba(0,0,0,0.1) !important;
+        z-index: 1; box-shadow: 0 4px 20px rgba(0,0,0,0.05) !important;
     }}
     
     [data-testid="stChatMessage"]:has([data-testid="chatAvatarIcon-user"]) {{
@@ -476,8 +486,8 @@ css = f"""
         border: 1px solid rgba(249, 115, 22, 0.3) !important; animation: userGlow 3s infinite alternate !important;
     }}
     @keyframes userGlow {{
-        0% {{ box-shadow: 0 0 5px rgba(249, 115, 22, 0.2) !important; }}
-        100% {{ box-shadow: 0 0 20px rgba(249, 115, 22, 0.6) !important; }}
+        0% {{ box-shadow: 0 0 5px rgba(249, 115, 22, 0.1) !important; }}
+        100% {{ box-shadow: 0 0 20px rgba(249, 115, 22, 0.4) !important; }}
     }}
     [data-testid="stChatMessage"]:has([data-testid="chatAvatarIcon-user"]) .stMarkdown {{ text-align: right !important; }}
     
@@ -511,7 +521,12 @@ css = f"""
     [data-testid="stAudioInput"] button {{ background-color: #f97316 !important; color: white !important; border: none !important; }}
     [data-testid="stAudioInput"] button svg {{ fill: white !important; color: white !important; }}
 
-    [data-testid="stBottom"] {{ background: transparent !important; padding-bottom: 15px !important; }}
+    /* 🔥 FIXED CHAT INPUT & MESSENGER BOTTOM FIX */
+    [data-testid="stBottom"] {{ 
+        background: {bg_base} !important; 
+        padding-bottom: 15px !important; 
+    }}
+    
     [data-testid="stChatInput"] {{ 
         background: {chat_input_bg} !important; backdrop-filter: blur(20px) !important; -webkit-backdrop-filter: blur(20px) !important;
         border: 2px solid #f97316 !important; border-radius: 30px !important; padding: 2px 10px !important; 
@@ -526,12 +541,21 @@ css = f"""
     [data-testid="stChatInput"] button {{ background-color: #f97316 !important; color: white !important; border-radius: 50% !important; transition: all 0.3s !important; border: none !important; }}
     [data-testid="stChatInput"] button:hover {{ transform: scale(1.1) !important; box-shadow: 0 0 15px rgba(249, 115, 22, 0.8) !important; }}
 
+    /* 📱 Mobile Optimization */
     @media (max-width: 768px) {{
         .main .block-container {{ padding-left: 10px !important; padding-right: 10px !important; padding-bottom: 100px !important; }}
         .header h1 {{ font-size: 1.4rem !important; }}
         .header p {{ font-size: 0.8rem !important; }}
-        [data-testid="stBottomBlockContainer"] {{ background-color: {bg_base} !important; padding-bottom: 10px !important; }}
-        [data-testid="stChatInput"] {{ border-radius: 25px !important; margin-bottom: 50px !important; }}
+        
+        [data-testid="stBottomBlockContainer"] {{
+            background-color: {bg_base} !important;
+            padding-bottom: 10px !important;
+        }}
+        
+        [data-testid="stChatInput"] {{ 
+            border-radius: 25px !important; 
+            margin-bottom: 50px !important; 
+        }}
     }}
 
     #MainMenu {{visibility: hidden;}} footer {{visibility: hidden;}}
@@ -540,7 +564,7 @@ css = f"""
     [data-testid="collapsedControl"] {{ display: flex !important; visibility: visible !important; opacity: 1 !important; position: fixed !important; top: 15px !important; left: 15px !important; z-index: 99999 !important; background-color: #f97316 !important; color: white !important; border-radius: 50% !important; padding: 8px !important; box-shadow: 0 4px 10px rgba(0,0,0,0.2) !important; }}
     [data-testid="collapsedControl"] svg {{ fill: white !important; color: white !important; }}
     [data-testid="stPopover"] > button {{ background-color: {btn_bg} !important; color: {btn_txt} !important; border: 1px solid {border_col} !important; box-shadow: 0 2px 5px rgba(0,0,0,0.02) !important; }}
-    [data-testid="stPopoverBody"] {{ background-color: #ffffff !important; border: 1px solid {border_col} !important; box-shadow: 0 10px 30px rgba(0,0,0,0.1) !important; }}
+    [data-testid="stPopoverBody"] {{ background-color: {bg_base} !important; border: 1px solid {border_col} !important; box-shadow: 0 10px 30px rgba(0,0,0,0.1) !important; }}
     .voice-card {{ background: {glass_bg}; backdrop-filter: blur(25px); border-radius: 30px; padding: 50px 20px; text-align: center; box-shadow: 0 15px 50px rgba(0,0,0,0.1); border: 2px solid rgba(249, 115, 22, 0.3); margin-top: 5vh; display: flex; flex-direction: column; align-items: center; justify-content: center; }}
 </style>
 """
@@ -592,14 +616,12 @@ if st.session_state.voice_ui:
 # 🖼️ & 💻 CUSTOM MESSAGE RENDERER (Image + Code Preview)
 # ============================================================
 def render_custom_message(content):
-    # ১. ইমেজ চেক
     img_match = re.search(r'!\[.*?\]\((https://image\.pollinations\.ai/.*?)\)', content)
     if img_match:
         text_before = content.split(img_match.group(0))[0]
         st.markdown(text_before)
         img_url = img_match.group(1)
         try:
-            # FIX: use_column_width থেকে use_container_width এ আপডেট করা হলো
             st.image(img_url, use_container_width=True)
         except Exception:
             st.error("⚠️ ছবিটি লোড হতে সমস্যা হচ্ছে।")
@@ -621,14 +643,10 @@ def render_custom_message(content):
         st.markdown(text_after)
         return
 
-    # ২. কোড চেক (HTML / Python / C++)
-    # রেগুলার এক্সপ্রেশন দিয়ে markdown কোড ব্লক খোঁজা
     code_blocks = re.findall(r"```(html|python|javascript|cpp|c\+\+)(.*?)```", content, re.DOTALL)
     
     if code_blocks:
-        st.markdown(content) # কোডসহ পুরো টেক্সট দেখানো
-        
-        # HTML হলে লাইভ প্রিভিউ দেখানো
+        st.markdown(content) 
         for lang, code in code_blocks:
             if lang.lower() == "html":
                 with st.expander("👁️ View Web Output (Live Preview)", expanded=True):
