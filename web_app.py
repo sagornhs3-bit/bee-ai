@@ -1,4 +1,4 @@
-"""Bee - Ultimate AI Assistant (Mobile Fixed + Dark Mode Text Fix)"""
+"""Bee - Ultimate AI Assistant (Auto-Coder + Preview + Fixed Warnings)"""
 
 import streamlit as st
 import json
@@ -232,7 +232,7 @@ else: dark = False
 # ============ PERSONAS ============
 PERSONAS = {
     "Default Bee": "You are Bee, a helpful and friendly AI assistant.",
-    "Coder Bee": "You are an expert software engineer. Provide clean, optimized code with clear explanations.",
+    "Coder Bee": "You are an expert software engineer. Provide clean, optimized code with clear explanations. ALWAYS use markdown code blocks (e.g., ```html, ```python) when providing code.",
     "Storyteller": "You are a creative writer. Write engaging and imaginative stories.",
     "Teacher": "You are a patient teacher. Explain concepts simply with real-life examples.",
     "Motivator": "You are an energetic life coach. Motivate the user and give practical advice."
@@ -325,7 +325,7 @@ def extract_text_from_file(uploaded_file):
     except Exception: return ""
     return ""
 
-# ============ AI LOGIC ============
+# ============ AI LOGIC (STREAMING + IMAGE GEN + CODE) ============
 def ask_llm_stream(prompt, chat_history, file_context=""):
     client = get_groq()
     if not client: 
@@ -378,7 +378,7 @@ def ask_llm_stream(prompt, chat_history, file_context=""):
 ## Rules:
 1. Reply in the EXACT same language the user uses.
 2. NEVER use markdown headers. Use bullet points.
-3. Keep responses helpful and engaging.
+3. If user asks to build something (e.g., HTML page, Python script), provide the COMPLETE code inside standard markdown blocks (e.g., ```html or ```python). Do not truncate the code.
 """
     
     messages = [{"role": "system", "content": sys_prompt}]
@@ -402,11 +402,11 @@ def ask_llm_stream(prompt, chat_history, file_context=""):
         yield f"Error: {e}"
 
 # ============================================================
-# 🎨 PREMIUM CSS (FORCE DARK MODE TEXT & BG FIX)
+# 🎨 PREMIUM CSS (Dark Mode & Mobile Fix)
 # ============================================================
 if dark:
-    bg_base = "#0e1117" # Force Dark Background
-    txt = "#fafafa"     # Force White Text
+    bg_base = "#0e1117"
+    txt = "#fafafa"
     sidebar_bg = "rgba(14, 17, 23, 0.8)"
     chat_input_bg = "rgba(30, 30, 40, 0.9)" 
     btn_bg = "#262730"
@@ -431,18 +431,13 @@ else:
 
 css = f"""
 <style>
-    /* 🔥 FORCE APP BACKGROUND & TEXT COLOR (Messenger Fix) */
     html, body, [data-testid="stAppViewContainer"], .stApp {{
         background-color: {bg_base} !important;
         color: {txt} !important;
     }}
-    
-    /* 🔥 FORCE TEXT COLOR FOR ALL ELEMENTS */
     p, span, div, h1, h2, h3, h4, h5, h6, label, li, td, th, [data-testid="stMarkdownContainer"] * {{
         color: {txt} !important;
     }}
-
-    /* Animated Background overlay */
     .stApp {{
         background: linear-gradient(135deg, {bg_base} 0%, #1a1124 50%, #241211 100%) !important;
         background-size: 200% 200% !important;
@@ -454,11 +449,9 @@ css = f"""
         50% {{ background-position: 100% 50%; }}
         100% {{ background-position: 0% 50%; }}
     }}
-    
     [data-testid="stHeader"], [data-testid="stVerticalBlock"], .main, .block-container, [data-testid="stBottom"], [data-testid="stBottomBlockContainer"] {{
         background: transparent !important;
     }}
-    
     [data-testid="stAppViewContainer"]::before {{
         content: ""; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
         width: 600px; height: 600px;
@@ -466,7 +459,6 @@ css = f"""
         background-size: contain; background-repeat: no-repeat;
         opacity: {watermark_opacity}; z-index: 0; pointer-events: none;
     }}
-    
     .main .block-container {{ padding-top: 1.5rem; max-width: 900px; padding-bottom: 120px !important; z-index: 1; }}
     
     [data-testid="stSidebar"] {{ background: {sidebar_bg} !important; backdrop-filter: blur(15px) !important; border-right: 1px solid {border_col} !important; }}
@@ -519,12 +511,7 @@ css = f"""
     [data-testid="stAudioInput"] button {{ background-color: #f97316 !important; color: white !important; border: none !important; }}
     [data-testid="stAudioInput"] button svg {{ fill: white !important; color: white !important; }}
 
-    /* 🔥 FIXED CHAT INPUT & MESSENGER BOTTOM FIX */
-    [data-testid="stBottom"] {{ 
-        background: transparent !important; 
-        padding-bottom: 15px !important; 
-    }}
-    
+    [data-testid="stBottom"] {{ background: transparent !important; padding-bottom: 15px !important; }}
     [data-testid="stChatInput"] {{ 
         background: {chat_input_bg} !important; backdrop-filter: blur(20px) !important; -webkit-backdrop-filter: blur(20px) !important;
         border: 2px solid #f97316 !important; border-radius: 30px !important; padding: 2px 10px !important; 
@@ -539,26 +526,12 @@ css = f"""
     [data-testid="stChatInput"] button {{ background-color: #f97316 !important; color: white !important; border-radius: 50% !important; transition: all 0.3s !important; border: none !important; }}
     [data-testid="stChatInput"] button:hover {{ transform: scale(1.1) !important; box-shadow: 0 0 15px rgba(249, 115, 22, 0.8) !important; }}
 
-    /* 📱 Mobile Optimization (Messenger / FB Browser Fix) */
     @media (max-width: 768px) {{
-        .main .block-container {{ 
-            padding-left: 10px !important; 
-            padding-right: 10px !important; 
-            padding-bottom: 100px !important; 
-        }}
+        .main .block-container {{ padding-left: 10px !important; padding-right: 10px !important; padding-bottom: 100px !important; }}
         .header h1 {{ font-size: 1.4rem !important; }}
         .header p {{ font-size: 0.8rem !important; }}
-        
-        /* Force dark background on bottom block container for Messenger */
-        [data-testid="stBottomBlockContainer"] {{
-            background-color: {bg_base} !important;
-            padding-bottom: 10px !important;
-        }}
-        
-        [data-testid="stChatInput"] {{ 
-            border-radius: 25px !important; 
-            margin-bottom: 50px !important; /* Push up to avoid Messenger nav bar */
-        }}
+        [data-testid="stBottomBlockContainer"] {{ background-color: {bg_base} !important; padding-bottom: 10px !important; }}
+        [data-testid="stChatInput"] {{ border-radius: 25px !important; margin-bottom: 50px !important; }}
     }}
 
     #MainMenu {{visibility: hidden;}} footer {{visibility: hidden;}}
@@ -616,16 +589,18 @@ if st.session_state.voice_ui:
     st.stop()
 
 # ============================================================
-# 🖼️ IMAGE RENDERING HELPER
+# 🖼️ & 💻 CUSTOM MESSAGE RENDERER (Image + Code Preview)
 # ============================================================
-def render_message_with_image(content):
+def render_custom_message(content):
+    # ১. ইমেজ চেক
     img_match = re.search(r'!\[.*?\]\((https://image\.pollinations\.ai/.*?)\)', content)
     if img_match:
         text_before = content.split(img_match.group(0))[0]
         st.markdown(text_before)
         img_url = img_match.group(1)
         try:
-            st.image(img_url, use_column_width=True)
+            # FIX: use_column_width থেকে use_container_width এ আপডেট করা হলো
+            st.image(img_url, use_container_width=True)
         except Exception:
             st.error("⚠️ ছবিটি লোড হতে সমস্যা হচ্ছে।")
         
@@ -641,8 +616,29 @@ def render_message_with_image(content):
         with col4:
             if st.button("🚩 Report", key=f"report_{hash(img_url)}", use_container_width=True):
                 st.toast("🚨 রিপোর্ট করা হয়েছে।")
+        
         text_after = content.split(img_match.group(0))[1] if len(content.split(img_match.group(0))) > 1 else ""
         st.markdown(text_after)
+        return
+
+    # ২. কোড চেক (HTML / Python / C++)
+    # রেগুলার এক্সপ্রেশন দিয়ে markdown কোড ব্লক খোঁজা
+    code_blocks = re.findall(r"```(html|python|javascript|cpp|c\+\+)(.*?)```", content, re.DOTALL)
+    
+    if code_blocks:
+        st.markdown(content) # কোডসহ পুরো টেক্সট দেখানো
+        
+        # HTML হলে লাইভ প্রিভিউ দেখানো
+        for lang, code in code_blocks:
+            if lang.lower() == "html":
+                with st.expander("👁️ View Web Output (Live Preview)", expanded=True):
+                    components.html(code, height=400, scrolling=True)
+            elif lang.lower() == "python":
+                with st.expander("▶️ Python Code (Requires Terminal to Run)"):
+                    st.info("এই কোডটি রান করতে হলে আপনার কম্পিউটারে পাইথন ইনস্টল করে টার্মিনালে রান করতে হবে।")
+            elif lang.lower() in ["cpp", "c++"]:
+                with st.expander("▶️ C++ Code (Requires Compiler to Run)"):
+                    st.info("এই কোডটি রান করতে হলে C++ কম্পাইলার (যেমন GCC) প্রয়োজন।")
     else:
         st.markdown(content)
 
@@ -786,7 +782,7 @@ else:
     for i, m in enumerate(cur["messages"]):
         avatar_icon = "👤" if m["role"] == "user" else "https://raw.githubusercontent.com/sagornhs3-bit/bee-ai/main/bumblebee.png"
         with st.chat_message(m["role"], avatar=avatar_icon): 
-            render_message_with_image(m["content"])
+            render_custom_message(m["content"])
             
             if m["role"] in ["bee", "assistant"] and i == len(cur["messages"]) - 1:
                 if st.button("🔄 Regenerate Response", key="regen_btn", help="Get a different answer"):
