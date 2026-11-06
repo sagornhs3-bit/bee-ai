@@ -1,0 +1,14 @@
+name: Keep Bee AI Awake
+
+on:
+  schedule:
+    - cron: '*/10 * * * *'  # প্রতি ১০ মিনিটে একবার চলবে
+  workflow_dispatch:        # চাইলে ম্যানুয়ালিও রান করা যাবে
+
+jobs:
+  ping-app:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping Streamlit App
+        run: |
+          curl -s -o /dev/null -w "Response: %{http_code}\n" -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/110.0.0.0 Safari/537.36" https://bee-ai.streamlit.app
